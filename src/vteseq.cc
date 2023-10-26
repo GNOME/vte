@@ -229,13 +229,20 @@ Terminal::emit_resize_window(guint columns,
  * In VTE, a different technical approach is used.  The cursor is advanced to
  * the invisible column on the right, but it's set back to the visible
  * rightmost column whenever necessary (that is, before handling any of the
- * sequences that disable the special cased mode in xterm).  (Bug 731155.)
+ * sequences that disable the special cased mode in xterm).
+ *
+ * Similarly, if a right margin is set up and the cursor moved just beyond
+ * that margin due to a graphic character (as opposed to a cursor moving
+ * escape sequence) then set back the cursor by one column.
+ *
+ * See https://gitlab.gnome.org/GNOME/vte/-/issues/2108
+ * and https://gitlab.gnome.org/GNOME/vte/-/issues/2677
  */
 void
-Terminal::ensure_cursor_is_onscreen()
+Terminal::maybe_retreat_cursor()
 {
-        if (G_UNLIKELY (m_screen->cursor.col >= m_column_count))
-                m_screen->cursor.col = m_column_count - 1;
+        m_screen->cursor.col = get_xterm_cursor_column();
+        m_screen->cursor_advanced_by_graphic_character = false;
 }
 
 void
@@ -247,7 +254,7 @@ Terminal::home_cursor()
 void
 Terminal::clear_screen()
 {
-        auto row = m_screen->cursor.row - m_screen->insert_delta;
+        auto row = get_xterm_cursor_row();
         auto initial = m_screen->row_data->next();
 	/* Add a new screen's worth of rows. */
         for (auto i = 0; i < m_row_count; i++)
@@ -256,6 +263,7 @@ Terminal::clear_screen()
 	 * newly-cleared area and scroll if need be. */
         m_screen->insert_delta = initial;
         m_screen->cursor.row = row + m_screen->insert_delta;
+        m_screen->cursor_advanced_by_graphic_character = false;
         adjust_adjustments();
 	/* Redraw everything. */
         invalidate_all();
@@ -322,7 +330,7 @@ void
 Terminal::restore_cursor()
 {
         restore_cursor(m_screen);
-        ensure_cursor_is_onscreen();
+        maybe_retreat_cursor();
 }
 
 void
@@ -357,9 +365,11 @@ Terminal::switch_screen(VteScreen *new_screen)
         /* cursor.row includes insert_delta, adjust accordingly */
         auto cr = m_screen->cursor.row - m_screen->insert_delta;
         auto cc = m_screen->cursor.col;
+        auto cadv = m_screen->cursor_advanced_by_graphic_character;
         m_screen = new_screen;
         m_screen->cursor.row = cr + m_screen->insert_delta;
         m_screen->cursor.col = cc;
+        m_screen->cursor_advanced_by_graphic_character = cadv;
 
         /* Make sure the ring is large enough */
         ensure_row();
@@ -616,7 +626,7 @@ Terminal::set_character_replacement(unsigned slot)
 void
 Terminal::clear_to_bol()
 {
-        ensure_cursor_is_onscreen();
+        maybe_retreat_cursor();
 
 	/* Get the data for the row which the cursor points to. */
 	auto rowdata = ensure_row();
@@ -647,7 +657,7 @@ Terminal::clear_to_bol()
 void
 Terminal::clear_below_current()
 {
-        ensure_cursor_is_onscreen();
+        maybe_retreat_cursor();
 
 	/* If the cursor is actually on the screen, clear the rest of the
 	 * row the cursor is on and all of the rows below the cursor. */
@@ -711,7 +721,7 @@ Terminal::clear_to_eol()
 	 * influence the text flow, and serves as a perfect workaround against a new line
 	 * getting painted with the active background color (except for a possible flicker).
 	 */
-	/* ensure_cursor_is_onscreen(); */
+        /* maybe_retreat_cursor(); */
 
 	/* Get the data for the row which the cursor points to. */
         auto rowdata = ensure_cursor();
@@ -748,6 +758,7 @@ Terminal::set_cursor_column(vte::grid::column_t col)
 	_vte_debug_print(VTE_DEBUG_PARSER,
                          "Moving cursor to column %ld.\n", col);
         m_screen->cursor.col = CLAMP(col, 0, m_column_count - 1);
+        m_screen->cursor_advanced_by_graphic_character = false;
 }
 
 void
@@ -778,6 +789,7 @@ Terminal::set_cursor_row(vte::grid::row_t row)
         row = CLAMP(row, top_row, bottom_row);
 
         m_screen->cursor.row = row + m_screen->insert_delta;
+        m_screen->cursor_advanced_by_graphic_character = false;
 }
 
 void
@@ -840,7 +852,7 @@ Terminal::delete_character()
 	VteRowData *rowdata;
 	long col;
 
-        ensure_cursor_is_onscreen();
+        maybe_retreat_cursor();
 
         if (long(m_screen->row_data->next()) > m_screen->cursor.row) {
 		long len;
@@ -882,7 +894,7 @@ Terminal::move_cursor_down(vte::grid::row_t rows)
         rows = CLAMP(rows, 1, m_row_count);
 
         // FIXMEchpe why not do this afterwards?
-        ensure_cursor_is_onscreen();
+        maybe_retreat_cursor();
 
         vte::grid::row_t bottom;
         // FIXMEchpe why not check DEC_ORIGIN here?
@@ -893,6 +905,7 @@ Terminal::move_cursor_down(vte::grid::row_t rows)
 	}
 
         m_screen->cursor.row = MIN(m_screen->cursor.row + rows, bottom);
+        m_screen->cursor_advanced_by_graphic_character = false;
 }
 
 void
@@ -902,7 +915,7 @@ Terminal::erase_characters(long count,
 	VteCell *cell;
 	long col, i;
 
-        ensure_cursor_is_onscreen();
+        maybe_retreat_cursor();
 
 	/* Clear out the given number of characters. */
 	auto rowdata = ensure_row();
@@ -960,13 +973,14 @@ Terminal::erase_image_rect(vte::grid::row_t rows,
                         cursor_down_with_scrolling(true);
                 }
         }
+        m_screen->cursor_advanced_by_graphic_character = false;
 }
 
 /* Insert a blank character. */
 void
 Terminal::insert_blank_character()
 {
-        ensure_cursor_is_onscreen();
+        maybe_retreat_cursor();
 
         auto save = m_screen->cursor;
         insert_char(' ', true, true);
@@ -976,7 +990,7 @@ Terminal::insert_blank_character()
 void
 Terminal::move_cursor_backward(vte::grid::column_t columns)
 {
-        ensure_cursor_is_onscreen();
+        maybe_retreat_cursor();
 
         auto col = get_cursor_column_unclamped();
         columns = CLAMP(columns, 1, col);
@@ -988,7 +1002,7 @@ Terminal::move_cursor_forward(vte::grid::column_t columns)
 {
         columns = CLAMP(columns, 1, m_column_count);
 
-        ensure_cursor_is_onscreen();
+        maybe_retreat_cursor();
 
         /* The cursor can be further to the right, don't move in that case. */
         auto col = get_cursor_column_unclamped();
@@ -1001,7 +1015,7 @@ Terminal::move_cursor_forward(vte::grid::column_t columns)
 void
 Terminal::line_feed()
 {
-        ensure_cursor_is_onscreen();
+        maybe_retreat_cursor();
         cursor_down_with_scrolling(true);
         maybe_apply_bidi_attributes(VTE_BIDI_FLAG_ALL);
 }
@@ -1012,7 +1026,7 @@ Terminal::move_cursor_tab_backward(int count)
         if (count == 0)
                 return;
 
-        auto const newcol = m_tabstops.get_previous(get_cursor_column(), count, 0);
+        auto const newcol = m_tabstops.get_previous(get_xterm_cursor_column(), count, 0);
         set_cursor_column(newcol);
 }
 
@@ -1022,7 +1036,7 @@ Terminal::move_cursor_tab_forward(int count)
         if (count == 0)
                 return;
 
-        auto const col = get_cursor_column();
+        auto const col = get_xterm_cursor_column();
 
 	/* Find the next tabstop, but don't go beyond the end of the line */
         int const newcol = m_tabstops.get_next(col, count, m_column_count - 1);
@@ -1073,6 +1087,7 @@ Terminal::move_cursor_tab_forward(int count)
         /* Repaint the cursor. */
         invalidate_row(m_screen->cursor.row);
         m_screen->cursor.col = newcol;
+        m_screen->cursor_advanced_by_graphic_character = false;
 }
 
 void
@@ -1082,7 +1097,7 @@ Terminal::move_cursor_up(vte::grid::row_t rows)
         rows = CLAMP(rows, 1, m_row_count);
 
         //FIXMEchpe why not do this afterward?
-        ensure_cursor_is_onscreen();
+        maybe_retreat_cursor();
 
         vte::grid::row_t top;
         //FIXMEchpe why not check DEC_ORIGIN mode here?
@@ -1093,6 +1108,7 @@ Terminal::move_cursor_up(vte::grid::row_t rows)
 	}
 
         m_screen->cursor.row = MAX(m_screen->cursor.row - rows, top);
+        m_screen->cursor_advanced_by_graphic_character = false;
 }
 
 /*
@@ -1733,7 +1749,7 @@ Terminal::BS(vte::parser::Sequence const& seq)
         screen_cursor_left(screen, 1);
 #endif
 
-        ensure_cursor_is_onscreen();
+        maybe_retreat_cursor();
 
         if (m_screen->cursor.col > 0) {
 		/* There's room to move left, so do so. */
@@ -1947,7 +1963,7 @@ Terminal::CTC(vte::parser::Sequence const& seq)
         case -1:
         case 0:
                 /* Set tabstop at the current cursor position */
-                m_tabstops.set(get_cursor_column());
+                m_tabstops.set(get_xterm_cursor_column());
                 break;
 
         case 1:
@@ -1956,7 +1972,7 @@ Terminal::CTC(vte::parser::Sequence const& seq)
 
         case 2:
                 /* Clear tabstop at the current cursor position */
-                m_tabstops.unset(get_cursor_column());
+                m_tabstops.unset(get_xterm_cursor_column());
                 break;
 
         case 3:
@@ -5955,7 +5971,7 @@ Terminal::HTS(vte::parser::Sequence const& seq)
          *             VT525
          */
 
-        m_tabstops.set(get_cursor_column());
+        m_tabstops.set(get_xterm_cursor_column());
 }
 
 void
@@ -6843,7 +6859,7 @@ Terminal::RI(vte::parser::Sequence const& seq)
         screen_cursor_up(screen, 1, true);
 #endif
 
-        ensure_cursor_is_onscreen();
+        maybe_retreat_cursor();
         cursor_up_with_scrolling(true);
 }
 
@@ -7995,7 +8011,7 @@ Terminal::TBC(vte::parser::Sequence const& seq)
         case -1:
         case 0:
                 /* Clear character tabstop at the current presentation position */
-                m_tabstops.unset(get_cursor_column());
+                m_tabstops.unset(get_xterm_cursor_column());
                 break;
         case 1:
                 /* Clear line tabstop at the current line */
@@ -8100,8 +8116,8 @@ Terminal::VPA(vte::parser::Sequence const& seq)
         screen_cursor_set_rel(screen, screen->state.cursor_x, pos - 1);
 #endif
 
-        // FIXMEchpe shouldn't we ensure_cursor_is_onscreen AFTER setting the new cursor row?
-        ensure_cursor_is_onscreen();
+        // FIXMEchpe shouldn't we maybe_retreat_cursor AFTER setting the new cursor row?
+        maybe_retreat_cursor();
 
         auto value = seq.collect1(0, 1, 1, m_row_count);
         set_cursor_row1(value);

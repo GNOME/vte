@@ -145,6 +145,10 @@ public:
         vte::base::Ring m_ring; /* buffer contents */
         vte::base::Ring *row_data;
         VteVisualPosition cursor;  /* absolute value, from the beginning of the terminal history */
+        /* Whether the last relevant input was an explicit cursor movement or a graphic character.
+         * Needed to decide if the next character will wrap at the right margin, if that differs from
+         * the right edge of the terminal. See https://gitlab.gnome.org/GNOME/vte/-/issues/2677. */
+        bool cursor_advanced_by_graphic_character{false};
         double scroll_delta{0.0}; /* scroll offset */
         long insert_delta{0}; /* insertion offset */
 
@@ -1522,7 +1526,7 @@ public:
                                   GCancellable *cancellable,
                                   GError **error);
 
-        inline void ensure_cursor_is_onscreen();
+        inline void maybe_retreat_cursor();
         inline void home_cursor();
         inline void clear_screen();
         inline void clear_current_line();
@@ -1553,12 +1557,21 @@ public:
         inline void delete_character();
         inline void set_cursor_column(vte::grid::column_t col);
         inline void set_cursor_column1(vte::grid::column_t col); /* 1-based */
-        inline int get_cursor_column() const noexcept { return CLAMP(m_screen->cursor.col, 0, m_column_count - 1); }
-        inline int get_cursor_column1() const noexcept { return get_cursor_column() + 1; }
+        /* Return the xterm-like cursor column, 0-based, decremented by 1 if about to wrap.
+         * See maybe_retreat_cursor() for further details. */
+        inline int get_xterm_cursor_column() const noexcept {
+                if (m_screen->cursor.col >= m_column_count) [[unlikely]] {
+                        return m_column_count - 1;
+                } else if (m_screen->cursor.col == m_scrolling_region.right() + 1 &&
+                           m_screen->cursor_advanced_by_graphic_character) [[unlikely]] {
+                        return m_screen->cursor.col - 1;
+                } else {
+                        return m_screen->cursor.col;
+                }
+        }
         inline void set_cursor_row(vte::grid::row_t row /* relative to scrolling region */);
         inline void set_cursor_row1(vte::grid::row_t row /* relative to scrolling region */); /* 1-based */
-        inline int get_cursor_row() const noexcept { return CLAMP(m_screen->cursor.row, 0, m_row_count - 1); }
-        inline int get_cursor_row1() const noexcept { return get_cursor_row() + 1; }
+        inline int get_xterm_cursor_row() const noexcept { return m_screen->cursor.row - m_screen->insert_delta; }
         inline void set_cursor_coords(vte::grid::row_t row /* relative to scrolling region */,
                                       vte::grid::column_t column);
         inline void set_cursor_coords1(vte::grid::row_t row /* relative to scrolling region */,
