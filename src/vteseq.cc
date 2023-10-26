@@ -854,6 +854,8 @@ Terminal::erase_characters(long count,
 
         maybe_retreat_cursor();
 
+        count = CLAMP(count, 1, m_column_count - m_screen->cursor.col);
+
 	/* Clear out the given number of characters. */
 	auto rowdata = ensure_row();
         if (long(m_screen->row_data->next()) > m_screen->cursor.row) {
@@ -5547,9 +5549,7 @@ Terminal::ECH(vte::parser::Sequence const& seq)
 
         /* Erase characters starting at the cursor position (overwriting N with
          * spaces, but not moving the cursor). */
-
-        // FIXMEchpe limit to column_count - cursor.x ?
-        auto const count = seq.collect1(0, 1, 1, int(65535));
+        auto const count = seq.collect1(0, 1);
         erase_characters(count, false);
 }
 
