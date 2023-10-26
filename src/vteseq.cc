@@ -2296,7 +2296,8 @@ Terminal::DA1(vte::parser::Sequence const& seq)
 #if WITH_SIXEL
                                        m_sixel_enabled ? 4 : -2 /* skip */,
 #endif
-                                       9});
+                                       9,
+                                       21});
 }
 
 void
