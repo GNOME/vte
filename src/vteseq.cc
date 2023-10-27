@@ -254,6 +254,8 @@ Terminal::home_cursor()
 void
 Terminal::clear_screen()
 {
+        maybe_retreat_cursor();
+
         auto row = get_xterm_cursor_row();
         auto initial = m_screen->row_data->next();
 	/* Add a new screen's worth of rows. */
@@ -277,7 +279,9 @@ Terminal::clear_current_line()
 {
 	VteRowData *rowdata;
 
-	/* If the cursor is actually on the screen, clear data in the row
+        maybe_retreat_cursor();
+
+        /* If the cursor's row is covered by the ring, clear data in the row
 	 * which corresponds to the cursor. */
         if (long(m_screen->row_data->next()) > m_screen->cursor.row) {
 		/* Get the data for the row which the cursor points to. */
