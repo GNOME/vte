@@ -6241,22 +6241,38 @@ Terminal::checksum_area(vte::grid::row_t start_row,
                                   vte::grid::column_t end_col)
 {
         unsigned int checksum = 0;
+        VteCharAttrList attributes;
+        const VteCellAttr *attr;
 
+        vte_char_attr_list_init(&attributes);
         auto text = g_string_new(nullptr);
         get_text(start_row, start_col, end_row, end_col,
                              true /* block */, false /* wrap */,
                              text,
-                             nullptr /* not interested in attributes */);
-        if (text == nullptr)
+                             &attributes);
+        if (text == nullptr) {
+                vte_char_attr_list_clear(&attributes);
                 return checksum;
+        }
 
+        vte_assert_cmpuint(text->len, ==, vte_char_attr_list_get_size(&attributes));
         char const* end = (char const*)text->str + text->len;
         for (char const *p = text->str; p < end; p = g_utf8_next_char(p)) {
                 auto const c = g_utf8_get_char(p);
                 if (c == '\n')
                         continue;
                 checksum += c;
+                attr = char_to_cell_attr(vte_char_attr_list_get(&attributes, p - text->str));
+                if (attr->underline())
+                        checksum += 0x10;
+                if (attr->reverse())
+                        checksum += 0x20;
+                if (attr->blink())
+                        checksum += 0x40;
+                if (attr->bold())
+                        checksum += 0x80;
         }
+        vte_char_attr_list_clear(&attributes);
         g_string_free(text, true);
 
         return checksum & 0xffff;
