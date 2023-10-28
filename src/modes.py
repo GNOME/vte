@@ -1187,6 +1187,9 @@ modes = [
     mode_WHAT('XTERM_MOUSE_EXT_SGR', 1006, default=False, flags=Flags.WRITABLE),
     mode_WHAT('XTERM_ALTBUF_SCROLL', 1007, default=True, flags=Flags.WRITABLE),
 
+    mode_WHAT('XTERM_FAST_SCROLL', 1014, default=False),
+    mode_WHAT('XTERM_MOUSE_EXT_SGR_PIXEL', 1016, default=False),
+
     mode_WHAT('XTERM_8BIT_META', 1034, default=False),
     mode_WHAT('XTERM_NUMLOCK', 1035, default=False),
 
