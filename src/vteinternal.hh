@@ -1584,8 +1584,6 @@ public:
                                        vte::grid::column_t column); /* 1-based */
         inline vte::grid::row_t get_cursor_row_unclamped() const;
         inline vte::grid::column_t get_cursor_column_unclamped() const;
-        inline void move_cursor_up(vte::grid::row_t rows);
-        inline void move_cursor_down(vte::grid::row_t rows);
         inline void erase_characters(long count,
                                      bool use_basic = false);
         void erase_image_rect(vte::grid::row_t rows,
@@ -1597,11 +1595,15 @@ public:
                                         unsigned int& idx,
                                         uint32_t& color) const noexcept;
 
+        inline void move_cursor_up(vte::grid::row_t rows);
+        inline void move_cursor_down(vte::grid::row_t rows);
         inline void move_cursor_backward(vte::grid::column_t columns);
         inline void move_cursor_forward(vte::grid::column_t columns);
         inline void move_cursor_tab_backward(int count = 1);
         inline void move_cursor_tab_forward(int count = 1);
+
         inline void line_feed();
+
         inline void erase_in_display(vte::parser::Sequence const& seq);
         inline void erase_in_line(vte::parser::Sequence const& seq);
 
