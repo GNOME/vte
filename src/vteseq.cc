@@ -4481,10 +4481,10 @@ Terminal::DECSLRM(vte::parser::Sequence const& seq)
          *   args[0]: 1
          *   args[2]: page width
          *
-         * If left > right, the command is ignored.
-         * The maximum of right is the page size (set with DECSCPP);
-         * the minimum size of the scrolling region is 2 columns.
+         * If the values aren't in the right order, or after clamping don't
+         * define a region of at least 2 columns, the command is ignored.
          *
+         * The maximum of right is the page size (set with DECSCPP).
          * Homes to cursor to (1,1) of the page (scrolling region?).
          *
          * References: VT525
@@ -4762,7 +4762,9 @@ Terminal::DECSTBM(vte::parser::Sequence const& seq)
          *   args[0]: 1
          *   args[1]: number of lines
          *
-         * If top > bottom, the command is ignored.
+         * If the values aren't in the right order, or after clamping don't
+         * define a region of at least 2 lines, the command is ignored.
+         *
          * The maximum size of the scrolling region is the whole page.
          * Homes the cursor to position (1,1) (of the scrolling region?).
          *
@@ -4796,24 +4798,12 @@ Terminal::DECSTBM(vte::parser::Sequence const& seq)
         screen_cursor_set(screen, 0, 0);
 #endif
 
-        int top, bottom;
-        seq.collect(0, {&top, &bottom});
+        auto const top = seq.collect1(0, 1, 1, m_row_count);
+        auto const bottom = seq.collect1(seq.next(0), m_row_count, 1, m_row_count);
 
-        /* Defaults */
-        if (top <= 0)
-                top = 1;
-        if (bottom == -1)
-                bottom = m_row_count;
-
-        if (top > m_row_count ||
-            bottom <= top) {
-                m_scrolling_region.reset_vertical();
-                home_cursor();
+        /* Ignore if not at least 2 lines */
+        if (bottom <= top)
                 return;
-        }
-
-        if (bottom > m_row_count)
-                bottom = m_row_count;
 
 	/* Set the right values. */
         m_scrolling_region.set_vertical(top - 1, bottom - 1);
