@@ -2019,13 +2019,13 @@ Terminal::scroll_lines(long lines)
 
 /* Scroll so that the scroll delta is the minimum value. */
 void
-Terminal::maybe_scroll_to_top()
+Terminal::scroll_to_top()
 {
 	queue_adjustment_value_changed(m_screen->row_data->delta());
 }
 
 void
-Terminal::maybe_scroll_to_bottom()
+Terminal::scroll_to_bottom()
 {
 	queue_adjustment_value_changed(m_screen->insert_delta);
 	_vte_debug_print(VTE_DEBUG_ADJ,
@@ -3932,7 +3932,7 @@ Terminal::process_incoming()
                  * we're currently at the bottom of the buffer. */
                 update_insert_delta();
                 if (m_scroll_on_output || context.m_bottom) {
-                        maybe_scroll_to_bottom();
+                        scroll_to_bottom();
                 }
                 /* Deselect the current selection if its contents are changed
                  * by this insertion. */
@@ -4816,7 +4816,7 @@ Terminal::im_commit(std::string_view const& str)
 	/* Committed text was committed because the user pressed a key, so
 	 * we need to obey the scroll-on-keystroke setting. */
         if (m_scroll_on_keystroke && m_input_enabled) {
-		maybe_scroll_to_bottom();
+                scroll_to_bottom();
 	}
 }
 
@@ -4856,7 +4856,7 @@ Terminal::im_preedit_changed(std::string_view const& str,
         im_update_cursor();
 
         if (m_scroll_on_keystroke && m_input_enabled) {
-                maybe_scroll_to_bottom();
+                scroll_to_bottom();
         }
 }
 
@@ -5256,7 +5256,7 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 		case GDK_KEY_Home:
 			if (m_screen == &m_normal_screen &&
 			    m_modifiers & GDK_SHIFT_MASK) {
-				maybe_scroll_to_top();
+                                scroll_to_top();
 				scrolled = TRUE;
 				handled = TRUE;
 			}
@@ -5265,7 +5265,7 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 		case GDK_KEY_End:
 			if (m_screen == &m_normal_screen &&
 			    m_modifiers & GDK_SHIFT_MASK) {
-				maybe_scroll_to_bottom();
+                                scroll_to_bottom();
 				scrolled = TRUE;
 				handled = TRUE;
 			}
@@ -5417,7 +5417,7 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 		/* Keep the cursor on-screen. */
 		if (!scrolled && !modifier &&
                     m_scroll_on_keystroke && m_input_enabled) {
-			maybe_scroll_to_bottom();
+                        scroll_to_bottom();
 		}
 		handled = true;
 	}
@@ -5928,7 +5928,7 @@ Terminal::widget_paste(std::string_view const& data)
                                                  false /* C1 */));
 
         if (m_scroll_on_insert) {
-		maybe_scroll_to_bottom();
+                scroll_to_bottom();
 	}
 }
 
