@@ -6275,6 +6275,7 @@ Terminal::checksum_area(vte::grid::row_t start_row,
         vte_char_attr_list_clear(&attributes);
         g_string_free(text, true);
 
+        checksum = -checksum;
         return checksum & 0xffff;
 }
 #endif /* VTE_DEBUG */
