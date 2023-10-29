@@ -889,26 +889,6 @@ Terminal::delete_character()
 }
 
 void
-Terminal::move_cursor_down(vte::grid::row_t rows)
-{
-        rows = CLAMP(rows, 1, m_row_count);
-
-        // FIXMEchpe why not do this afterwards?
-        maybe_retreat_cursor();
-
-        vte::grid::row_t bottom;
-        // FIXMEchpe why not check DEC_ORIGIN here?
-        if (m_screen->cursor.row <= m_screen->insert_delta + m_scrolling_region.bottom()) {
-                bottom = m_screen->insert_delta + m_scrolling_region.bottom();
-	} else {
-                bottom = m_screen->insert_delta + m_row_count - 1;
-	}
-
-        m_screen->cursor.row = MIN(m_screen->cursor.row + rows, bottom);
-        m_screen->cursor_advanced_by_graphic_character = false;
-}
-
-void
 Terminal::erase_characters(long count,
                            bool use_basic)
 {
@@ -988,6 +968,47 @@ Terminal::insert_blank_character()
 }
 
 void
+Terminal::move_cursor_up(vte::grid::row_t rows)
+{
+        // FIXMEchpe allow 0 as no-op?
+        rows = CLAMP(rows, 1, m_row_count);
+
+        //FIXMEchpe why not do this afterward?
+        maybe_retreat_cursor();
+
+        vte::grid::row_t top;
+        //FIXMEchpe why not check DEC_ORIGIN mode here?
+        if (m_screen->cursor.row >= m_screen->insert_delta + m_scrolling_region.top()) {
+                top = m_screen->insert_delta + m_scrolling_region.top();
+	} else {
+		top = m_screen->insert_delta;
+	}
+
+        m_screen->cursor.row = MAX(m_screen->cursor.row - rows, top);
+        m_screen->cursor_advanced_by_graphic_character = false;
+}
+
+void
+Terminal::move_cursor_down(vte::grid::row_t rows)
+{
+        rows = CLAMP(rows, 1, m_row_count);
+
+        // FIXMEchpe why not do this afterwards?
+        maybe_retreat_cursor();
+
+        vte::grid::row_t bottom;
+        // FIXMEchpe why not check DEC_ORIGIN here?
+        if (m_screen->cursor.row <= m_screen->insert_delta + m_scrolling_region.bottom()) {
+                bottom = m_screen->insert_delta + m_scrolling_region.bottom();
+	} else {
+                bottom = m_screen->insert_delta + m_row_count - 1;
+	}
+
+        m_screen->cursor.row = MIN(m_screen->cursor.row + rows, bottom);
+        m_screen->cursor_advanced_by_graphic_character = false;
+}
+
+void
 Terminal::move_cursor_backward(vte::grid::column_t columns)
 {
         maybe_retreat_cursor();
@@ -1010,14 +1031,6 @@ Terminal::move_cursor_forward(vte::grid::column_t columns)
 		/* There's room to move right. */
                 set_cursor_column(col + columns);
 	}
-}
-
-void
-Terminal::line_feed()
-{
-        maybe_retreat_cursor();
-        cursor_down_with_scrolling(true);
-        maybe_apply_bidi_attributes(VTE_BIDI_FLAG_ALL);
 }
 
 void
@@ -1091,24 +1104,11 @@ Terminal::move_cursor_tab_forward(int count)
 }
 
 void
-Terminal::move_cursor_up(vte::grid::row_t rows)
+Terminal::line_feed()
 {
-        // FIXMEchpe allow 0 as no-op?
-        rows = CLAMP(rows, 1, m_row_count);
-
-        //FIXMEchpe why not do this afterward?
         maybe_retreat_cursor();
-
-        vte::grid::row_t top;
-        //FIXMEchpe why not check DEC_ORIGIN mode here?
-        if (m_screen->cursor.row >= m_screen->insert_delta + m_scrolling_region.top()) {
-                top = m_screen->insert_delta + m_scrolling_region.top();
-	} else {
-		top = m_screen->insert_delta;
-	}
-
-        m_screen->cursor.row = MAX(m_screen->cursor.row - rows, top);
-        m_screen->cursor_advanced_by_graphic_character = false;
+        cursor_down_with_scrolling(true);
+        maybe_apply_bidi_attributes(VTE_BIDI_FLAG_ALL);
 }
 
 /*
