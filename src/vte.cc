@@ -122,22 +122,13 @@ static int _vte_unichar_width(gunichar c, int utf8_ambiguous_width);
 
 static void stop_processing(vte::terminal::Terminal* that);
 static void add_process_timeout(vte::terminal::Terminal* that);
-static void add_update_timeout(vte::terminal::Terminal* that);
-static void remove_update_timeout(vte::terminal::Terminal* that);
-
-static gboolean process_timeout (gpointer data) noexcept;
-static gboolean update_timeout (gpointer data) noexcept;
+static gboolean process_timeout (GtkWidget *widget,
+                                 GdkFrameClock *frame_clock,
+                                 gpointer data) noexcept;
 
 #if VTE_GTK == 3
 static vte::Freeable<cairo_region_t> vte_cairo_get_clip_region(cairo_t* cr);
 #endif
-
-/* these static variables are guarded by the GDK mutex */
-static guint process_timeout_tag = 0;
-static gboolean in_process_timeout;
-static guint update_timeout_tag = 0;
-static gboolean in_update_timeout;
-static GList *g_active_terminals;
 
 class Terminal::ProcessingContext {
 public:
@@ -427,11 +418,11 @@ Terminal::invalidate_rows(vte::grid::row_t row_start,
 			"Invalidating pixels at (%d,%d)x(%d,%d).\n",
 			rect.x, rect.y, rect.width, rect.height);
 
-	if (m_active_terminals_link != nullptr) {
+	if (is_processing()) {
                 g_array_append_val(m_update_rects, rect);
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
-		add_update_timeout(this);
+		add_process_timeout(this);
 	} else {
                 auto allocation = get_allocated_rect();
                 rect.x += allocation.x + m_border.left;
@@ -577,7 +568,7 @@ Terminal::invalidate_all()
 	reset_update_rects();
 	m_invalidated_all = TRUE;
 
-        if (m_active_terminals_link != nullptr) {
+        if (is_processing ()) {
 #if VTE_GTK == 3
                 /* replace invalid regions with one covering the whole terminal */
                 auto allocation = get_allocated_rect();
@@ -592,7 +583,7 @@ Terminal::invalidate_all()
 
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
-		add_update_timeout(this);
+		add_process_timeout(this);
 	} else {
                 gtk_widget_queue_draw(m_widget);
 	}
@@ -1965,7 +1956,7 @@ void
 Terminal::queue_adjustment_changed()
 {
 	m_adjustment_changed_pending = true;
-	add_update_timeout(this);
+	add_process_timeout(this);
 }
 
 void
@@ -1983,7 +1974,7 @@ Terminal::queue_adjustment_value_changed(double v)
 
         m_screen->scroll_delta = v;
         m_adjustment_value_changed_pending = true;
-        add_update_timeout(this);
+        add_process_timeout(this);
 
         if (!widget_realized()) [[unlikely]]
                 return;
@@ -3894,21 +3885,7 @@ Terminal::pty_io_read(int const fd,
 
 		bytes = m_input_bytes;
                 if (G_LIKELY (amount < 0)) {
-                        /* Limit the amount read between updates, so as to
-                         * 1. maintain fairness between multiple terminals;
-                         * 2. prevent reading the entire output of a command in one
-                         *    pass, i.e. we always try to refresh the terminal ~40Hz.
-                         *    See time_process_incoming() where we estimate the
-                         *    maximum number of bytes we can read/process in between
-                         *    updates.
-                         */
-                        max_bytes = m_active_terminals_link != nullptr ?
-                                    g_list_length(g_active_terminals) - 1 : 0;
-                        if (max_bytes) {
-                                max_bytes = m_max_input_bytes / max_bytes;
-                        } else {
-                                max_bytes = m_max_input_bytes;
-                        }
+                        max_bytes = m_max_input_bytes;
                 } else {
                         /* 'amount' explicitly specified. Try to read this much on top
                          * of what we might already have read and not yet processed,
@@ -4369,8 +4346,9 @@ Terminal::reply(vte::parser::Sequence const& seq,
 {
         char buf[128];
         va_list vargs;
+
         va_start(vargs, format);
-        auto len = g_vsnprintf(buf, sizeof(buf), format, vargs);
+        G_GNUC_UNUSED auto len = g_vsnprintf(buf, sizeof(buf), format, vargs);
         va_end(vargs);
         vte_assert_cmpint(len, <, sizeof(buf));
 
@@ -7955,7 +7933,7 @@ Terminal::widget_unrealize()
         m_text_blink_timer.abort();
 
 	/* Cancel any pending redraws. */
-	remove_update_timeout(this);
+	stop_processing(this);
 
 	/* Cancel any pending signals */
 	m_contents_changed_pending = FALSE;
@@ -8016,7 +7994,6 @@ Terminal::~Terminal()
 
         terminate_child();
         unset_pty(false /* don't notify widget */);
-        remove_update_timeout(this);
 
         /* Stop processing input. */
         stop_processing(this);
@@ -10217,40 +10194,6 @@ Terminal::select_empty(vte::grid::column_t col,
         select_text(col, row, col, row);
 }
 
-static void
-remove_process_timeout_source(void)
-{
-	if (process_timeout_tag == 0)
-                return;
-
-        _vte_debug_print(VTE_DEBUG_TIMEOUT, "Removing process timeout\n");
-        g_source_remove (process_timeout_tag);
-        process_timeout_tag = 0;
-}
-
-static void
-add_update_timeout(vte::terminal::Terminal* that)
-{
-	if (update_timeout_tag == 0) {
-		_vte_debug_print (VTE_DEBUG_TIMEOUT,
-				"Starting update timeout\n");
-		update_timeout_tag =
-			g_timeout_add_full (GDK_PRIORITY_REDRAW,
-					VTE_UPDATE_TIMEOUT,
-					update_timeout, NULL,
-					NULL);
-	}
-	if (!in_process_timeout) {
-                remove_process_timeout_source();
-        }
-	if (that->m_active_terminals_link == nullptr) {
-		_vte_debug_print (VTE_DEBUG_TIMEOUT,
-				"Adding terminal to active list\n");
-		that->m_active_terminals_link = g_active_terminals =
-			g_list_prepend(g_active_terminals, that);
-	}
-}
-
 void
 Terminal::reset_update_rects()
 {
@@ -10260,66 +10203,23 @@ Terminal::reset_update_rects()
 	m_invalidated_all = false;
 }
 
-static bool
-remove_from_active_list(vte::terminal::Terminal* that)
-{
-	if (that->m_active_terminals_link == nullptr ||
-#if VTE_GTK == 3
-            that->m_update_rects->len != 0
-#elif VTE_GTK == 4
-            that->m_invalidated_all
-#endif
-            )
-                return false;
-
-        _vte_debug_print(VTE_DEBUG_TIMEOUT, "Removing terminal from active list\n");
-        g_active_terminals = g_list_delete_link(g_active_terminals, that->m_active_terminals_link);
-        that->m_active_terminals_link = nullptr;
-        return true;
-}
-
 static void
 stop_processing(vte::terminal::Terminal* that)
 {
-        if (!remove_from_active_list(that))
-                return;
-
-        if (g_active_terminals != nullptr)
-                return;
-
-        if (!in_process_timeout) {
-                remove_process_timeout_source();
-        }
-        if (in_update_timeout == FALSE &&
-            update_timeout_tag != 0) {
-                _vte_debug_print(VTE_DEBUG_TIMEOUT, "Removing update timeout\n");
-                g_source_remove (update_timeout_tag);
-                update_timeout_tag = 0;
-        }
-}
-
-static void
-remove_update_timeout(vte::terminal::Terminal* that)
-{
 	that->reset_update_rects();
-        stop_processing(that);
+
+        if (that->m_tick_callback != 0) {
+                gtk_widget_remove_tick_callback (that->m_widget, that->m_tick_callback);
+                that->m_tick_callback = 0;
+        }
 }
 
 static void
 add_process_timeout(vte::terminal::Terminal* that)
 {
-	_vte_debug_print(VTE_DEBUG_TIMEOUT,
-			"Adding terminal to active list\n");
-	that->m_active_terminals_link = g_active_terminals =
-		g_list_prepend(g_active_terminals, that);
-	if (update_timeout_tag == 0 &&
-			process_timeout_tag == 0) {
-		_vte_debug_print(VTE_DEBUG_TIMEOUT,
-				"Starting process timeout\n");
-		process_timeout_tag =
-			g_timeout_add (VTE_DISPLAY_TIMEOUT,
-					process_timeout, NULL);
-	}
+        if (that->m_tick_callback == 0)
+                that->m_tick_callback = gtk_widget_add_tick_callback (
+                        that->m_widget, process_timeout, that, nullptr);
 }
 
 void
@@ -10475,99 +10375,32 @@ Terminal::process(bool emit_adj_changed)
         return is_active;
 }
 
-
-/* We need to keep a reference to the terminals in the
- * g_active_terminals list while iterating over it, since
- * in some language bindings the callbacks we emit
- * during processing may cause their GC to run, causing
- * later elements in this list to be removed from the list.
- * See issue vte#270.
- */
-
-static void
-unref_active_terminals(GList* list)
-{
-        g_list_free_full(list, GDestroyNotify(g_object_unref));
-}
-
-static auto
-ref_active_terminals() noexcept
-{
-        GList* list = nullptr;
-        for (auto l = g_active_terminals; l != nullptr; l = l->next) {
-                auto that = reinterpret_cast<vte::terminal::Terminal*>(l->data);
-                list = g_list_prepend(list, g_object_ref(that->vte_terminal()));
-        }
-
-        return std::unique_ptr<GList, decltype(&unref_active_terminals)>{list, &unref_active_terminals};
-}
-
-/* This function is called after DISPLAY_TIMEOUT ms.
- * It makes sure initial output is never delayed by more than DISPLAY_TIMEOUT
- */
 static gboolean
-process_timeout (gpointer data) noexcept
+process_timeout (GtkWidget *widget,
+                 GdkFrameClock *frame_clock,
+                 gpointer data) noexcept
 try
 {
-	GList *l, *next;
-	gboolean again;
+        auto that = reinterpret_cast<vte::terminal::Terminal*>(data);
 
-	in_process_timeout = TRUE;
+        that->m_is_processing = true;
+        auto is_active = that->process(true);
+        that->m_is_processing = false;
 
-	_vte_debug_print (VTE_DEBUG_WORK, "<");
-	_vte_debug_print (VTE_DEBUG_TIMEOUT,
-                          "Process timeout:  %d active\n",
-                          g_list_length(g_active_terminals));
+        that->invalidate_dirty_rects_and_process_updates();
 
-        auto death_grip = ref_active_terminals();
-
-	for (l = g_active_terminals; l != NULL; l = next) {
-		auto that = reinterpret_cast<vte::terminal::Terminal*>(l->data);
-		bool active;
-
-		next = l->next;
-
-		if (l != g_active_terminals) {
-			_vte_debug_print (VTE_DEBUG_WORK, "T");
-		}
-
-                // FIXMEchpe find out why we don't emit_adjustment_changed() here!!
-                active = that->process(false);
-
-		if (!active) {
-                        remove_from_active_list(that);
-		}
-	}
-
-	_vte_debug_print (VTE_DEBUG_WORK, ">");
-
-	if (g_active_terminals != nullptr && update_timeout_tag == 0) {
-		again = TRUE;
-	} else {
-		_vte_debug_print(VTE_DEBUG_TIMEOUT,
-				"Stopping process timeout\n");
-		process_timeout_tag = 0;
-		again = FALSE;
-	}
-
-	in_process_timeout = FALSE;
-
-	if (again) {
-		/* Force us to relinquish the CPU as the child is running
-		 * at full tilt and making us run to keep up...
-		 */
-		g_usleep (0);
-	} else if (update_timeout_tag == 0) {
-		/* otherwise free up memory used to capture incoming data */
+        if (!is_active) {
+                stop_processing(that);
                 vte::base::Chunk::prune();
-	}
+                return G_SOURCE_REMOVE;
+        }
 
-	return again;
+        return G_SOURCE_CONTINUE;
 }
 catch (...)
 {
         vte::log_exception();
-        return true; // false?
+        return G_SOURCE_REMOVE;
 }
 
 bool
@@ -10607,122 +10440,6 @@ Terminal::invalidate_dirty_rects_and_process_updates()
 #endif
 
 	return true;
-}
-
-static gboolean
-update_repeat_timeout (gpointer data)
-{
-	GList *l, *next;
-	bool again;
-
-	in_update_timeout = TRUE;
-
-	_vte_debug_print (VTE_DEBUG_WORK, "[");
-	_vte_debug_print (VTE_DEBUG_TIMEOUT,
-                          "Repeat timeout:  %d active\n",
-                          g_list_length(g_active_terminals));
-
-        auto death_grip = ref_active_terminals();
-
-	for (l = g_active_terminals; l != NULL; l = next) {
-		auto that = reinterpret_cast<vte::terminal::Terminal*>(l->data);
-
-                next = l->next;
-
-		if (l != g_active_terminals) {
-			_vte_debug_print (VTE_DEBUG_WORK, "T");
-		}
-
-                that->process(true);
-
-		again = that->invalidate_dirty_rects_and_process_updates();
-		if (!again) {
-                        remove_from_active_list(that);
-		}
-	}
-
-	_vte_debug_print (VTE_DEBUG_WORK, "]");
-
-	/* We only stop the timer if no update request was received in this
-         * past cycle.  Technically, always stop this timer object and maybe
-         * reinstall a new one because we need to delay by the amount of time
-         * it took to repaint the screen: bug 730732.
-	 */
-	if (g_active_terminals == nullptr) {
-		_vte_debug_print(VTE_DEBUG_TIMEOUT,
-				"Stopping update timeout\n");
-		update_timeout_tag = 0;
-		again = false;
-        } else {
-                update_timeout_tag =
-                        g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
-                                            VTE_UPDATE_REPEAT_TIMEOUT,
-                                            update_repeat_timeout, NULL,
-                                            NULL);
-                again = true;
-	}
-
-	in_update_timeout = FALSE;
-
-	if (again) {
-		/* Force us to relinquish the CPU as the child is running
-		 * at full tilt and making us run to keep up...
-		 */
-		g_usleep (0);
-	} else {
-		/* otherwise free up memory used to capture incoming data */
-                vte::base::Chunk::prune();
-	}
-
-        return FALSE;  /* If we need to go again, we already have a new timer for that. */
-}
-
-static gboolean
-update_timeout (gpointer data) noexcept
-try
-{
-	GList *l, *next;
-
-	in_update_timeout = TRUE;
-
-	_vte_debug_print (VTE_DEBUG_WORK, "{");
-	_vte_debug_print (VTE_DEBUG_TIMEOUT,
-                          "Update timeout:  %d active\n",
-                          g_list_length(g_active_terminals));
-
-        remove_process_timeout_source();
-
-	for (l = g_active_terminals; l != NULL; l = next) {
-		auto that = reinterpret_cast<vte::terminal::Terminal*>(l->data);
-
-                next = l->next;
-
-		if (l != g_active_terminals) {
-			_vte_debug_print (VTE_DEBUG_WORK, "T");
-		}
-
-                that->process(true);
-
-                that->invalidate_dirty_rects_and_process_updates();
-	}
-
-	_vte_debug_print (VTE_DEBUG_WORK, "}");
-
-	/* Set a timer such that we do not invalidate for a while. */
-	/* This limits the number of times we draw to ~40fps. */
-	update_timeout_tag =
-		g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
-				    VTE_UPDATE_REPEAT_TIMEOUT,
-				    update_repeat_timeout, NULL,
-				    NULL);
-	in_update_timeout = FALSE;
-
-	return FALSE;
-}
-catch (...)
-{
-        vte::log_exception();
-        return true; // false?
 }
 
 bool
