@@ -6263,6 +6263,9 @@ Terminal::checksum_area(vte::grid::row_t start_row,
                         continue;
                 checksum += c;
                 attr = char_to_cell_attr(vte_char_attr_list_get(&attributes, p - text->str));
+
+                if (attr->invisible())
+                        checksum += 0x08;
                 if (attr->underline())
                         checksum += 0x10;
                 if (attr->reverse())
