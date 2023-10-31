@@ -185,6 +185,9 @@ DrawingGsk::draw_text_internal(TextRequest* requests,
                                 node_font = ufi->using_pango_glyph_string.font;
                         }
 
+                        if (node_font == nullptr)
+                                break;
+
                         auto const from_string = ufi->using_pango_glyph_string.glyph_string;
                         if (from_string->num_glyphs == 0)
                                 break;

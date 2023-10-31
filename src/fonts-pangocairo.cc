@@ -553,13 +553,16 @@ FontInfo::get_unistr_info(vteunistr c)
 		}
 	}
 #elif VTE_GTK == 4
-        PangoGlyphItem *glyph_item = (PangoGlyphItem *)line->runs->data;
-        PangoGlyphString *glyph_string = glyph_item->glyphs;
+        if (line != nullptr && line->runs != nullptr)
+        {
+                PangoGlyphItem *glyph_item = (PangoGlyphItem *)line->runs->data;
+                PangoGlyphString *glyph_string = glyph_item->glyphs;
 
-        uinfo->set_coverage(UnistrInfo::Coverage::USE_PANGO_GLYPH_STRING);
+                uinfo->set_coverage(UnistrInfo::Coverage::USE_PANGO_GLYPH_STRING);
 
-        ufi->using_pango_glyph_string.font = glyph_item->item->analysis.font;
-        ufi->using_pango_glyph_string.glyph_string = pango_glyph_string_copy (glyph_string);
+                ufi->using_pango_glyph_string.font = glyph_item->item->analysis.font;
+                ufi->using_pango_glyph_string.glyph_string = pango_glyph_string_copy (glyph_string);
+        }
 #endif
 
         // Don't reset m_layout here; it'll get reset anyway when we next use it.
