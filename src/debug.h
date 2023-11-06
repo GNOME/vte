@@ -67,6 +67,7 @@ typedef enum : unsigned {
         VTE_DEBUG_BIDI          = 1u << 28,
         VTE_DEBUG_CONVERSION    = 1u << 29,
         VTE_DEBUG_EXCEPTIONS    = 1u << 30,
+        VTE_DEBUG_IMAGE         = 1u << 31,
 } VteDebugFlags;
 
 void _vte_debug_init(void);

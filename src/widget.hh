@@ -506,6 +506,9 @@ public:
 
         bool should_emit_signal(int id) noexcept;
 
+        bool set_sixel_enabled(bool enabled) noexcept { return m_terminal->set_sixel_enabled(enabled); }
+        bool sixel_enabled() const noexcept { return m_terminal->sixel_enabled(); }
+
         constexpr auto xalign() const noexcept { return m_xalign; }
         constexpr auto yalign() const noexcept { return m_yalign; }
         constexpr auto xfill() const noexcept { return m_xfill; }

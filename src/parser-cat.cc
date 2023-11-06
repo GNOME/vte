@@ -40,6 +40,10 @@
 #include "utf8.hh"
 #include "vtedefines.hh"
 
+#if WITH_SIXEL
+#include "sixel-parser.hh"
+#endif
+
 enum {
 #define _VTE_SGR(...)
 #define _VTE_NGR(name, value) VTE_SGR_##name = value,
@@ -54,6 +58,9 @@ enum class DataSyntax {
         ECMA48_UTF8,
         /* ECMA48_PCTERM, */
         /* ECMA48_ECMA35, */
+        #if WITH_SIXEL
+        DECSIXEL,
+        #endif
 };
 
 char*
@@ -147,6 +154,9 @@ private:
         std::string m_str;
         bool m_plain;
         bool m_codepoints;
+#if WITH_SIXEL
+        char32_t m_sixel_st;
+#endif
 
         inline constexpr bool plain() const noexcept { return m_plain; }
 
@@ -379,6 +389,48 @@ private:
                 }
         }
 
+#if WITH_SIXEL
+
+        void
+        print_params(vte::sixel::Sequence const& seq) noexcept
+        {
+                auto const size = seq.size();
+                if (size > 0)
+                        m_str.push_back(' ');
+
+                for (unsigned int i = 0; i < size; i++) {
+                        if (!seq.param_default(i))
+                                print_format("%d", seq.param(i));
+                        if (i + 1 < size)
+                                m_str.push_back(';');
+                }
+        }
+
+        void
+        print_seq(vte::sixel::Sequence const& seq) noexcept
+        {
+                ReverseAttr attr(this);
+                GreenAttr green(this);
+
+                m_str.push_back('{');
+                switch (seq.command()) {
+                case vte::sixel::Command::DECGRI: m_str.append("DECGRI"); break;
+                case vte::sixel::Command::DECGRA: m_str.append("DECGRA"); break;
+                case vte::sixel::Command::DECGCI: m_str.append("DECGCI"); break;
+                case vte::sixel::Command::DECGCR: m_str.append("DECGCR"); break;
+                case vte::sixel::Command::DECGNL: m_str.append("DECGNL"); break;
+                default:
+                        print_format("%d/%d",
+                                     int(seq.command()) / 16,
+                                     int(seq.command()) % 16);
+                        break;
+                }
+                print_params(seq);
+                m_str.push_back('}');
+        }
+
+#endif /* WITH_SIXEL */
+
         void
         printout() noexcept
         {
@@ -411,9 +463,45 @@ public:
                         printout();
         }
 
+#if WITH_SIXEL
+
+        void SIXEL_CMD(vte::sixel::Sequence const& seq) noexcept
+        {
+                print_seq(seq);
+
+                switch (seq.command()) {
+                case vte::sixel::Command::DECGCR:
+                case vte::sixel::Command::DECGNL:
+                        printout();
+                        break;
+                default:
+                        break;
+                }
+        }
+
+        void SIXEL(uint8_t sixel) noexcept
+        {
+                print_format("%c", sixel + 0x3f);
+        }
+
+        void SIXEL_ST(char32_t st) noexcept
+        {
+                m_sixel_st = st;
+        }
+
+#endif /* WITH_SIXEL */
+
         void enter_data_syntax(DataSyntax syntax) noexcept
         {
                 switch (syntax) {
+#if WITH_SIXEL
+                case DataSyntax::DECSIXEL: {
+                        GreenAttr green(this);
+                        print_literal("<SIXEL[");
+                        m_sixel_st = 0;
+                        break;
+                }
+#endif
                 default:
                         break;
                 }
@@ -423,6 +511,17 @@ public:
                                bool success) noexcept
         {
                 switch (syntax) {
+#if WITH_SIXEL
+                case DataSyntax::DECSIXEL:
+                        if (success) {
+                                GreenAttr green(this);
+                                print_literal("]ST>");
+                        } else {
+                                RedAttr green(this);
+                                print_literal("]>");
+                        }
+                        break;
+#endif
                 default:
                         break;
                 }
@@ -619,6 +718,13 @@ private:
                 }
         }
 
+#if WITH_SIXEL
+        char32_t m_sixel_st{0};
+        bool m_seen_sixel_commands{false};
+        bool m_seen_sixel_data{false};
+        std::bitset<VTE_SIXEL_NUM_COLOR_REGISTERS> m_sixel_color_set;
+#endif
+
 public:
         Linter() noexcept = default;
         ~Linter() noexcept = default;
@@ -647,6 +753,22 @@ public:
                         check_sgr(seq);
                         break;
 
+#if WITH_SIXEL
+                case VTE_CMD_DECSIXEL:
+                        /* OR mode is a nonstandard NetBSD/x68k extension that is
+                         * not supported in VTE.
+                         */
+                        if (seq.collect1(1) == 5)
+                                warn("DECSIXEL OR-mode not supported");
+
+                        /* Image ID (args[3]) is a nonstandard RLogin extension that is
+                         * not supported in VTE.
+                         */
+                        if (seq.collect1(3) != -1)
+                                warn("DECSIXEL ID extension not supported");
+                        break;
+#endif /* WITH_SIXEL */
+
                 default:
                         if (cmd >= VTE_CMD_NOP_FIRST)
                                 warn("%s is unimplemented", cmd_to_str(cmd));
@@ -654,8 +776,135 @@ public:
                 }
         }
 
+#if WITH_SIXEL
+
+        void SIXEL(uint8_t raw) noexcept
+        {
+                m_seen_sixel_data = true;
+        }
+
+        void SIXEL_CMD(vte::sixel::Sequence const& seq) noexcept
+        {
+                switch (seq.command()) {
+                case vte::sixel::Command::DECGRI: {
+                        auto const count = seq.param(0, 1);
+                        if (count < 3)
+                                warn("DECGRI %d wastes space", seq.param(0));
+                        else if (count == 3)
+                                warn("DECGRI %d saves no space", count);
+                        else if (count > 255)
+                                warn("DECGRI %d exceeds DEC limit of 255", count);
+                        break;
+                }
+
+                case vte::sixel::Command::DECGRA:
+                        if (m_seen_sixel_commands || m_seen_sixel_data)
+                                warn("DECGRA ignored after any SIXEL commands or data");
+                        break;
+
+                case vte::sixel::Command::DECGCI: {
+
+                        auto reg = seq.param(0);
+                        if (reg == -1) {
+                                warn("DECGCI does not admit a default value for parameter 1");
+                                break;
+                        } else if (reg >= VTE_SIXEL_NUM_COLOR_REGISTERS) {
+                                warn("DECGCI %d exceeds number of available colour registers, wrapped to register %d", reg, reg & (VTE_SIXEL_NUM_COLOR_REGISTERS - 1));
+                                reg &= (VTE_SIXEL_NUM_COLOR_REGISTERS - 1);
+                        }
+
+                        if (seq.size() > 1) {
+                                switch (seq.param(1)) {
+                                case -1: /* default */
+                                        warn("DECGCI does not admit a default value for parameter 2");
+                                        break;
+                                case 1: /* HLS */ {
+                                        auto const h = seq.param(2, 0);
+                                        auto const l = seq.param(3, 0);
+                                        auto const s = seq.param(4, 0);
+                                        if (h > 360)
+                                                warn("DECGCI HSL colour hue %d exceeds range 0..360", h);
+                                        if (l > 100)
+                                                warn("DECGCI HSL colour luminosity %d exceeds range 0..100", l);
+                                        if (s > 100)
+                                                warn("DECGCI HSL colour saturation %d exceeds range 0..100", s);
+                                        break;
+                                }
+
+                                case 2: /* RGB */ {
+                                        auto const r = seq.param(2, 0);
+                                        auto const g = seq.param(3, 0);
+                                        auto const b = seq.param(4, 0);
+                                        if (r > 100)
+                                                warn("DECGCI RGB colour red %d exceeds range 0..100", r);
+                                        if (g > 100)
+                                                warn("DECGCI RGB colour red %d exceeds range 0..100", g);
+                                        if (b > 100)
+                                                warn("DECGCI RGB colour red %d exceeds range 0..100", b);
+                                        break;
+                                }
+
+                                case 3: /* RGB truecolour.
+                                         * This is an RLogin extension and not supported by VTE.
+                                         */
+                                        warn("DECGCI RGB truecolour extension is not supported");
+                                        break;
+
+                                case 0:
+                                default:
+                                        warn("DECGCI unknown colour coordinate system %d", seq.param(1));
+                                        break;
+                                }
+
+                                m_sixel_color_set.set(reg);
+                        } else {
+                                /* Select colour register param[0] */
+
+                                if (!m_sixel_color_set.test(reg))
+                                        warn("DECGCI %d selects colour which has not been defined", reg);
+                        }
+
+                        break;
+                }
+
+                case vte::sixel::Command::DECGCR:
+                        break;
+
+                case vte::sixel::Command::DECGNL:
+                        break;
+
+                default:
+                        warn("Ignoring unknown SIXEL command %d/%d '%c'",
+                             int(seq.command()) / 16,
+                             int(seq.command()) % 16,
+                             char(seq.command()));
+                       break;
+                }
+
+                m_seen_sixel_commands = true;
+        }
+
+        void SIXEL_ST(char32_t st) noexcept
+        {
+                m_sixel_st = st;
+        }
+
+#endif /* WITH_SIXEL */
+
         void enter_data_syntax(DataSyntax syntax) noexcept
         {
+                switch (syntax) {
+#if WITH_SIXEL
+                case DataSyntax::DECSIXEL:
+                        m_sixel_st = 0;
+                        m_seen_sixel_commands = m_seen_sixel_data = false;
+                        m_sixel_color_set.reset();
+                        break;
+#endif
+
+                default:
+                        break;
+                }
         }
 
         void leave_data_syntax(DataSyntax syntax,
@@ -673,6 +922,12 @@ class Sink {
 public:
         void VT(vte::parser::Sequence const& seq) noexcept { }
 
+#if WITH_SIXEL
+        void SIXEL(uint8_t raw) noexcept { }
+        void SIXEL_CMD(vte::sixel::Sequence const& seq) noexcept { }
+        void SIXEL_ST(char32_t st) noexcept { }
+#endif
+
         void enter_data_syntax(DataSyntax syntax) noexcept { }
         void leave_data_syntax(DataSyntax syntax,
                                bool success) noexcept { }
@@ -688,6 +943,7 @@ private:
 
         D& m_delegate;
         size_t m_buffer_size{0};
+        bool m_no_sixel{false};
         bool m_statistics{false};
         bool m_benchmark{false};
 
@@ -700,6 +956,10 @@ private:
         vte::base::UTF8Decoder m_utf8_decoder{};
         vte::parser::Parser m_parser{};
 
+#if WITH_SIXEL
+        vte::sixel::Parser m_sixel_parser{};
+#endif
+
         DataSyntax m_primary_data_syntax{DataSyntax::ECMA48_UTF8};
         DataSyntax m_current_data_syntax{DataSyntax::ECMA48_UTF8};
 
@@ -710,6 +970,12 @@ private:
                         m_parser.reset();
                         m_utf8_decoder.reset();
                         break;
+
+#if WITH_SIXEL
+                case DataSyntax::DECSIXEL:
+                        m_sixel_parser.reset();
+                        break;
+#endif
 
                 default:
                         break;
@@ -728,6 +994,20 @@ private:
         process_seq(vte::parser::Sequence const& seq) noexcept
         {
                 m_delegate.VT(seq);
+
+#if WITH_SIXEL
+                if (G_UNLIKELY(!m_no_sixel &&
+                               seq.command() == VTE_CMD_DECSIXEL &&
+                               seq.is_unripe())) {
+                            m_parser.reset(); // sixel parser takes over until ST
+                            m_sixel_parser.reset();
+                            m_current_data_syntax = DataSyntax::DECSIXEL;
+
+                            m_delegate.enter_data_syntax(m_current_data_syntax);
+                            return false;
+                }
+#endif /* WITH_SIXEL */
+
                 return true;
         }
 
@@ -790,6 +1070,33 @@ private:
                 return bufend;
         }
 
+#if WITH_SIXEL
+
+        uint8_t const*
+        process_data_decsixel(uint8_t const* const bufstart,
+                              uint8_t const* const bufend,
+                              bool eos) noexcept
+        {
+                auto [status, ip] = m_sixel_parser.parse(bufstart, bufend, eos, m_delegate);
+
+                switch (status) {
+                case vte::sixel::Parser::ParseStatus::CONTINUE:
+                        break;
+
+                case vte::sixel::Parser::ParseStatus::COMPLETE:
+                case vte::sixel::Parser::ParseStatus::ABORT: {
+                        auto const success = (status == vte::sixel::Parser::ParseStatus::COMPLETE);
+                        m_delegate.leave_data_syntax(m_current_data_syntax, success);
+                        m_current_data_syntax = m_primary_data_syntax;
+                        break;
+                }
+                }
+
+                return ip;
+        }
+
+#endif /* WITH_SIXEL */
+
         void
         process_fd(int fd)
         {
@@ -816,6 +1123,12 @@ private:
                                 case DataSyntax::ECMA48_UTF8:
                                         sptr = process_data_utf8(sptr, bufend, eos);
                                         break;
+
+#if WITH_SIXEL
+                                case DataSyntax::DECSIXEL:
+                                        sptr = process_data_decsixel(sptr, bufend, eos);
+                                        break;
+#endif
 
                                 default:
                                         g_assert_not_reached();
@@ -866,16 +1179,22 @@ public:
 
         Processor(Delegate& delegate,
                   size_t buffer_size,
+                  bool no_sixel,
                   bool statistics,
                   bool benchmark) noexcept
                 : m_delegate{delegate},
                   m_buffer_size{std::max(buffer_size, k_buf_overlap + 1)},
+                  m_no_sixel{no_sixel},
                   m_statistics{statistics},
                   m_benchmark{benchmark}
         {
                 memset(&m_seq_stats, 0, sizeof(m_seq_stats));
                 memset(&m_cmd_stats, 0, sizeof(m_cmd_stats));
                 m_bench_times = g_array_new(false, true, sizeof(int64_t));
+
+#if WITH_SIXEL
+                m_parser.set_dispatch_unripe(!m_no_sixel);
+#endif
         }
 
         ~Processor() noexcept
@@ -971,6 +1290,7 @@ private:
         bool m_benchmark{false};
         bool m_codepoints{false};
         bool m_lint{false};
+        bool m_no_sixel{false};
         bool m_plain{false};
         bool m_quiet{false};
         bool m_statistics{false};
@@ -990,6 +1310,7 @@ public:
         inline constexpr size_t buffer_size() const noexcept { return m_buffer_size; }
         inline constexpr bool   codepoints()  const noexcept { return m_codepoints; }
         inline constexpr bool   lint()        const noexcept { return m_lint;       }
+        inline constexpr bool   no_sixel()    const noexcept { return m_no_sixel;   }
         inline constexpr bool   plain()       const noexcept { return m_plain;      }
         inline constexpr bool   quiet()       const noexcept { return m_quiet;      }
         inline constexpr bool   statistics()  const noexcept { return m_statistics; }
@@ -1007,6 +1328,7 @@ public:
                 auto benchmark = BoolOption{m_benchmark, false};
                 auto codepoints = BoolOption{m_codepoints, false};
                 auto lint = BoolOption{m_lint, false};
+                auto no_sixel = BoolOption{m_no_sixel, false};
                 auto plain = BoolOption{m_plain, false};
                 auto quiet = BoolOption{m_quiet, false};
                 auto statistics = BoolOption{m_statistics, false};
@@ -1023,6 +1345,10 @@ public:
                           "Output unicode code points by number", nullptr },
                         { "lint", 'l', 0, G_OPTION_ARG_NONE, &lint,
                           "Check input", nullptr },
+#if WITH_SIXEL
+                        { "no-sixel", 0, 0, G_OPTION_ARG_NONE, &no_sixel,
+                          "Disable DECSIXEL processing", nullptr },
+#endif
                         { "plain", 'p', 0, G_OPTION_ARG_NONE, &plain,
                           "Output plain text without attributes", nullptr },
                         { "quiet", 'q', 0, G_OPTION_ARG_NONE, &quiet,
@@ -1051,6 +1377,7 @@ process(Options const& options,
 {
         auto proc = Processor{delegate,
                               options.buffer_size(),
+                              options.no_sixel(),
                               options.statistics(),
                               options.benchmark()};
 

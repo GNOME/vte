@@ -916,7 +916,7 @@ sequences = [
             comment='restore terminal state'),
     seq_DCS('XTERM_STCAP', 'p', intermediates=(Intermediate.PLUS,), flags=Flags.NOP,
             comment='xterm set termcap/terminfo'),
-    seq_DCS('DECSIXEL', 'q', flags=Flags.NOP,
+    seq_DCS('DECSIXEL', 'q', flags=Flags.UNRIPE | Flags.HANDLER_RV,
             comment='SIXEL graphics'),
     seq_DCS('DECRQSS', 'q', intermediates=(Intermediate.CASH,),
             comment='request selection or setting'),
