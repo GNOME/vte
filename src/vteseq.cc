@@ -334,7 +334,6 @@ void
 Terminal::restore_cursor()
 {
         restore_cursor(m_screen);
-        maybe_retreat_cursor();
 }
 
 void

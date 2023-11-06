@@ -155,6 +155,7 @@ public:
         /* Stuff saved along with the cursor */
         struct {
                 VteVisualPosition cursor;  /* onscreen coordinate, that is, relative to insert_delta */
+                bool cursor_advanced_by_graphic_character;
                 bool reverse_mode;
                 bool origin_mode;
                 VteCell defaults;
