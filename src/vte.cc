@@ -367,6 +367,7 @@ Terminal::invalidate_rows(vte::grid::row_t row_start,
 		return;
 	}
 
+#if VTE_GTK == 3
         cairo_rectangle_int_t rect;
 	/* Convert the column and row start and end to pixel values
 	 * by multiplying by the size of a character cell.
@@ -385,23 +386,26 @@ Terminal::invalidate_rows(vte::grid::row_t row_start,
 	_vte_debug_print (VTE_DEBUG_UPDATES,
 			"Invalidating pixels at (%d,%d)x(%d,%d).\n",
 			rect.x, rect.y, rect.width, rect.height);
+#endif
 
 	if (is_processing()) {
+#if VTE_GTK == 3
                 g_array_append_val(m_update_rects, rect);
+#endif
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
 		add_process_timeout(this);
 	} else {
+#if VTE_GTK == 3
                 auto allocation = get_allocated_rect();
                 rect.x += allocation.x + m_border.left;
                 rect.y += allocation.y + m_border.top;
                 cairo_region_t *region = cairo_region_create_rectangle(&rect);
-#if VTE_GTK == 3
 		gtk_widget_queue_draw_region(m_widget, region);
+                cairo_region_destroy(region);
 #elif VTE_GTK == 4
                 gtk_widget_queue_draw(m_widget); // FIXMEgtk4
 #endif
-                cairo_region_destroy(region);
 	}
 
 	_vte_debug_print (VTE_DEBUG_WORK, "!");
