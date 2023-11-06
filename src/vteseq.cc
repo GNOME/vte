@@ -1140,11 +1140,8 @@ Terminal::move_cursor_tab_forward(int count)
         if (col >= old_len && (newcol - col) <= VTE_TAB_WIDTH_MAX) {
                 glong i;
                 VteCell *cell = _vte_row_data_get_writable (rowdata, col);
-                VteCell tab = *cell;
-                tab.attr.set_columns(newcol - col);
-                tab.c = '\t';
-                /* Save tab char */
-                *cell = tab;
+                cell->c = '\t';
+                cell->attr.set_columns(newcol - col);
                 /* And adjust the fragments */
                 for (i = col + 1; i < newcol; i++) {
                         cell = _vte_row_data_get_writable (rowdata, i);
