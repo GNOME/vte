@@ -1292,7 +1292,7 @@ public:
         bool cell_is_selected_vis(vte::grid::column_t vcol,
                                   vte::grid::row_t) const;
 
-        void reset_default_attributes(bool reset_hyperlink);
+        void reset_default_attributes(bool reset_osc);
 
         void ensure_font();
         void update_font();
@@ -1332,6 +1332,8 @@ public:
         void scroll_pages(long pages) { scroll_lines(pages * m_row_count); }
         void scroll_to_top();
         void scroll_to_bottom();
+        void scroll_to_previous_prompt();
+        void scroll_to_next_prompt();
 
         void queue_cursor_moved();
         void queue_contents_changed();
@@ -1750,6 +1752,9 @@ public:
         void set_current_hyperlink(vte::parser::Sequence const& seq,
                                    vte::parser::StringTokeniser::const_iterator& token,
                                    vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+        void set_current_shell_integration_mode(vte::parser::Sequence const& seq,
+                                                vte::parser::StringTokeniser::const_iterator& token,
+                                                vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
         void vte_extension(vte::parser::Sequence const& seq,
                            vte::parser::StringTokeniser::const_iterator& token,
                            vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;

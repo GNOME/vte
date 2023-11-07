@@ -250,12 +250,15 @@ Terminal::unset_widget() noexcept
 
 /* Reset defaults for character insertion. */
 void
-Terminal::reset_default_attributes(bool reset_hyperlink)
+Terminal::reset_default_attributes(bool reset_osc)
 {
         auto const hyperlink_idx_save = m_defaults.attr.hyperlink_idx;
+        auto const shell_integration_save = m_defaults.attr.shellintegration();
         m_defaults = m_color_defaults = basic_cell;
-        if (!reset_hyperlink)
+        if (!reset_osc) {
                 m_defaults.attr.hyperlink_idx = hyperlink_idx_save;
+                m_defaults.attr.set_shellintegration(shell_integration_save);
+        }
 }
 
 //FIXMEchpe this function is bad
@@ -2030,6 +2033,38 @@ Terminal::scroll_to_bottom()
 	queue_adjustment_value_changed(m_screen->insert_delta);
 	_vte_debug_print(VTE_DEBUG_ADJ,
 			"Snapping to bottom of screen\n");
+}
+
+void
+Terminal::scroll_to_previous_prompt()
+{
+        long row = ceil(m_screen->scroll_delta) - 1;
+        row = MAX(row, (long) m_screen->row_data->delta());
+
+        while (row > (long) m_screen->row_data->delta()) {
+                if (m_screen->row_data->contains_prompt_beginning(row)) {
+                        break;
+                }
+                row--;
+        }
+
+        queue_adjustment_value_changed_clamped(row);
+}
+
+void
+Terminal::scroll_to_next_prompt()
+{
+        long row = floor(m_screen->scroll_delta) + 1;
+        row = MIN(row, m_screen->insert_delta);
+
+        while (row < m_screen->insert_delta) {
+                if (m_screen->row_data->contains_prompt_beginning(row)) {
+                        break;
+                }
+                row++;
+        }
+
+        queue_adjustment_value_changed_clamped(row);
 }
 
 /*
@@ -5232,6 +5267,28 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 				suppress_alt_esc = TRUE;
 			}
 			break;
+                case GDK_KEY_KP_Left:
+                case GDK_KEY_Left:
+                        if (m_screen == &m_normal_screen &&
+                            m_modifiers & GDK_CONTROL_MASK &&
+                            m_modifiers & GDK_SHIFT_MASK) {
+                                scroll_to_previous_prompt();
+                                scrolled = TRUE;
+                                handled = TRUE;
+                                suppress_alt_esc = TRUE;
+                        }
+                        break;
+                case GDK_KEY_KP_Right:
+                case GDK_KEY_Right:
+                        if (m_screen == &m_normal_screen &&
+                            m_modifiers & GDK_CONTROL_MASK &&
+                            m_modifiers & GDK_SHIFT_MASK) {
+                                scroll_to_next_prompt();
+                                scrolled = TRUE;
+                                handled = TRUE;
+                                suppress_alt_esc = TRUE;
+                        }
+                        break;
 		case GDK_KEY_KP_Page_Up:
 		case GDK_KEY_Page_Up:
 			if (m_screen == &m_normal_screen &&
