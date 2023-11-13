@@ -462,6 +462,7 @@ compiler_flags_common = [
   '-Wmissing-format-attribute',
   '-Wmissing-include-dirs',
   '-Wmissing-noreturn',
+  '-Wno-deprecated-declarations',
   '-Wno-address-of-packed-member',
   '-Wno-c99-designator',
   '-Wno-missing-field-initializers',
