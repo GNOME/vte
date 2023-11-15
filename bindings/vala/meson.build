@@ -47,7 +47,7 @@ endif
 if get_option('gtk4')
 
   libvte_gtk4_vapi_deps = libvte_common_vapi_deps + [
-    'graphene-1.0',
+    'graphene-gobject-1.0',
     'gtk4',
   ]
 
