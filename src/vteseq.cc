@@ -1064,7 +1064,7 @@ Terminal::move_cursor_tab_forward(int count)
         auto const newcol = m_tabstops.get_next(col, count, stop);
 
         /* If the cursor didn't advance then nothing left to do. */
-        g_assert_cmpint((int)newcol, >=, col);
+        vte_assert_cmpint((int)newcol, >=, col);
         if ((int)newcol == col)
                 return;
 
