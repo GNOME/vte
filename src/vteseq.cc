@@ -2461,7 +2461,7 @@ Terminal::DCH(vte::parser::Sequence const& seq)
 
         auto const count = seq.collect1(0, 1);
         /* Scroll left in a custom region: only the cursor's row, from the cursor to the DECSLRM right margin. */
-        struct vte_scrolling_region scrolling_region(m_scrolling_region);
+        auto scrolling_region{m_scrolling_region};
         scrolling_region.set_vertical(cursor_row, cursor_row);
         scrolling_region.set_horizontal(cursor_col, scrolling_region.right());
         scroll_text_left(scrolling_region, count, true /* fill */);
@@ -2738,7 +2738,7 @@ Terminal::DECDC(vte::parser::Sequence const& seq)
 
         auto const count = seq.collect1(0, 1);
         /* Scroll left in a custom region: the left is at the cursor, the rest is according to DECSTBM / DECSLRM. */
-        struct vte_scrolling_region scrolling_region(m_scrolling_region);
+        auto scrolling_region{m_scrolling_region};
         scrolling_region.set_horizontal(cursor_col, scrolling_region.right());
         scroll_text_left(scrolling_region, count, true /* fill */);
 }
@@ -3034,7 +3034,7 @@ Terminal::DECIC(vte::parser::Sequence const& seq)
 
         auto const count = seq.collect1(0, 1);
         /* Scroll right in a custom region: the left is at the cursor, the rest is according to DECSTBM / DECSLRM. */
-        struct vte_scrolling_region scrolling_region(m_scrolling_region);
+        auto scrolling_region{m_scrolling_region};
         scrolling_region.set_horizontal(cursor_col, scrolling_region.right());
         scroll_text_right(scrolling_region, count, true /* fill */);
 }
@@ -5180,7 +5180,7 @@ Terminal::DL(vte::parser::Sequence const& seq)
 
         auto const count = seq.collect1(0, 1);
         /* Scroll up in a custom region: the top is at the cursor, the rest is according to DECSTBM / DECSLRM. */
-        struct vte_scrolling_region scrolling_region(m_scrolling_region);
+        auto scrolling_region{m_scrolling_region};
         scrolling_region.set_vertical(cursor_row, scrolling_region.bottom());
         scroll_text_up(scrolling_region, count, true /* fill */);
 }
@@ -6131,7 +6131,7 @@ Terminal::ICH(vte::parser::Sequence const& seq)
 
         auto const count = seq.collect1(0, 1);
         /* Scroll right in a custom region: only the cursor's row, from the cursor to the DECSLRM right margin. */
-        struct vte_scrolling_region scrolling_region(m_scrolling_region);
+        auto scrolling_region{m_scrolling_region};
         scrolling_region.set_vertical(cursor_row, cursor_row);
         scrolling_region.set_horizontal(cursor_col, scrolling_region.right());
         scroll_text_right(scrolling_region, count, true /* fill */);
@@ -6227,7 +6227,7 @@ Terminal::IL(vte::parser::Sequence const& seq)
 
         auto const count = seq.collect1(0, 1);
         /* Scroll down in a custom region: the top is at the cursor, the rest is according to DECSTBM / DECSLRM. */
-        struct vte_scrolling_region scrolling_region(m_scrolling_region);
+        auto scrolling_region{m_scrolling_region};
         scrolling_region.set_vertical(cursor_row, scrolling_region.bottom());
         scroll_text_down(scrolling_region, count, true /* fill */);
 }

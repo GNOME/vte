@@ -2737,7 +2737,7 @@ Terminal::cleanup_fragments(long rownum,
  * The cursor's position is irrelevant, and it stays where it was (relative to insert_delta).
  */
 void
-Terminal::scroll_text_up(const struct vte_scrolling_region& scrolling_region,
+Terminal::scroll_text_up(scrolling_region const& scrolling_region,
                          vte::grid::row_t amount, bool fill)
 {
         auto const top = m_screen->insert_delta + scrolling_region.top();
@@ -2842,7 +2842,7 @@ Terminal::scroll_text_up(const struct vte_scrolling_region& scrolling_region,
  * The cursor's position is irrelevant, and it stays where it was.
  */
 void
-Terminal::scroll_text_down(const struct vte_scrolling_region& scrolling_region,
+Terminal::scroll_text_down(scrolling_region const& scrolling_region,
                            vte::grid::row_t amount, bool fill)
 {
         auto const top = m_screen->insert_delta + scrolling_region.top();
@@ -2921,7 +2921,7 @@ Terminal::scroll_text_down(const struct vte_scrolling_region& scrolling_region,
  * The cursor's position is irrelevant, and it stays where it was.
  */
 void
-Terminal::scroll_text_left(const struct vte_scrolling_region& scrolling_region,
+Terminal::scroll_text_left(scrolling_region const& scrolling_region,
                            vte::grid::row_t amount, bool fill)
 {
         auto const top = m_screen->insert_delta + scrolling_region.top();
@@ -2970,7 +2970,7 @@ Terminal::scroll_text_left(const struct vte_scrolling_region& scrolling_region,
  * The cursor's position is irrelevant, and it stays where it was.
  */
 void
-Terminal::scroll_text_right(const struct vte_scrolling_region& scrolling_region,
+Terminal::scroll_text_right(scrolling_region const& scrolling_region,
                             vte::grid::row_t amount, bool fill)
 {
         auto const top = m_screen->insert_delta + scrolling_region.top();
@@ -3371,7 +3371,7 @@ Terminal::insert_char(gunichar c,
             m_screen->cursor.col >= m_scrolling_region.left() &&
             m_screen->cursor.col <= m_scrolling_region.right()) {
                 /* Like ICH's handler: Scroll right in a custom region: only the cursor's row, from the cursor to the DECSLRM right margin. */
-                struct vte_scrolling_region scrolling_region(m_scrolling_region);
+                auto scrolling_region = m_scrolling_region;
                 scrolling_region.set_vertical(get_xterm_cursor_row(), get_xterm_cursor_row());
                 scrolling_region.set_horizontal(m_screen->cursor.col, scrolling_region.right());
                 scroll_text_right(scrolling_region, columns, false /* no fill */);
