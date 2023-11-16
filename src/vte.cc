@@ -184,25 +184,10 @@ public:
         [[gnu::always_inline]]
         inline void post_GRAPHIC(Terminal& terminal) noexcept
         {
-                auto const* screen = terminal.m_screen;
-
-                if (terminal.m_line_wrapped) {
-                        terminal.m_line_wrapped = false;
-                        /* line wrapped, correct bbox */
-                        if (m_invalidated_text &&
-                            (screen->cursor.row > m_bbox_bottom + VTE_CELL_BBOX_SLACK ||
-                             screen->cursor.row < m_bbox_top - VTE_CELL_BBOX_SLACK)) {
-                                terminal.invalidate_rows_and_context(m_bbox_top, m_bbox_bottom);
-                                m_bbox_bottom = -G_MAXINT;
-                                m_bbox_top = G_MAXINT;
-                        }
-                        m_bbox_top = std::min(m_bbox_top,
-                                              screen->cursor.row);
-                }
                 /* Add the cells over which we have moved to the region
                  * which we need to refresh for the user. */
                 m_bbox_bottom = std::max(m_bbox_bottom,
-                                         screen->cursor.row);
+                                         terminal.m_screen->cursor.row);
 
                 m_invalidated_text = true;
                 m_modified = true;
@@ -3199,7 +3184,6 @@ Terminal::insert_char(gunichar c,
 	VteRowData *row;
 	long col;
 	int columns, i;
-	bool line_wrapped = false; /* cursor moved before char inserted */
         gunichar c_unmapped = c;
 
         /* DEC Special Character and Line Drawing Set.  VT100 and higher (per XTerm docs). */
@@ -3287,7 +3271,6 @@ Terminal::insert_char(gunichar c,
                                 col = m_screen->cursor.col = m_column_count - columns;
                         }
 		}
-		line_wrapped = true;
 	}
 
 	_vte_debug_print(VTE_DEBUG_PARSER,
@@ -3419,8 +3402,6 @@ not_inserted:
 	_vte_debug_print(VTE_DEBUG_ADJ|VTE_DEBUG_PARSER,
 			"insertion delta => %ld.\n",
 			(long)m_screen->insert_delta);
-
-        m_line_wrapped = line_wrapped;
 }
 
 #if WITH_SIXEL
@@ -3791,9 +3772,6 @@ Terminal::process_incoming()
 
         /* We should only be called when there's data to process. */
         g_assert(!m_incoming_queue.empty());
-
-        // FIXMEchpe move to context
-        m_line_wrapped = false;
 
         auto bytes_processed = ssize_t{0};
 

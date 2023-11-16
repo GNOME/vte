@@ -1697,7 +1697,6 @@ public:
         void ringview_update();
 
         /* Sequence handlers */
-        bool m_line_wrapped; // signals line wrapped from character insertion
         // Note: inlining the handlers seems to worsen the performance, so we don't do that
 #define _VTE_CMD_HANDLER(cmd) \
 	/* inline */ void cmd (vte::parser::Sequence const& seq);
