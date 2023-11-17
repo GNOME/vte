@@ -165,26 +165,36 @@ public:
         } saved;
 };
 
+namespace vte {
+
 /* Tracks the DECSTBM / DECSLRM scrolling region, a.k.a. margins.
  * For effective operation, it stores in a single boolean if at its default state. */
-struct vte_scrolling_region {
+struct scrolling_region {
 private:
-        int m_width{1}, m_height{1};
-        int m_top{0}, m_bottom{0}, m_left{0}, m_right{0};  /* 0-based, inclusive */
+        int m_width{1};
+        int m_height{1};
+        /* The following are 0-based, inclusive */
+        int m_top{0};
+        int m_bottom{0};
+        int m_left{0};
+        int m_right{0};
         bool m_is_restricted{false};
 
-        void update_is_restricted() {
+        constexpr void update_is_restricted() noexcept
+        {
                 m_is_restricted = (m_top != 0) || (m_bottom != m_height - 1) ||
                                   (m_left != 0) || (m_right != m_width - 1);
         }
 
 public:
+        constexpr scrolling_region() noexcept = default;
+
         inline constexpr auto top() const noexcept { return m_top; }
         inline constexpr auto bottom() const noexcept { return m_bottom; }
         inline constexpr auto left() const noexcept { return m_left; }
         inline constexpr auto right() const noexcept { return m_right; }
         inline constexpr auto is_restricted() const noexcept { return m_is_restricted; }
-        inline bool contains_row_col(int row, int col) const noexcept {
+        inline constexpr bool contains_row_col(int row, int col) const noexcept {
                 return row >= m_top && row <= m_bottom && col >= m_left && col <= m_right;
         }
 
@@ -194,9 +204,7 @@ public:
         void reset_horizontal() noexcept { set_horizontal(0, m_width - 1); }
         void reset() noexcept { reset_vertical(); reset_horizontal(); }
         void reset_with_size(int w, int h) noexcept { m_width = w; m_height = h; reset(); }
-};
-
-namespace vte {
+}; // class scrolling_region
 
 namespace platform {
 class Widget;
@@ -492,7 +500,7 @@ public:
         }
 
         /* Restricted scrolling */
-        struct vte_scrolling_region m_scrolling_region;     /* the region we scroll in */
+        scrolling_region m_scrolling_region;     /* the region we scroll in */
         inline void reset_scrolling_region() { m_scrolling_region.reset_with_size(m_column_count, m_row_count); }
 
 	/* Cursor shape, as set via API */
@@ -893,13 +901,13 @@ public:
                                long start,
                                long end);
 
-        void scroll_text_up(const struct vte_scrolling_region& scrolling_region,
+        void scroll_text_up(scrolling_region const& scrolling_region,
                             vte::grid::row_t amount, bool fill);
-        void scroll_text_down(const struct vte_scrolling_region& scrolling_region,
+        void scroll_text_down(scrolling_region const& scrolling_region,
                               vte::grid::row_t amount, bool fill);
-        void scroll_text_left(const struct vte_scrolling_region& scrolling_region,
+        void scroll_text_left(scrolling_region const& scrolling_region,
                               vte::grid::row_t amount, bool fill);
-        void scroll_text_right(const struct vte_scrolling_region& scrolling_region,
+        void scroll_text_right(scrolling_region const& scrolling_region,
                                vte::grid::row_t amount, bool fill);
         void cursor_down_with_scrolling(bool fill);
         void cursor_up_with_scrolling(bool fill);
