@@ -7930,6 +7930,8 @@ Terminal::set_size(long columns,
 {
 	glong old_columns, old_rows;
 
+        update_insert_delta();  /* addresses https://gitlab.gnome.org/GNOME/vte/-/issues/2258 */
+
 	_vte_debug_print(VTE_DEBUG_RESIZE,
 			"Setting PTY size to %ldx%ld.\n",
 			columns, rows);
