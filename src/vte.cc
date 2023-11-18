@@ -3175,7 +3175,10 @@ Terminal::save_cursor(VteScreen *screen__)
         screen__->saved.character_replacement = m_character_replacement;
 }
 
-/* Insert a single character into the stored data array. */
+/* Insert a single character into the stored data array.
+ *
+ * Note that much of this method is duplicated below in insert_ascii_chars().
+ * Make sure to keep the two in sync! */
 void
 Terminal::insert_char(gunichar c,
                       bool invalidate_now)
@@ -3402,6 +3405,104 @@ not_inserted:
 	_vte_debug_print(VTE_DEBUG_ADJ|VTE_DEBUG_PARSER,
 			"insertion delta => %ld.\n",
 			(long)m_screen->insert_delta);
+}
+
+/* Inserts each 7-bit char of the string.
+ * The passed string MUST consist of printable ASCII 0x20..0x7E bytes only.
+ * It performs the equivalent of calling insert_char(..., false) on each of them,
+ * but is usually much faster.
+ *
+ * Note that much of this method is duplicated above in insert_char().
+ * Make sure to keep the two in sync! */
+void
+Terminal::insert_ascii_chars(uint8_t const *start, uint8_t const *end)
+{
+        if (m_scrolling_region.is_restricted() ||
+            (*m_character_replacement == VTE_CHARACTER_REPLACEMENT_LINE_DRAWING) ||
+            !m_modes_private.DEC_AUTOWRAP() ||
+            m_modes_ecma.IRM()) {
+                /* There is some special unusual circumstance.
+                 * Resort to inserting the characters one by one. */
+                for (auto p = start; p < end; p++) {
+                        insert_char(*p, false);
+                }
+                return;
+        }
+
+        /* The usual circumstances, that is, no custom margins,
+         * no box drawing mode, autowrapping enabled, no insert mode.
+         * Much of this code is duplicated from insert_char(), with
+         * the checks for the unnecessary conditions stripped off.
+         * Also, don't check for wrapping after each character; rather,
+         * fill up runs within a single row as quickly as we can.
+         * Furthermore, don't clean up CJK fragments at each character.
+         * All these combined result in significantly faster operation. */
+        for (auto p = start; p < end; ) {
+                VteRowData *row;
+                long col;
+
+                /* If we're autowrapping here, do it. */
+                col = m_screen->cursor.col;
+                if (G_UNLIKELY (col >= m_column_count)) {
+                        _vte_debug_print(VTE_DEBUG_ADJ,
+                                        "Autowrapping before character\n");
+                        /* Wrap. */
+                        /* XXX clear to the end of line */
+                        col = 0;
+                        /* Mark this line as soft-wrapped. */
+                        row = ensure_row();
+                        set_soft_wrapped(m_screen->cursor.row);
+                        /* Handle bce (background color erase) differently from xterm:
+                         * only fill the new row with the background color if scrolling happens due
+                         * to an explicit escape sequence, not due to autowrapping (i.e. not here).
+                         * See https://gitlab.gnome.org/GNOME/vte/-/issues/2219 for details. */
+                        cursor_down_with_scrolling(false);
+                        ensure_row();
+                        apply_bidi_attributes(m_screen->cursor.row, row->attr.bidi_flags, VTE_BIDI_FLAG_ALL);
+                }
+
+                /* The number of cells we can populate in this row. */
+                int run = MIN(end - p, m_column_count - col);
+                vte_assert_cmpint(run, >=, 1);
+
+                _vte_debug_print(VTE_DEBUG_PARSER,
+                                 "Inserting ASCII string \"%.*s\" (colors %" G_GUINT64_FORMAT ") (%ld+%d, %ld), delta = %ld; ",
+                                 run, p,
+                                 m_color_defaults.attr.colors(),
+                                 col, run, (long)m_screen->cursor.row,
+                                 (long)m_screen->insert_delta);
+
+                /* Make sure we have enough rows to hold this data. */
+                row = ensure_cursor();
+                g_assert(row != NULL);
+
+                cleanup_fragments(col, col + run);
+                _vte_row_data_fill (row, &basic_cell, col + run);
+
+                while (run--) {
+                        VteCell *pcell = _vte_row_data_get_writable (row, col);
+                        pcell->c = *p;
+                        pcell->attr = m_defaults.attr;
+                        p++;
+                        col++;
+                }
+
+                if (_vte_row_data_length (row) > m_column_count)
+                        cleanup_fragments(m_column_count, _vte_row_data_length (row));
+                _vte_row_data_shrink (row, m_column_count);
+
+                m_screen->cursor.col = col;
+
+                m_last_graphic_character = *(p - 1);
+                m_screen->cursor_advanced_by_graphic_character = true;
+
+                /* We added text, so make a note of it. */
+                m_text_inserted_flag = TRUE;
+
+                _vte_debug_print(VTE_DEBUG_ADJ|VTE_DEBUG_PARSER,
+                                 "insertion delta => %ld.\n",
+                                 (long)m_screen->insert_delta);
+        }
 }
 
 #if WITH_SIXEL
@@ -3974,9 +4075,16 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                                 // characters. So plan for that and avoid round-tripping
                                 // through the UTF-8 decoder as well as the Parser. It
                                 // also allows for a single pre_GRAPHIC()/post_GRAPHIC().
+                                auto ip_prev = ip;
                                 while (ip < iend && *ip >= 0x20 && *ip < 0x7f) [[likely]] {
-                                        insert_char(*ip, false);
                                         ip++;
+                                }
+                                if (ip > ip_prev) {
+                                        insert_ascii_chars(ip_prev, ip);
+                                        _vte_debug_print(VTE_DEBUG_PARSER,
+                                                         "Last graphic is now U+%04X %lc\n",
+                                                         m_last_graphic_character,
+                                                         g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
                                 }
 
                                 context.post_GRAPHIC(*this);

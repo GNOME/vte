@@ -921,6 +921,8 @@ public:
 
         void insert_char(gunichar c,
                          bool invalidate_now);
+        void insert_ascii_chars(uint8_t const *start,
+                                uint8_t const *end);
 
         #if WITH_SIXEL
         void insert_image(ProcessingContext& context,
