@@ -163,6 +163,18 @@ void _vte_row_data_fill (VteRowData *row, const VteCell *cell, gulong len)
 	}
 }
 
+/* This leaves the new cells uninitialized, potentially containing random data.
+ * It's the caller's responsibility to initialize them. */
+void _vte_row_data_expand (VteRowData *row, gulong len)
+{
+	if (row->len < len) {
+		if (G_UNLIKELY (!_vte_row_data_ensure (row, len)))
+			return;
+
+		row->len = len;
+	}
+}
+
 void _vte_row_data_shrink (VteRowData *row, gulong max_len)
 {
 	if (max_len < row->len)

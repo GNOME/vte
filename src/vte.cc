@@ -3363,7 +3363,8 @@ Terminal::insert_char(gunichar c,
                 scroll_text_right(scrolling_region, columns, false /* no fill */);
 	} else {
                 cleanup_fragments(col, col + columns);
-		_vte_row_data_fill (row, &basic_cell, col + columns);
+		_vte_row_data_fill (row, &basic_cell, col);
+		_vte_row_data_expand (row, col + columns);
 	}
 
         attr = m_defaults.attr;
@@ -3477,7 +3478,8 @@ Terminal::insert_ascii_chars(uint8_t const *start, uint8_t const *end)
                 g_assert(row != NULL);
 
                 cleanup_fragments(col, col + run);
-                _vte_row_data_fill (row, &basic_cell, col + run);
+                _vte_row_data_fill (row, &basic_cell, col);
+                _vte_row_data_expand (row, col + run);
 
                 while (run--) {
                         VteCell *pcell = _vte_row_data_get_writable (row, col);
