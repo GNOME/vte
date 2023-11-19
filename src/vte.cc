@@ -3448,7 +3448,7 @@ Terminal::insert_ascii_chars(uint8_t const *start, uint8_t const *end)
                                         "Autowrapping before character\n");
                         /* Wrap. */
                         /* XXX clear to the end of line */
-                        col = 0;
+                        col = m_screen->cursor.col = 0;
                         /* Mark this line as soft-wrapped. */
                         row = ensure_row();
                         set_soft_wrapped(m_screen->cursor.row);
