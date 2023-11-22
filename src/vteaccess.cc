@@ -1173,7 +1173,9 @@ static gunichar
 vte_terminal_accessible_get_character_at_offset(AtkText *text, gint offset)
 {
         VteTerminalAccessible *accessible = VTE_TERMINAL_ACCESSIBLE(text);
+#ifndef G_DISABLE_ASSERT
 	VteTerminalAccessiblePrivate *priv = (VteTerminalAccessiblePrivate *)_vte_terminal_accessible_get_instance_private(accessible);
+#endif
 	char *unichar;
 	gunichar ret;
 
