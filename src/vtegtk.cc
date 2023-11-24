@@ -2451,7 +2451,10 @@ vte_terminal_class_init(VteTerminalClass *klass)
         /**
          * VteTerminal:yfill:
          *
-         * The vertical fillment of @terminal within its allocation
+         * The vertical fillment of @terminal within its allocation.
+         * Note that #VteTerminal:yfill=%TRUE is only supported with
+         * #VteTerminal:yalign=%VTE_ALIGN_START, and is ignored for
+         * all other yalign values.
          *
          * Since: 0.76
          */
@@ -6843,6 +6846,8 @@ catch (...)
  * @fill: fillment value from #VteFill
  *
  * Sets the vertical fillment of @terminal within its allocation.
+ * Note that yfill is only supported with yalign set to
+ * %VTE_ALIGN_START, and is ignored for all other yalign values.
  *
  * Since: 0.76
  */
