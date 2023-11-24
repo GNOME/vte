@@ -61,6 +61,13 @@ acquire_ref(GWeakRef* wr)
         return take_ref(reinterpret_cast<T*>(g_weak_ref_get(wr)));
 }
 
+template<typename T>
+RefPtr<T>
+ref(RefPtr<T> const& obj)
+{
+        return make_ref(obj.get());
+}
+
 } // namespace glib
 
 namespace base {

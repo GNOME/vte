@@ -5101,9 +5101,16 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 		}
 	}
 
+        // Try showing the context menu
+        if (!handled &&
+            (event.matches(GDK_KEY_Menu, 0) ||
+             event.matches(GDK_KEY_F10, GDK_SHIFT_MASK))) {
+                _vte_debug_print(VTE_DEBUG_EVENTS, "Showing context menu\n");
+                handled = widget()->show_context_menu(vte::platform::EventContext{event});
+        }
+
 	/* Now figure out what to send to the child. */
-	if (event.is_key_press() && !modifier) {
-		handled = FALSE;
+	if (event.is_key_press() && !modifier && !handled) {
 		/* Map the key to a sequence name if we can. */
 		switch (event.keyval()) {
 		case GDK_KEY_BackSpace:
@@ -5423,19 +5430,10 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
                     m_scroll_on_keystroke && m_input_enabled) {
 			maybe_scroll_to_bottom();
 		}
-		return true;
+		handled = true;
 	}
 
-#if VTE_GTK == 4
-        if (!handled &&
-            event.matches(GDK_KEY_Menu, 0)) {
-                _vte_debug_print(VTE_DEBUG_EVENTS, "Showing context menu\n");
-                // FIXMEgtk4 do context menu
-                handled = true;
-        }
-#endif
-
-	return false;
+	return handled;
 }
 
 bool
@@ -7270,6 +7268,23 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 			}
 			break;
                 case vte::platform::MouseEvent::Button::eRIGHT:
+                        // If we get a Shift+Right-Clickt, don't send the
+                        // event to the app but instead first try to popup
+                        // the context menu
+                        if ((m_modifiers & (GDK_SHIFT_MASK |
+                                            GDK_CONTROL_MASK |
+#if VTE_GTK == 3
+                                            GDK_MOD1_MASK |
+#elif VTE_GTK == 4
+                                            GDK_ALT_MASK |
+#endif
+                                            GDK_SUPER_MASK |
+                                            GDK_HYPER_MASK |
+                                            GDK_META_MASK)) == GDK_SHIFT_MASK) {
+                                _vte_debug_print(VTE_DEBUG_EVENTS, "Showing context menu\n");
+                                handled = widget()->show_context_menu(vte::platform::EventContext{event});
+                        }
+                        break;
 		default:
 			break;
 		}
@@ -7323,15 +7338,24 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 		break;
 	}
 
-#if VTE_GTK == 4
+        // If we haven't handled the event yet, and it's a right button,
+        // with no modifiers, try showing the context menu.
         if (!handled &&
             ((event.button() == vte::platform::MouseEvent::Button::eRIGHT) ||
-             !(event.modifiers() & (GDK_BUTTON1_MASK | GDK_BUTTON2_MASK)))) {
+             !(event.modifiers() & (GDK_BUTTON1_MASK | GDK_BUTTON2_MASK))) &&
+            ((m_modifiers & (GDK_SHIFT_MASK |
+                             GDK_CONTROL_MASK |
+#if VTE_GTK == 3
+                             GDK_MOD1_MASK |
+#elif VTE_GTK == 4
+                             GDK_ALT_MASK |
+#endif
+                             GDK_SUPER_MASK |
+                             GDK_HYPER_MASK |
+                             GDK_META_MASK)) == 0)) {
                 _vte_debug_print(VTE_DEBUG_EVENTS, "Showing context menu\n");
-                // FIXMEgtk4 context menu
-                handled = true;
+                handled = widget()->show_context_menu(vte::platform::EventContext{event});
         }
-#endif /* VTE_GTK == 4 */
 
 	/* Save the pointer state for later use. */
         if (event.button_value() >= 1 && event.button_value() <= 3)
@@ -9453,6 +9477,59 @@ Terminal::draw_rows(VteScreen *screen_,
                                    column_width, row_height);
                 }
         }
+}
+
+// Returns the rectangle the cursor would be drawn if a block cursor,
+// or a zero-size rect at the top left corner if the cursor is not
+// on-screen.
+vte::view::Rectangle
+Terminal::cursor_rect()
+{
+        // This mostly replicates the code below in ::paint_cursor(), but
+        // it would be too complicated to try to extract that into a common
+        // method.
+
+        auto lcol = m_screen->cursor.col;
+        auto const drow = m_screen->cursor.row;
+        auto const width = m_cell_width;
+	auto const height = m_cell_height;
+
+        if (!cursor_is_onscreen() ||
+            std::clamp(long(lcol), long(0), long(m_column_count - 1)) != lcol)
+		return {};
+
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
+
+        /* Find the first cell of the character "under" the cursor.
+         * This is for CJK.  For TAB, paint the cursor where it really is. */
+        vte::base::BidiRow const* bidirow = m_ringview.get_bidirow(drow);
+
+        auto cell = find_charcell(lcol, drow);
+        while (cell && cell->attr.fragment() && cell->c != '\t' && lcol > 0) {
+                --lcol;
+                cell = find_charcell(lcol, drow);
+	}
+
+        auto vcol = bidirow->log2vis(lcol);
+        auto const c = (cell && cell->c) ? bidirow->vis_get_shaped_char(vcol, cell->c) : ' ';
+	auto const columns = c == '\t' ? 1 : cell ? cell->attr.columns() : 1;
+        auto const x = (vcol - ((cell && bidirow->vis_is_rtl(vcol)) ? cell->attr.columns() - 1 : 0)) * width;
+	auto const y = row_to_pixel(drow);
+
+        auto cursor_width = columns * width;
+
+        // Include the spacings in the cursor, see bug 781479 comments 39-44.
+        // Make the cursor even wider if the glyph is wider.
+        if (cell && cell->c != 0 && cell->c != ' ' && cell->c != '\t') {
+
+                auto const attr = cell && cell->c ? cell->attr.attr : 0;
+                int l, r;
+                m_draw.get_char_edges(cell->c, cell->attr.columns(), attr, l /* unused */, r);
+                cursor_width = std::max(cursor_width, long(r));
+        }
+
+        return {int(x), int(y), int(cursor_width), int(height)};
 }
 
 void

@@ -634,6 +634,41 @@ void vte_terminal_set_yfill(VteTerminal* terminal,
 _VTE_PUBLIC
 gboolean vte_terminal_get_yfill(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
+_VTE_PUBLIC
+void vte_terminal_set_context_menu_model(VteTerminal* terminal,
+                                         GMenuModel* model) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+GMenuModel* vte_terminal_get_context_menu_model(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+void vte_terminal_set_context_menu(VteTerminal* terminal,
+                                   GtkWidget* menu) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+GtkWidget* vte_terminal_get_context_menu(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+typedef struct _VteEventContext VteEventContext;
+
+#define VTE_TYPE_EVENT_CONTEXT (vte_event_context_get_type())
+
+_VTE_PUBLIC
+GType vte_event_context_get_type(void);
+
+#if _VTE_GTK == 3
+
+_VTE_PUBLIC
+GdkEvent* vte_event_context_get_event(VteEventContext const* context) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+#elif _VTE_GTK == 4
+
+_VTE_PUBLIC
+gboolean vte_event_context_get_coordinates(VteEventContext const* context,
+                                           double* x,
+                                           double* y) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+#endif /* VTE_GTK */
+
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VteTerminal, g_object_unref)
 
 G_END_DECLS

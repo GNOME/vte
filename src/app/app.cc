@@ -2075,38 +2075,61 @@ window_action_fullscreen_state_cb (GSimpleAction *action,
         /* The window-state-changed callback will update the action's actual state */
 }
 
-#if VTE_GTK == 3
-static bool
-vteapp_window_show_context_menu(VteappWindow* window,
-                                guint button,
-                                guint32 timestamp,
-                                GdkEvent* event)
+static void
+window_setup_context_menu_cb(VteTerminal* terminal,
+                             VteEventContext const* context,
+                             VteappWindow* window)
 {
         if (options.no_context_menu)
-                return false;
+                return;
 
-        auto menu = g_menu_new();
-        g_menu_append(menu, "_Copy", "win.copy::text");
-        g_menu_append(menu, "Copy As _HTML", "win.copy::html");
+        // context == nullptr when the menu is dismissed after being shown
+        if (!context) {
+                verbose_print("setup-context-menu reset\n");
+                vte_terminal_set_context_menu_model(terminal, nullptr);
+                return;
+        }
 
-        if (event != nullptr)
-        {
+        verbose_print("setup-context-menu\n");
+
+        auto menu = vte::glib::take_ref(g_menu_new());
+        g_menu_append(menu.get(), "_Copy", "win.copy::text");
+        g_menu_append(menu.get(), "Copy As _HTML", "win.copy::html");
+
+#if VTE_GTK == 4
+        double x, y;
+#endif
+        if (
+#if VTE_GTK == 3
+            auto const event = vte_event_context_get_event(context)
+#elif VTE_GTK == 4
+            vte_event_context_get_coordinates(context, &x, &y)
+#endif // VTE_GTK
+            ) {
+#if VTE_GTK == 3
                 auto hyperlink = vte::glib::take_string(vte_terminal_hyperlink_check_event(window->terminal, event));
+#elif VTE_GTK == 4
+                auto hyperlink = vte::glib::take_string(vte_terminal_check_hyperlink_at(window->terminal, x, y));
+#endif
                 if (hyperlink) {
                         verbose_print("Hyperlink: %s\n", hyperlink.get());
                         auto target = g_variant_new_string(hyperlink.get()); /* floating */
                         auto item = vte::glib::take_ref(g_menu_item_new("Copy _Hyperlink", nullptr));
                         g_menu_item_set_action_and_target_value(item.get(), "win.copy-match", target);
-                        g_menu_append_item(menu, item.get());
+                        g_menu_append_item(menu.get(), item.get());
                 }
 
+#if VTE_GTK == 3
                 auto match = vte::glib::take_string(vte_terminal_match_check_event(window->terminal, event, nullptr));
+#elif VTE_GTK == 4
+                auto match = vte::glib::take_string(vte_terminal_check_match_at(window->terminal, x, y, nullptr));
+#endif // VTE_GTK
                 if (match) {
                         verbose_print("Match: %s\n", match.get());
                         auto target = g_variant_new_string(match.get()); /* floating */
                         auto item = vte::glib::take_ref(g_menu_item_new("Copy _Match", nullptr));
                         g_menu_item_set_action_and_target_value(item.get(), "win.copy-match", target);
-                        g_menu_append_item(menu, item.get());
+                        g_menu_append_item(menu.get(), item.get());
                 }
 
                 /* Test extra match API */
@@ -2118,11 +2141,18 @@ vteapp_window_show_context_menu(VteappWindow* window,
                 error.assert_no_error();
 
                 VteRegex* regexes[1] = {regex.get()};
+#if VTE_GTK == 3
                 vte_terminal_event_check_regex_simple(window->terminal, event,
                                                       regexes, G_N_ELEMENTS(regexes),
                                                       0,
                                                       &extra_match);
+#elif VTE_GTK == 4
+                vte_terminal_check_regex_simple_at(window->terminal, x, y,
+                                                   regexes, G_N_ELEMENTS(regexes),
+                                                   0,
+                                                   &extra_match);
 
+#endif // VTE_GTK
                 if (extra_match != nullptr &&
                     (extra_subst = vte_regex_substitute(regex.get(), extra_match, "$2 $1",
                                                         PCRE2_SUBSTITUTE_EXTENDED |
@@ -2141,54 +2171,18 @@ vteapp_window_show_context_menu(VteappWindow* window,
                 g_free(extra_subst);
         }
 
-        g_menu_append(menu, "_Paste", "win.paste");
+        g_menu_append(menu.get(), "_Paste", "win.paste");
 
+#if VTE_GTK == 3
         auto const fullscreen = (window->window_state & GDK_WINDOW_STATE_FULLSCREEN) != 0;
+#elif VTE_GTK == 4
+        auto const fullscreen = gtk_window_is_fullscreen(GTK_WINDOW(window));
+#endif // VTE_GTK
         if (fullscreen)
-                g_menu_append(menu, "_Fullscreen", "win.fullscreen");
+                g_menu_append(menu.get(), "_Fullscreen", "win.fullscreen");
 
-        auto popup = gtk_menu_new_from_model(G_MENU_MODEL(menu));
-        gtk_style_context_add_class(gtk_widget_get_style_context (popup),
-                                    GTK_STYLE_CLASS_CONTEXT_MENU);
-
-        gtk_menu_attach_to_widget(GTK_MENU(popup), GTK_WIDGET(window->terminal), nullptr);
-        gtk_menu_popup(GTK_MENU(popup), nullptr, nullptr, nullptr, nullptr, button, timestamp);
-        if (button == 0)
-                gtk_menu_shell_select_first(GTK_MENU_SHELL(popup), true);
-
-        return true;
+        vte_terminal_set_context_menu_model(terminal, G_MENU_MODEL(menu.get()));
 }
-#endif /* VTE_GTK */
-
-#if VTE_GTK == 3
-
-static gboolean
-window_popup_menu_cb(GtkWidget* widget,
-                     VteappWindow* window)
-{
-        auto const timestamp = gtk_get_current_event_time();
-
-        return vteapp_window_show_context_menu(window, 0, timestamp , nullptr);
-}
-// FIXMEgtk4
-
-#endif /* VTE_GTK == 3 */
-
-#if VTE_GTK == 3
-
-static gboolean
-window_button_press_cb(GtkWidget* widget,
-                       GdkEventButton* event,
-                       VteappWindow* window)
-{
-        if (event->button != GDK_BUTTON_SECONDARY)
-                return false;
-
-        return vteapp_window_show_context_menu(window, event->button, event->time,
-                                               reinterpret_cast<GdkEvent*>(event));
-}
-
-#endif /* VTE_GTK == 3 */
 
 static void
 window_cell_size_changed_cb(VteTerminal* term,
@@ -2594,12 +2588,7 @@ vteapp_window_constructed(GObject *object)
         }
 
         /* Signals */
-#if VTE_GTK == 3
-        g_signal_connect(window->terminal, "popup-menu", G_CALLBACK(window_popup_menu_cb), window);
-        g_signal_connect(window->terminal, "button-press-event", G_CALLBACK(window_button_press_cb), window);
-#elif VTE_GTK == 4
-        // FIXMEgtk4
-#endif
+        g_signal_connect(window->terminal, "setup-context-menu", G_CALLBACK(window_setup_context_menu_cb), window);
         g_signal_connect(window->terminal, "char-size-changed", G_CALLBACK(window_cell_size_changed_cb), window);
         g_signal_connect(window->terminal, "child-exited", G_CALLBACK(window_child_exited_cb), window);
         g_signal_connect(window->terminal, "decrease-font-size", G_CALLBACK(window_decrease_font_size_cb), window);

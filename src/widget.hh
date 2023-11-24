@@ -48,6 +48,7 @@ namespace platform {
 class EventBase {
         friend class vte::platform::Widget;
         friend class Terminal;
+        friend class EventContext;
 
 public:
         enum class Type {
@@ -87,6 +88,7 @@ private:
 class KeyEvent : public EventBase {
         friend class vte::platform::Widget;
         friend class Terminal;
+        friend class EventContext;
 
 protected:
 
@@ -128,14 +130,15 @@ public:
         constexpr auto is_key_press()   const noexcept { return type() == Type::eKEY_PRESS;   }
         constexpr auto is_key_release() const noexcept { return type() == Type::eKEY_RELEASE; }
 
-        bool matches(unsigned keyval,
-                     unsigned modifiers) const noexcept
+        bool matches(unsigned key,
+                     unsigned mods) const noexcept
         {
 #if VTE_GTK == 3
-                return false; // FIXMEgtk3
+                return keyval() == key &&
+                        (modifiers() & gtk_accelerator_get_default_mod_mask()) == mods;
 #elif VTE_GTK == 4
                 return gdk_key_event_matches(platform_event(),
-                                             keyval, GdkModifierType(modifiers)) == GDK_KEY_MATCH_EXACT;
+                                             key, GdkModifierType(mods)) == GDK_KEY_MATCH_EXACT;
 #endif
         }
 
@@ -151,6 +154,7 @@ private:
 class MouseEvent : public EventBase {
         friend class vte::platform::Widget;
         friend class Terminal;
+        friend class EventContext;
 
 public:
         enum class Button {
@@ -166,13 +170,15 @@ protected:
 
         MouseEvent() noexcept = default;
 
-        constexpr MouseEvent(Type type,
+        constexpr MouseEvent(GdkEvent* gdk_event,
+                             Type type,
                              int press_count,
                              unsigned modifiers,
                              Button button,
                              double x,
                              double y) noexcept
                 : EventBase{type},
+                  m_platform_event{gdk_event},
                   m_press_count{press_count},
                   m_modifiers{modifiers},
                   m_button{button},
@@ -180,6 +186,8 @@ protected:
                   m_y{y}
         {
         }
+
+        constexpr auto platform_event() const noexcept { return m_platform_event; }
 
 public:
         ~MouseEvent() noexcept = default;
@@ -203,6 +211,7 @@ public:
         constexpr auto is_mouse_release()      const noexcept { return type() == Type::eMOUSE_RELEASE;      }
 
 private:
+        GdkEvent* m_platform_event;
         int m_press_count;
         unsigned m_modifiers;
         Button m_button;
@@ -213,6 +222,7 @@ private:
 class ScrollEvent : public EventBase {
         friend class vte::platform::Widget;
         friend class Terminal;
+        friend class EventContext;
 
 protected:
 
@@ -246,9 +256,85 @@ private:
         double m_dy;
 }; // class ScrollEvent
 
+class EventContext {
+private:
+        int m_button{-1};
+#if VTE_GTK == 3
+        GdkEvent* m_platform_event{nullptr}; // unowned
+#elif VTE_GTK == 4
+        bool m_xy_set{false};
+        double m_x{0};
+        double m_y{0};
+#endif // VTE_GTK
+
+public:
+        ~EventContext() = default;
+
+        EventContext(EventContext const&) = delete;
+        EventContext(EventContext&&) = delete;
+
+        EventContext& operator=(EventContext const&) = delete;
+        EventContext& operator=(EventContext&&) = delete;
+
+#if VTE_GTK == 3
+        EventContext() noexcept :
+                m_button{-1},
+                m_platform_event{gtk_get_current_event()}
+        {
+        }
+#elif VTE_GTK == 4
+        constexpr EventContext() noexcept = default;
+#endif
+
+        explicit constexpr EventContext(MouseEvent const& event) noexcept :
+                m_button{int(event.button())},
+#if VTE_GTK == 3
+                m_platform_event{event.platform_event()}
+#elif VTE_GTK == 4
+                m_xy_set{true},
+                m_x{event.x()},
+                m_y{event.y()}
+#endif
+        {
+        }
+
+        explicit constexpr EventContext(KeyEvent const& event) noexcept :
+                m_button{-1},
+#if VTE_GTK == 3
+                  m_platform_event{event.platform_event()}
+#elif VTE_GTK == 4
+                  m_xy_set{false}
+#endif
+        {
+        }
+
+        constexpr auto button()    const noexcept { return m_button;    }
+#if VTE_GTK == 3
+        constexpr auto platform_event() const noexcept { return m_platform_event; }
+#elif VTE_GTK == 4
+        constexpr auto xy_set() const noexcept { return m_xy_set; }
+        constexpr auto x()      const noexcept { return m_x;      }
+        constexpr auto y()      const noexcept { return m_y;      }
+        constexpr auto get_coords(double* _x,
+                                  double* _y) const noexcept
+        {
+                if (!xy_set())
+                        return false;
+                if (_x)
+                        *_x = x();
+                if (_y)
+                        *_y = y();
+                return true;
+        }
+#endif // VTE_GTK
+
+}; // class EventContext
+
 class Widget : public std::enable_shared_from_this<Widget> {
 public:
         friend class vte::terminal::Terminal;
+
+        static Widget* from_terminal(VteTerminal*);
 
         Widget(VteTerminal* t);
         ~Widget() noexcept;
@@ -556,6 +642,35 @@ public:
                 return true;
         }
 
+        bool set_context_menu_model(vte::glib::RefPtr<GMenuModel> model)
+        {
+                if (model == m_context_menu_model)
+                        return false;
+
+                m_context_menu_model = std::move(model);
+                return true;
+        }
+
+        GMenuModel* get_context_menu_model() const noexcept
+        {
+                return m_context_menu_model.get();
+        }
+
+        bool set_context_menu(vte::glib::RefPtr<GtkWidget> menu);
+
+        void unset_context_menu(GtkWidget* widget,
+                                bool deactivate,
+                                bool notify = true);
+
+        GtkWidget* get_context_menu() const noexcept
+        {
+                return m_context_menu.get();
+        }
+
+        bool show_context_menu(EventContext const& context);
+
+        void emit_setup_context_menu(EventContext const* context);
+
 protected:
 
         enum class CursorType {
@@ -677,6 +792,10 @@ private:
         long m_root_unrealize_id{0};
         long m_root_surface_state_notify_id{0};
 #endif /* VTE_GTK == 4 */
+
+        vte::glib::RefPtr<GMenuModel> m_context_menu_model;
+        vte::glib::RefPtr<GtkWidget> m_context_menu;
+        vte::glib::RefPtr<GtkWidget> m_menu_showing;
 };
 
 } // namespace platform

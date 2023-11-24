@@ -1079,6 +1079,7 @@ public:
                                 int blink_timeout_ms) noexcept;
 
         void draw(cairo_region_t const* region) noexcept;
+        vte::view::Rectangle cursor_rect();
         void paint_cursor();
         void paint_im_preedit_string();
         void draw_cells(vte::view::DrawingContext::TextRequest* items,

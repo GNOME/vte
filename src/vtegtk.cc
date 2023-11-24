@@ -192,6 +192,16 @@ get_widget(VteTerminal* terminal) /* throws */
 
 #define WIDGET(t) (get_widget(t))
 
+namespace vte::platform {
+
+Widget*
+Widget::from_terminal(VteTerminal* t)
+{
+        return WIDGET(t);
+}
+
+} // namespace vte::platform
+
 vte::terminal::Terminal*
 _vte_terminal_get_impl(VteTerminal* terminal) /* throws */
 {
@@ -688,6 +698,26 @@ catch (...)
         vte::log_exception();
 }
 
+static gboolean
+vte_terminal_popup_menu(GtkWidget* widget) noexcept
+try
+{
+        auto terminal = VTE_TERMINAL(widget);
+        if (WIDGET(terminal)->show_context_menu(vte::platform::EventContext{}))
+                return true;
+
+        auto const parent_class = GTK_WIDGET_CLASS(vte_terminal_parent_class);
+        if (parent_class->popup_menu)
+                return parent_class->popup_menu(widget);
+
+        return false;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
+
 #endif /* VTE_GTK == 3 */
 
 #if VTE_GTK == 4
@@ -960,6 +990,12 @@ try
                 case PROP_CJK_AMBIGUOUS_WIDTH:
                         g_value_set_int (value, vte_terminal_get_cjk_ambiguous_width (terminal));
                         break;
+                case PROP_CONTEXT_MENU_MODEL:
+                        g_value_set_object(value, vte_terminal_get_context_menu_model(terminal));
+                        break;
+                case PROP_CONTEXT_MENU:
+                        g_value_set_object(value, vte_terminal_get_context_menu(terminal));
+                        break;
                 case PROP_CURSOR_BLINK_MODE:
                         g_value_set_enum (value, vte_terminal_get_cursor_blink_mode (terminal));
                         break;
@@ -1111,6 +1147,12 @@ try
                         break;
                 case PROP_CJK_AMBIGUOUS_WIDTH:
                         vte_terminal_set_cjk_ambiguous_width (terminal, g_value_get_int (value));
+                        break;
+                case PROP_CONTEXT_MENU_MODEL:
+                        vte_terminal_set_context_menu_model(terminal, reinterpret_cast<GMenuModel*>(g_value_get_object(value)));
+                        break;
+                case PROP_CONTEXT_MENU:
+                        vte_terminal_set_context_menu(terminal, reinterpret_cast<GtkWidget*>(g_value_get_object(value)));
                         break;
                 case PROP_CURSOR_BLINK_MODE:
                         vte_terminal_set_cursor_blink_mode (terminal, (VteCursorBlinkMode)g_value_get_enum (value));
@@ -1282,6 +1324,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->get_preferred_width = vte_terminal_get_preferred_width;
 	widget_class->get_preferred_height = vte_terminal_get_preferred_height;
         widget_class->screen_changed = vte_terminal_screen_changed;
+        widget_class->popup_menu = vte_terminal_popup_menu;
 #endif
 
 #if VTE_GTK == 4
@@ -1973,6 +2016,37 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                    g_cclosure_marshal_VOID__VOIDv);
 
         /**
+         * VteTerminal::setup-context-menu:
+         * @terminal: the object which received the signal
+         * @context: (nullable): the context
+         *
+         * Emitted with non-%NULL context before @terminal shows a context menu.
+         * The handler may set either a menu model using
+         * vte_terminal_set_context_menu_model(), or a menu using
+         * vte_terminal_set_context_menu(), which will then be used as context
+         * menu.
+         * If neither a menu model nor a menu are set, a context menu
+         * will not be shown.
+         *
+         * Note that @context is only valid during the signal emission; you may
+         * not retain it to call methods on it afterwards.
+         *
+         * Also emitted with %NULL context after the context menu has been dismissed.
+         */
+        signals[SIGNAL_SETUP_CONTEXT_MENU] =
+                g_signal_new(I_("setup-context-menu"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             0, nullptr, nullptr,
+                             g_cclosure_marshal_VOID__POINTER,
+                             G_TYPE_NONE,
+                             1,
+                             VTE_TYPE_EVENT_CONTEXT);
+        g_signal_set_va_marshaller(signals[SIGNAL_SETUP_CONTEXT_MENU],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__POINTERv);
+
+        /**
          * VteTerminal:allow-bold:
          *
          * Controls whether or not the terminal will attempt to draw bold text,
@@ -2077,6 +2151,38 @@ vte_terminal_class_init(VteTerminalClass *klass)
                 g_param_spec_int ("cjk-ambiguous-width", NULL, NULL,
                                   1, 2, VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH,
                                   (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:context-menu-model: (attributes org.gtk.Property.get=vte_terminal_get_context_menu_model org.gtk.Property.set=vte_terminal_set_context_menu_model)
+         *
+         * The menu model used for context menus. If non-%NULL, the context menu is
+         * generated from this model, and overrides a context menu set with the
+         * #VteTerminal::context-menu property or vte_terminal_set_context_menu().
+         *
+         * Since: 0.76
+         */
+        pspecs[PROP_CONTEXT_MENU_MODEL] =
+                g_param_spec_object("context-menu-model", nullptr, nullptr,
+                                    G_TYPE_MENU_MODEL,
+                                    GParamFlags(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:context-menu: (attributes org.gtk.Property.get=vte_terminal_get_context_menu org.gtk.Property.set=vte_terminal_set_context_menu)
+         *
+         * The menu used for context menus. Note that context menu model set with the
+         * #VteTerminal::context-menu-model property or vte_terminal_set_context_menu_model()
+         * takes precedence over this.
+         *
+         * Since: 0.76
+         */
+        pspecs[PROP_CONTEXT_MENU] =
+                g_param_spec_object("context-menu", nullptr, nullptr,
+#if VTE_GTK == 3
+                                    GTK_TYPE_MENU,
+#elif VTE_GTK == 4
+                                    GTK_TYPE_POPOVER,
+#endif // VTE_GTK
+                                    GParamFlags(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:cursor-blink-mode:
@@ -6887,3 +6993,180 @@ catch (...)
         vte::log_exception();
         return true;
 }
+
+/**
+ * vte_terminal_set_context_menu_model: (attributes org.gtk.Method.set_property=context-menu-model)
+ * @terminal: a #VteTerminal
+ * @model: (nullable): a #GMenuModel
+ *
+ * Sets @model as the context menu model in @terminal.
+ * Use %NULL to unset the current menu model.
+ *
+ * Since: 0.76
+ */
+void
+vte_terminal_set_context_menu_model(VteTerminal* terminal,
+                                    GMenuModel* model) noexcept
+try
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(model == nullptr || G_IS_MENU_MODEL(model));
+
+        if (WIDGET(terminal)->set_context_menu_model(vte::glib::make_ref(model)))
+            g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CONTEXT_MENU_MODEL]);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
+ * vte_terminal_get_context_menu_model: (attributes org.gtk.Method.get_property=context-menu-model)
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (nullable) (transfer none): the context menu model, or %NULL
+ *
+ * Since: 0.76
+ */
+GMenuModel*
+vte_terminal_get_context_menu_model(VteTerminal* terminal) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
+
+        return WIDGET(terminal)->get_context_menu_model();
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
+ * vte_terminal_set_context_menu: (attributes org.gtk.Method.set_property=context-menu)
+ * @terminal: a #VteTerminal
+ * @menu: (nullable): a menu
+ *
+ * Sets @menu as the context menu in @terminal.
+ * Use %NULL to unset the current menu.
+ *
+ * Note that a menu model set with vte_terminal_set_context_menu_model()
+ * takes precedence over a menu set using this function.
+ *
+ * Since: 0.76
+ */
+void
+vte_terminal_set_context_menu(VteTerminal* terminal,
+                              GtkWidget* menu) noexcept
+try
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+#if VTE_GTK == 3
+        g_return_if_fail(menu == nullptr || GTK_IS_MENU(menu));
+#elif VTE_GTK == 4
+        g_return_if_fail(menu == nullptr || GTK_IS_POPOVER(menu));
+#endif // VTE_GTK
+
+        if (WIDGET(terminal)->set_context_menu(vte::glib::make_ref_sink(menu)))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CONTEXT_MENU]);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
+ * vte_terminal_get_context_menu: (attributes org.gtk.Method.get_property=context-menu)
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (nullable) (transfer none): the context menu, or %NULL
+ *
+ * Since: 0.76
+ */
+GtkWidget*
+vte_terminal_get_context_menu(VteTerminal* terminal) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
+
+        return WIDGET(terminal)->get_context_menu();
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
+ * VteEventContext:
+ *
+ * Provides context information for a context menu event.
+ *
+ * Since: 0.76
+ */
+
+G_DEFINE_POINTER_TYPE(VteEventContext, vte_event_context);
+
+static auto get_event_context(VteEventContext const* context)
+{
+        return reinterpret_cast<vte::platform::EventContext const*>(context);
+}
+
+#define EVENT_CONTEXT_IMPL(context) (get_event_context(context))
+
+#if VTE_GTK == 3
+
+/**
+ * vte_event_context_get_event:
+ * @context: the #VteEventContext
+ *
+ * Returns: (transfer none): the #GdkEvent that triggered the event, or %NULL if it was not
+ *   triggered by an event
+ *
+ * Since: 0.76
+ */
+GdkEvent*
+vte_event_context_get_event(VteEventContext const* context) noexcept
+try
+{
+        g_return_val_if_fail(context, nullptr);
+
+        return EVENT_CONTEXT_IMPL(context)->platform_event();
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+#elif VTE_GTK == 4
+
+/**
+ * vte_event_context_get_coordinates:
+ * @context: the #VteEventContext
+ * @x: (nullable): location to store the X coordinate
+ * @y: (nullable): location to store the Y coordinate
+ *
+ * Returns: %TRUE if the event has coordinates attached
+ *   that are within the terminal, with @x and @y filled in;
+ *   %FALSE otherwise
+ *
+ * Since: 0.76
+ */
+gboolean
+vte_event_context_get_coordinates(VteEventContext const* context,
+                                  double* x,
+                                  double* y) noexcept
+try
+{
+        g_return_val_if_fail(context, false);
+
+        return EVENT_CONTEXT_IMPL(context)->get_coords(x, y);
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
+
+#endif /* VTE_GTK */
