@@ -52,18 +52,23 @@ private:
 #endif
 
 public:
-        Rectangle(cairo_rectangle_int_t const *rect) {
+        constexpr Rectangle() :
+                Rectangle{0, 0, 0, 0}
+        {
+        }
+
+        constexpr Rectangle(cairo_rectangle_int_t const *rect) {
                 Rectangle(rect->x, rect->y, rect->width, rect->height);
         }
 
 #if VTE_GTK == 4
-        Rectangle(graphene_rect_t const *rect) {
+        constexpr Rectangle(graphene_rect_t const *rect) {
                 Rectangle(rect->origin.x, rect->origin.y,
                           rect->size.width, rect->size.height);
         }
 #endif
 
-        Rectangle(float x, float y, float w, float h) {
+        constexpr Rectangle(float x, float y, float w, float h) {
 #if VTE_GTK == 3
                 m_rect.x = int(x);
                 m_rect.y = int(y);
@@ -77,7 +82,7 @@ public:
 #endif
         }
 
-        Rectangle(int x, int y, int w, int h) {
+        constexpr Rectangle(int x, int y, int w, int h) {
 #if VTE_GTK == 3
                 m_rect.x = x;
                 m_rect.y = y;
@@ -91,7 +96,7 @@ public:
 #endif
         }
 
-        inline void advance_y (int by) {
+        inline constexpr void advance_y (int by) {
 #if VTE_GTK == 3
                 m_rect.y += by;
 #elif VTE_GTK == 4
@@ -99,7 +104,7 @@ public:
 #endif
         }
 
-        inline void move_y (int y) {
+        inline constexpr void move_y (int y) {
 #if VTE_GTK == 3
                 m_rect.y = y;
 #elif VTE_GTK == 4
@@ -117,10 +122,10 @@ public:
         }
 
 #if VTE_GTK == 3
-        inline const cairo_rectangle_int_t* cairo() const { return &m_rect; }
+        inline constexpr cairo_rectangle_int_t const* cairo() const { return &m_rect; }
 #elif VTE_GTK == 4
-        inline const graphene_rect_t* graphene() const { return &m_rect; }
-        inline cairo_rectangle_int_t cairo() const {
+        inline constexpr graphene_rect_t const* graphene() const { return &m_rect; }
+        inline constexpr cairo_rectangle_int_t cairo() const {
                 return cairo_rectangle_int_t{
                         int(m_rect.origin.x),
                         int(m_rect.origin.y),
