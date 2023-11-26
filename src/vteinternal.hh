@@ -402,7 +402,10 @@ public:
         GArray *m_update_rects;
 #endif
         bool m_invalidated_all{false};       /* pending refresh of entire terminal */
-        bool m_is_processing{false};
+        /* If non-nullptr, contains the GList element for @this in g_active_terminals
+         * and means that this terminal is processing data.
+         */
+        GList *m_active_terminals_link;
         // FIXMEchpe should these two be g[s]size ?
         size_t m_input_bytes;
         long m_max_input_bytes{VTE_MAX_INPUT_READ};
@@ -807,9 +810,6 @@ public:
         bool m_enable_bidi{true};
         bool m_enable_shaping{true};
 
-        /* FrameClock driven updates */
-        guint m_tick_callback;
-
         /* BiDi parameters outside of ECMA and DEC private modes */
         guint m_bidi_rtl : 1;
 
@@ -959,7 +959,7 @@ public:
                                        vte::base::Chunk& chunk);
         #endif
         bool process(bool emit_adj_changed);
-        inline bool is_processing() const { return m_is_processing; };
+        inline bool is_processing() const { return m_active_terminals_link != nullptr; }
         void start_processing();
 
         gssize get_preedit_width(bool left_only);
