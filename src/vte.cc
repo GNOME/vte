@@ -84,6 +84,8 @@
 #endif /* VTE_GTK == 3 */
 #endif /* WITH_A11Y */
 
+#include "unicode-width.hh"
+
 #include <new> /* placement new */
 
 using namespace std::literals;
@@ -116,7 +118,6 @@ namespace terminal {
 // _vte_unichar_width() determines the number of cells that a character
 // would occupy. The primary likely case is hoisted into a define so
 // it ends up in the caller without inlining the entire function.
-static int _vte_unichar_width(gunichar c, int utf8_ambiguous_width);
 #define _vte_unichar_width(c,u) \
         (G_LIKELY ((c) < 0x80) ? 1 : (_vte_unichar_width)((c),(u)))
 
@@ -231,24 +232,6 @@ public:
         }
 
 }; // class ProcessingContext
-
-static int
-(_vte_unichar_width)(gunichar c, int utf8_ambiguous_width)
-{
-        // The common (c < 0x80) case is hoisted into the
-        // caller through the _vte_unichar_width() macro.
-        // if (G_LIKELY (c < 0x80)) return 1;
-
-        if (G_UNLIKELY (g_unichar_iszerowidth (c)))
-                return 0;
-        if (G_UNLIKELY (g_unichar_iswide (c)))
-                return 2;
-        if (G_LIKELY (utf8_ambiguous_width == 1))
-                return 1;
-        if (G_UNLIKELY (g_unichar_iswide_cjk (c)))
-                return 2;
-        return 1;
-}
 
 static void
 vte_char_attr_list_fill (VteCharAttrList *array,

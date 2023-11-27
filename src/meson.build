@@ -158,6 +158,10 @@ systemd_sources = files(
   'systemd.hh',
 )
 
+unicode_width_sources = files(
+  'unicode-width.hh',
+)
+
 utf8_sources = files(
   'utf8.cc',
   'utf8.hh',
@@ -201,6 +205,7 @@ libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk
   'ringview.hh',
   'spawn.cc',
   'spawn.hh',
+  'unicode-width.hh',
   'utf8.cc',
   'utf8.hh',
   'vte.cc',
@@ -660,6 +665,18 @@ test_tabstops = executable(
   install: false,
 )
 
+test_unicode_width_sources = config_sources + unicode_width_sources + files(
+  'unicode-width-test.cc',
+)
+
+test_unicode_width = executable(
+  'test-unicode-width',
+  sources: test_unicode_width_sources,
+  dependencies: [glib_dep],
+  include_directories: top_inc,
+  install: false,
+)
+
 test_utf8_sources = config_sources + utf8_sources + files(
   'utf8-test.cc',
 )
@@ -701,6 +718,7 @@ test_units = [
   ['refptr', test_refptr],
   ['stream', test_stream],
   ['tabstops', test_tabstops],
+  ['unicode-width', test_unicode_width],
   ['utf8', test_utf8],
 ]
 
