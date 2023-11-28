@@ -10875,7 +10875,7 @@ Terminal::time_process_incoming()
 }
 
 bool
-Terminal::process(bool emit_adj_changed)
+Terminal::process()
 {
         if (pty()) {
                 if (m_pty_input_active ||
@@ -10886,8 +10886,6 @@ Terminal::process(bool emit_adj_changed)
                 }
                 connect_pty_read();
         }
-        if (emit_adj_changed)
-                emit_adjustment_changed();
 
         bool is_active = !m_incoming_queue.empty();
         if (is_active) {
@@ -10912,10 +10910,11 @@ try
         auto that = reinterpret_cast<vte::terminal::Terminal*>(data);
 
         that->m_is_processing = true;
-        auto is_active = that->process(true);
+        auto is_active = that->process();
         that->m_is_processing = false;
 
         that->invalidate_dirty_rects_and_process_updates();
+        that->emit_adjustment_changed();
 
         if (!is_active) {
                 stop_processing(that);

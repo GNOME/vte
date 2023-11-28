@@ -958,7 +958,7 @@ public:
         void process_incoming_decsixel(ProcessingContext& context,
                                        vte::base::Chunk& chunk);
         #endif
-        bool process(bool emit_adj_changed);
+        bool process();
         inline bool is_processing() const { return m_is_processing; };
         void start_processing();
 
