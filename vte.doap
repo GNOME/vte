@@ -8,10 +8,10 @@
   <shortdesc xml:lang="en">vte terminal widget</shortdesc>
   <description xml:lang="en">Terminal emulation library</description>
 
-  <mailing-list
-  rdf:resource="http://mail.gnome.org/mailman/listinfo/desktop-devel-list" />
+  <developer-forum
+  rdf:resource="https://discourse.gnome.org/c/platform/" />
   <download-page
-  rdf:resource="http://download.gnome.org/sources/vte"/>
+  rdf:resource="https://download.gnome.org/sources/vte"/>
   <bug-database
   rdf:resource="https://gitlab.gnome.org/GNOME/vte/issues/" />
   <category rdf:resource="http://api.gnome.org/doap-extensions#core" />
