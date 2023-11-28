@@ -1506,8 +1506,11 @@ Ring::rewrap(column_t columns,
 		if (new_markers[i].row == -1)
 			new_markers[i].row = markers[i]->row - old_ring_end + m_end;
 		/* Convert byte offset into visual column */
-		if (!frozen_row_text_offset_to_column(new_markers[i].row, &marker_text_offsets[i], &new_markers[i].col))
-			goto err;
+                if (!frozen_row_text_offset_to_column(new_markers[i].row, &marker_text_offsets[i], &new_markers[i].col)) {
+                        /* This really shouldn't happen. It's too late to "goto err", the old stream is closed, the ring is updated.
+                         * It would be a bit cumbersome to refactor the code to still revert here. Choose a simple solution. */
+                        new_markers[i].col = 0;
+                }
 		_vte_debug_print(VTE_DEBUG_RING,
 				"Marker #%d new coords:  text_offset %" G_GSIZE_FORMAT "  fragment_cells %d  eol_cells %d  ->  row %ld  col %ld\n",
 				i, marker_text_offsets[i].text_offset, marker_text_offsets[i].fragment_cells,
