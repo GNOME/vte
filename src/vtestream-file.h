@@ -562,9 +562,9 @@ _vte_snake_advance_tail (VteSnake *snake, gsize offset)
                                 break;
                         }
                 }
+                snake->tail = snake->segment[0].st_tail;
         }
-        g_assert_cmpuint (snake->segment[0].st_tail, ==, offset);
-        snake->tail = offset;
+        g_assert_cmpuint (snake->tail, ==, offset);
 }
 
 static gsize
