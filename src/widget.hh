@@ -265,6 +265,7 @@ private:
         bool m_xy_set{false};
         double m_x{0};
         double m_y{0};
+        bool m_is_long_press{false};
 #endif // VTE_GTK
 
 public:
@@ -285,6 +286,18 @@ public:
 #elif VTE_GTK == 4
         constexpr EventContext() noexcept = default;
 #endif
+
+#if VTE_GTK == 4
+        constexpr EventContext(double x,
+                               double y,
+                               bool is_long_press) :
+                m_xy_set{true},
+                m_x{x},
+                m_y{y},
+                m_is_long_press{is_long_press}
+        {
+        }
+#endif // VTE_GTK == 4
 
         explicit constexpr EventContext(MouseEvent const& event) noexcept :
                 m_button{int(event.button())},
@@ -326,6 +339,7 @@ public:
                         *_y = y();
                 return true;
         }
+        constexpr auto is_long_press() const noexcept { return m_is_long_press; }
 #endif // VTE_GTK
 
 }; // class EventContext
@@ -460,6 +474,10 @@ public:
                                             double y,
                                             unsigned button,
                                             GdkEventSequence* sequence);
+        void gesture_long_press_pressed(GtkGestureLongPress* gesture,
+                                        double x,
+                                        double y);
+        void gesture_long_press_cancelled(GtkGestureLongPress* gesture);
 #endif /* VTE_GTK == 4 */
 
         void grab_focus() noexcept { gtk_widget_grab_focus(gtk()); }

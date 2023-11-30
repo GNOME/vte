@@ -305,6 +305,32 @@ catch (...)
 }
 
 static void
+long_press_pressed_cb(GtkGestureLongPress* gesture,
+                      double x,
+                      double y,
+                      Widget* that) noexcept
+try
+{
+        that->gesture_long_press_pressed(gesture, x, y);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+long_press_cancelled_cb(GtkGestureLongPress* gesture,
+                        Widget* that) noexcept
+try
+{
+        that->gesture_long_press_cancelled(gesture);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
 focus_enter_cb(GtkEventControllerFocus* controller,
                Widget* that) noexcept
 try
@@ -829,6 +855,17 @@ Widget::constructed() noexcept
                          G_CALLBACK(click_stopped_cb), this);
         g_signal_connect(gesture.get(), "unpaired-release",
                          G_CALLBACK(click_unpaired_release_cb), this);
+        gtk_event_controller_set_name(GTK_EVENT_CONTROLLER(gesture.get()), "vte-click-gesture");
+        gtk_widget_add_controller(m_widget, GTK_EVENT_CONTROLLER(gesture.release()));
+
+        gesture = vte::glib::take_ref(gtk_gesture_long_press_new());
+        gtk_gesture_single_set_touch_only(GTK_GESTURE_SINGLE(gesture.get()), true);
+
+        g_signal_connect(gesture.get(), "pressed",
+                         G_CALLBACK(long_press_pressed_cb), this);
+        g_signal_connect(gesture.get(), "cancelled",
+                         G_CALLBACK(long_press_cancelled_cb), this);
+        gtk_event_controller_set_name(GTK_EVENT_CONTROLLER(gesture.get()), "vte-long-press-gesture");
         gtk_widget_add_controller(m_widget, GTK_EVENT_CONTROLLER(gesture.release()));
 
 #endif /* VTE_GTK == 4 */
@@ -1077,6 +1114,26 @@ Widget::event_key_modifiers(GtkEventControllerKey* controller,
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Key modifiers=%x\n", modifiers);
 
         return terminal()->widget_key_modifiers(modifiers);
+}
+
+void
+Widget::gesture_long_press_pressed(GtkGestureLongPress* gesture,
+                                   double x,
+                                   double y)
+{
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Long Press gesture pressed x=%.3f y=%.3f\n", x, y);
+
+        // FIXMEgtk4: could let Terminal have the event first
+
+        if (show_context_menu(EventContext{x, y, true})) {
+                gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+        }
+}
+
+void
+Widget::gesture_long_press_cancelled(GtkGestureLongPress* gesture)
+{
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Long Press gesture cancelled");
 }
 
 void
@@ -2424,7 +2481,11 @@ Widget::show_context_menu(EventContext const& context)
 
         gtk_widget_set_parent(m_menu_showing.get(), gtk());
 
-        if (gtk_widget_get_direction(gtk()) == GTK_TEXT_DIR_RTL)
+        auto const is_touch = context.is_long_press();
+
+        if (is_touch)
+                gtk_widget_set_halign(m_menu_showing.get(), GTK_ALIGN_FILL);
+        else if (gtk_widget_get_direction(gtk()) == GTK_TEXT_DIR_RTL)
                 gtk_widget_set_halign(m_menu_showing.get(), GTK_ALIGN_END);
         else
                 gtk_widget_set_halign(m_menu_showing.get(), GTK_ALIGN_START);
@@ -2432,8 +2493,9 @@ Widget::show_context_menu(EventContext const& context)
         auto const popover = GTK_POPOVER(m_menu_showing.get());
         gtk_popover_set_autohide(popover, true);
         gtk_popover_set_cascade_popdown(popover, true);
-        gtk_popover_set_has_arrow(popover, false);
+        gtk_popover_set_has_arrow(popover, is_touch);
         gtk_popover_set_mnemonics_visible(popover, false);
+        gtk_popover_set_position(popover, is_touch ? GTK_POS_TOP : GTK_POS_BOTTOM);
 
         if (button == -1) {
                 // Keyboard, point to the cursor rectangle
