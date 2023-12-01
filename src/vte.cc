@@ -10881,8 +10881,6 @@ Terminal::process()
                 if (m_pty_input_active ||
                     m_pty_input_source == 0) {
                         m_pty_input_active = false;
-                        /* Do one read directly. FIXMEchpe: Why? */
-                        pty_io_read(pty()->fd(), G_IO_IN);
                 }
                 connect_pty_read();
         }
