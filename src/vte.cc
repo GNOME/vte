@@ -10026,9 +10026,6 @@ Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
 	gint cnt, i;
 	int button;
 
-        /* Need to ensure the ringview is updated. */
-        ringview_update();
-
         m_modifiers = event.modifiers();
         m_mouse_smooth_scroll_delta += event.dy();
 
@@ -10038,6 +10035,10 @@ Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
 		cnt = m_mouse_smooth_scroll_delta;
 		if (cnt == 0)
 			return true;
+
+                /* Need to ensure the ringview is updated. */
+                ringview_update();
+
 		m_mouse_smooth_scroll_delta -= cnt;
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Scroll application by %d lines, smooth scroll delta set back to %f\n",
