@@ -69,6 +69,26 @@ DrawingGsk::fill_rectangle(int x,
                            int y,
                            int width,
                            int height,
+                           vte::color::rgb const* color) const
+{
+        g_assert(m_snapshot);
+        g_assert(color);
+
+        _vte_debug_print(VTE_DEBUG_DRAW,
+                         "draw_fill_rectangle (%d, %d, %d, %d, color=(%d,%d,%d))\n",
+                         x,y,width,height,
+                         color->red, color->green, color->blue);
+
+        auto const rect = Rectangle{x, y, width, height};
+        auto const rgba = color->rgba(1.0);
+        gtk_snapshot_append_color(m_snapshot, &rgba, rect.graphene());
+}
+
+void
+DrawingGsk::fill_rectangle(int x,
+                           int y,
+                           int width,
+                           int height,
                            vte::color::rgb const* color,
                            double alpha) const
 {
@@ -130,8 +150,7 @@ void
 DrawingGsk::draw_text_internal(TextRequest* requests,
                                gsize n_requests,
                                uint32_t attr,
-                               vte::color::rgb const* color,
-                               double alpha)
+                               vte::color::rgb const* color)
 {
         auto font = m_fonts[attr_to_style(attr)];
         gsize i;
@@ -142,7 +161,7 @@ DrawingGsk::draw_text_internal(TextRequest* requests,
         if (n_requests == 0)
                 return;
 
-        auto const rgba = color->rgba(alpha);
+        auto const rgba = color->rgba(1.0);
         PangoFont *node_font = nullptr;
 
         vte_glyphs_set_size (&m_glyphs, 0);
@@ -212,22 +231,20 @@ DrawingGsk::draw_rectangle(int x,
                            int y,
                            int width,
                            int height,
-                           vte::color::rgb const* color,
-                           double alpha) const
+                           vte::color::rgb const* color) const
 {
         g_assert(color);
         g_assert(m_snapshot);
 
         _vte_debug_print (VTE_DEBUG_DRAW,
-                          "draw_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%.3f))\n",
+                          "draw_rectangle (%d, %d, %d, %d, color=(%d,%d,%d))\n",
                           x,y,width,height,
-                          color->red, color->green, color->blue,
-                          alpha);
+                          color->red, color->green, color->blue);
 
         static const float border_width[4] = {VTE_LINE_WIDTH, VTE_LINE_WIDTH, VTE_LINE_WIDTH, VTE_LINE_WIDTH};
         auto const rounded = GSK_ROUNDED_RECT_INIT (float(x+VTE_LINE_WIDTH/2.), float(y+VTE_LINE_WIDTH/2.), float(width-VTE_LINE_WIDTH), float(height-VTE_LINE_WIDTH));
         GdkRGBA rgba[4];
-        rgba[0] = rgba[1] = rgba[2] = rgba[3] = color->rgba(alpha);
+        rgba[0] = rgba[1] = rgba[2] = rgba[3] = color->rgba(1.0);
         gtk_snapshot_append_border(m_snapshot, &rounded, border_width, rgba);
 }
 

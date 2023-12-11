@@ -190,8 +190,7 @@ void
 DrawingContext::draw_text(TextRequest* requests,
                           gsize n_requests,
                           uint32_t attr,
-                          vte::color::rgb const* color,
-                          double alpha)
+                          vte::color::rgb const* color)
 {
 	if (_vte_debug_on (VTE_DEBUG_DRAW)) {
 		GString *string = g_string_new ("");
@@ -201,14 +200,14 @@ DrawingContext::draw_text(TextRequest* requests,
 			g_string_append_unichar (string, requests[n].c);
 		}
 		str = g_string_free (string, FALSE);
-		g_printerr ("draw_text (\"%s\", len=%" G_GSIZE_FORMAT ", color=(%d,%d,%d,%.3f), %s - %s)\n",
-				str, n_requests, color->red, color->green, color->blue, alpha,
+		g_printerr ("draw_text (\"%s\", len=%" G_GSIZE_FORMAT ", color=(%d,%d,%d), %s - %s)\n",
+				str, n_requests, color->red, color->green, color->blue,
 				(attr & VTE_ATTR_BOLD)   ? "bold"   : "normal",
 				(attr & VTE_ATTR_ITALIC) ? "italic" : "regular");
 		g_free (str);
 	}
 
-	draw_text_internal(requests, n_requests, attr, color, alpha);
+	draw_text_internal(requests, n_requests, attr, color);
 }
 
 /* The following two functions are unused since commit 154abade902850afb44115cccf8fcac51fc082f0,
@@ -232,20 +231,18 @@ DrawingContext::has_char(vteunistr c,
 bool
 DrawingContext::draw_char(TextRequest* request,
                           uint32_t attr,
-                          vte::color::rgb const* color,
-                          double alpha)
+                          vte::color::rgb const* color)
 {
 	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_char ('%c', color=(%d,%d,%d,%.3f), %s, %s)\n",
+			"draw_char ('%c', color=(%d,%d,%d), %s, %s)\n",
 			request->c,
 			color->red, color->green, color->blue,
-			alpha,
 			(attr & VTE_ATTR_BOLD)   ? "bold"   : "normal",
 			(attr & VTE_ATTR_ITALIC) ? "italic" : "regular");
 
 	auto const have_char = has_char(request->c, attr);
 	if (have_char)
-		draw_text(request, 1, attr, color, alpha);
+		draw_text(request, 1, attr, color);
 
 	return have_char;
 }
@@ -256,12 +253,11 @@ DrawingContext::draw_line(int x,
                           int xp,
                           int yp,
                           int line_width,
-                          vte::color::rgb const *color,
-                          double alpha)
+                          vte::color::rgb const *color)
 {
         fill_rectangle(x, y,
                        MAX(line_width, xp - x + 1), MAX(line_width, yp - y + 1),
-                       color, alpha);
+                       color);
 }
 
 void
@@ -270,8 +266,7 @@ DrawingContext::draw_undercurl(int x,
                                double line_width,
                                int count,
                                int scale_factor,
-                               vte::color::rgb const *color,
-                               double alpha)
+                               vte::color::rgb const *color)
 {
         /* The end of the curly line slightly overflows to the next cell, so the canvas
          * caching the rendered look has to be wider not to chop this off. */
@@ -290,10 +285,9 @@ DrawingContext::draw_undercurl(int x,
         cairo_save (cr);
 
         _vte_debug_print (VTE_DEBUG_DRAW,
-                          "draw_undercurl (x=%d, y=%f, count=%d, color=(%d,%d,%d,%.3f))\n",
+                          "draw_undercurl (x=%d, y=%f, count=%d, color=(%d,%d,%d))\n",
                           x, y, count,
-                          color->red, color->green, color->blue,
-                          alpha);
+                          color->red, color->green, color->blue);
 
         if (m_undercurl_surface_scale != scale_factor)
                 m_undercurl_surface.reset();
@@ -336,7 +330,7 @@ DrawingContext::draw_undercurl(int x,
          * The cached look takes the fractional part of "y" into account,
          * here we only offset by its integer part. */
         cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-        _vte_set_source_color_alpha(cr, color, alpha);
+        _vte_set_source_color(cr, color);
         for (int i = 0; i < count; i++) {
                 cairo_mask_surface(cr, m_undercurl_surface.get(), x - x_padding + i * m_cell_width, surface_top);
         }

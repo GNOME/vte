@@ -190,14 +190,18 @@ public:
                                     int y,
                                     int width,
                                     int height,
+                                    vte::color::rgb const* color) const = 0;
+        virtual void fill_rectangle(int x,
+                                    int y,
+                                    int width,
+                                    int height,
                                     vte::color::rgb const* color,
                                     double alpha) const = 0;
         virtual void draw_rectangle(int x,
                                     int y,
                                     int width,
                                     int height,
-                                    vte::color::rgb const* color,
-                                    double alpha) const = 0;
+                                    vte::color::rgb const* color) const = 0;
 
         virtual void draw_surface_with_color_mask(
 #if VTE_GTK == 3
@@ -216,8 +220,7 @@ public:
                             double line_width,
                             int count,
                             int scale_factor,
-                            vte::color::rgb const* color,
-                            double alpha);
+                            vte::color::rgb const* color);
 
         void clear_font_cache();
         void set_text_font(GtkWidget* widget,
@@ -238,12 +241,10 @@ public:
         void draw_text(TextRequest* requests,
                        gsize n_requests,
                        uint32_t attr,
-                       vte::color::rgb const* color,
-                       double alpha);
+                       vte::color::rgb const* color);
         bool draw_char(TextRequest* request,
                        uint32_t attr,
-                       vte::color::rgb const* color,
-                       double alpha);
+                       vte::color::rgb const* color);
         bool has_char(vteunistr c,
                       uint32_t attr);
         void draw_line(int x,
@@ -251,8 +252,7 @@ public:
                        int xp,
                        int yp,
                        int line_width,
-                       vte::color::rgb const *color,
-                       double alpha);
+                       vte::color::rgb const *color);
 
         auto cell_width()  const noexcept { return m_cell_width; }
         auto cell_height() const noexcept { return m_cell_height; }
@@ -264,8 +264,7 @@ protected:
         virtual void draw_text_internal(TextRequest* requests,
                                         gsize n_requests,
                                         uint32_t attr,
-                                        vte::color::rgb const* color,
-                                        double alpha) = 0;
+                                        vte::color::rgb const* color) = 0;
 
         // std::array<vte::base::RefPtr<FontInfo>, 4> m_fonts{};
         FontInfo* m_fonts[4]{nullptr, nullptr, nullptr, nullptr};
@@ -329,6 +328,17 @@ static inline double
 _vte_draw_get_undercurl_height(gint width, double line_width)
 {
         return 2. * _vte_draw_get_undercurl_arc_height(width) + line_width;
+}
+
+static inline void
+_vte_set_source_color(cairo_t* cr,
+                      vte::color::rgb const *color)
+{
+        cairo_set_source_rgba(cr,
+                              color->red / 65535.,
+                              color->green / 65535.,
+                              color->blue / 65535.,
+                              1.0);
 }
 
 static inline void

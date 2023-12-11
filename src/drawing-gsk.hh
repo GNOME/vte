@@ -88,14 +88,18 @@ public:
                             int y,
                             int width,
                             int height,
+                            vte::color::rgb const* color) const override;
+        void fill_rectangle(int x,
+                            int y,
+                            int width,
+                            int height,
                             vte::color::rgb const* color,
                             double alpha) const override;
         void draw_rectangle(int x,
                             int y,
                             int width,
                             int height,
-                            vte::color::rgb const* color,
-                            double alpha) const override;
+                            vte::color::rgb const* color) const override;
 
         void draw_surface_with_color_mask(GdkTexture *texture,
                                           int x,
@@ -108,8 +112,7 @@ protected:
         void draw_text_internal(TextRequest* requests,
                                 gsize n_requests,
                                 uint32_t attr,
-                                vte::color::rgb const* color,
-                                double alpha) override;
+                                vte::color::rgb const* color) override;
 
 private:
         GtkSnapshot *m_snapshot{nullptr}; // unowned

@@ -94,6 +94,29 @@ DrawingCairo::fill_rectangle(int x,
                              int y,
                              int width,
                              int height,
+                             vte::color::rgb const* color) const
+{
+        g_assert(m_cr);
+        g_assert(color);
+
+        _vte_debug_print(VTE_DEBUG_DRAW,
+                         "draw_fill_rectangle (%d, %d, %d, %d, color=(%d,%d,%d))\n",
+                         x,y,width,height,
+                         color->red, color->green, color->blue);
+
+        cairo_save(m_cr);
+        cairo_set_operator(m_cr, CAIRO_OPERATOR_OVER);
+        cairo_rectangle(m_cr, x, y, width, height);
+        _vte_set_source_color(m_cr, color);
+        cairo_fill(m_cr);
+        cairo_restore(m_cr);
+}
+
+void
+DrawingCairo::fill_rectangle(int x,
+                             int y,
+                             int width,
+                             int height,
                              vte::color::rgb const* color,
                              double alpha) const
 {
@@ -103,8 +126,7 @@ DrawingCairo::fill_rectangle(int x,
         _vte_debug_print(VTE_DEBUG_DRAW,
                          "draw_fill_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%.3f))\n",
                          x,y,width,height,
-                         color->red, color->green, color->blue,
-                         alpha);
+                         color->red, color->green, color->blue, alpha);
 
         cairo_save(m_cr);
         cairo_set_operator(m_cr, CAIRO_OPERATOR_OVER);
@@ -118,8 +140,7 @@ void
 DrawingCairo::draw_text_internal(TextRequest* requests,
                                  gsize n_requests,
                                  uint32_t attr,
-                                 vte::color::rgb const* color,
-                                 double alpha)
+                                 vte::color::rgb const* color)
 {
         gsize i;
         cairo_scaled_font_t *last_scaled_font = nullptr;
@@ -134,7 +155,7 @@ DrawingCairo::draw_text_internal(TextRequest* requests,
 
         g_assert(m_cr);
 
-        _vte_set_source_color_alpha(m_cr, color, alpha);
+        _vte_set_source_color(m_cr, color);
         cairo_set_operator(m_cr, CAIRO_OPERATOR_OVER);
 
         for (i = 0; i < n_requests; i++) {
@@ -212,22 +233,20 @@ DrawingCairo::draw_rectangle(int x,
                              int y,
                              int width,
                              int height,
-                             vte::color::rgb const* color,
-                             double alpha) const
+                             vte::color::rgb const* color) const
 {
         g_assert(color);
         g_assert(m_cr);
 
         _vte_debug_print (VTE_DEBUG_DRAW,
-                          "draw_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%.3f))\n",
+                          "draw_rectangle (%d, %d, %d, %d, color=(%d,%d,%d))\n",
                           x,y,width,height,
-                          color->red, color->green, color->blue,
-                          alpha);
+                          color->red, color->green, color->blue);
 
         cairo_save(m_cr);
         cairo_set_operator(m_cr, CAIRO_OPERATOR_OVER);
         cairo_rectangle(m_cr, x+VTE_LINE_WIDTH/2., y+VTE_LINE_WIDTH/2., width-VTE_LINE_WIDTH, height-VTE_LINE_WIDTH);
-        _vte_set_source_color_alpha(m_cr, color, alpha);
+        _vte_set_source_color(m_cr, color);
         cairo_set_line_width(m_cr, VTE_LINE_WIDTH);
         cairo_stroke (m_cr);
         cairo_restore(m_cr);
@@ -259,7 +278,7 @@ DrawingCairo::draw_surface_with_color_mask(cairo_surface_t *surface,
 {
         auto cr = begin_cairo(x, y, width, height);
 
-        _vte_set_source_color_alpha(m_cr, color, 1);
+        _vte_set_source_color(m_cr, color);
 
         cairo_push_group(cr);
         cairo_rectangle(cr, x, y, width, height);
