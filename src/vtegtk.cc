@@ -4575,6 +4575,65 @@ catch (...)
         return nullptr;
 }
 
+/*
+ * _vte_terminal_get_text_range_format_full:
+ * @terminal: a #VteTerminal
+ * @format: the #VteFormat to use
+ * @start_row: the first row of the range
+ * @start_col: the first column of the range
+ * @end_row: the last row of the range
+ * @end_col: the last column of the range
+ * @block_mode:
+ * @length: (optional) (out): a pointer to a #gsize to store the string length
+ *
+ * Returns the specified range of text in the specified format.
+ *
+ * Returns: (transfer full) (nullable): a newly allocated string, or %NULL.
+ */
+static char*
+_vte_terminal_get_text_range_format_full(VteTerminal *terminal,
+                                         VteFormat format,
+                                         long start_row,
+                                         long start_col,
+                                         long end_row,
+                                         long end_col,
+                                         bool block_mode,
+                                         gsize* length) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
+        g_return_val_if_fail(check_enum_value(format), nullptr);
+
+        if (length)
+                *length = 0;
+
+        VteCharAttrList attributes;
+        vte_char_attr_list_init(&attributes);
+
+        auto const impl = IMPL(terminal);
+        auto text = vte::take_freeable(g_string_new(nullptr));
+        impl->get_text(start_row,
+                       start_col,
+                       end_row,
+                       end_col,
+                       block_mode,
+                       false /* preserve_empty */,
+                       text.get(),
+                       format == VTE_FORMAT_HTML ? &attributes : nullptr);
+
+        if (format == VTE_FORMAT_HTML)
+                text = vte::take_freeable(impl->attributes_to_html(text.get(), &attributes));
+
+        vte_char_attr_list_clear(&attributes);
+
+        return vte::glib::release_to_string(std::move(text), length);
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
 /**
  * vte_terminal_get_text_range_format:
  * @terminal: a #VteTerminal
@@ -4599,39 +4658,15 @@ vte_terminal_get_text_range_format(VteTerminal *terminal,
                                    long end_row,
                                    long end_col,
                                    gsize* length) noexcept
-try
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
-        g_return_val_if_fail(check_enum_value(format), nullptr);
-
-        if (length)
-                *length = 0;
-
-        VteCharAttrList attributes;
-        vte_char_attr_list_init(&attributes);
-
-        auto const impl = IMPL(terminal);
-        auto text = vte::take_freeable(g_string_new(nullptr));
-        impl->get_text(start_row,
-                       start_col,
-                       end_row,
-                       end_col,
-                       false /* block */,
-                       false /* preserve_empty */,
-                       text.get(),
-                       format == VTE_FORMAT_HTML ? &attributes : nullptr);
-
-        if (format == VTE_FORMAT_HTML)
-                text = vte::take_freeable(impl->attributes_to_html(text.get(), &attributes));
-
-        vte_char_attr_list_clear(&attributes);
-
-        return vte::glib::release_to_string(std::move(text), length);
-}
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
+        return _vte_terminal_get_text_range_format_full(terminal,
+                                                        format,
+                                                        start_row,
+                                                        start_col,
+                                                        end_row,
+                                                        end_col,
+                                                        false, // block
+                                                        length);
 }
 
 /**
@@ -6024,7 +6059,7 @@ catch (...)
  * @format: the #VteFormat to use
  *
  * Gets the currently selected text in the format specified by @format.
- * Since 0.72, this function also supports %VTE_FORMAT_HTML format.xg
+ * Since 0.72, this function also supports %VTE_FORMAT_HTML format.
  *
  * Returns: (transfer full) (nullable): a newly allocated string containing the selected text, or %NULL if there is no selection or the format is not supported
  *
@@ -6068,14 +6103,16 @@ try
 
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        auto const selection = IMPL(terminal)->m_selection_resolved;
-        return vte_terminal_get_text_range_format(terminal,
-                                                  format,
-                                                  selection.start_row(),
-                                                  selection.start_column(),
-                                                  selection.end_row(),
-                                                  selection.end_column(),
-                                                  length);
+        auto const impl = IMPL(terminal);
+        auto const selection = impl->m_selection_resolved;
+        return _vte_terminal_get_text_range_format_full(terminal,
+                                                        format,
+                                                        selection.start_row(),
+                                                        selection.start_column(),
+                                                        selection.end_row(),
+                                                        selection.end_column(),
+                                                        impl->m_selection_block_mode,
+                                                        length);
 }
 catch (...)
 {
