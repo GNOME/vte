@@ -34,6 +34,10 @@
 
 G_BEGIN_DECLS
 
+#define VTE_TYPE_EVENT_CONTEXT (vte_event_context_get_type())
+
+typedef struct _VteEventContext VteEventContext;
+
 #define VTE_TYPE_TERMINAL            (vte_terminal_get_type())
 #define VTE_TERMINAL(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), VTE_TYPE_TERMINAL, VteTerminal))
 #define VTE_TERMINAL_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  VTE_TYPE_TERMINAL, VteTerminalClass))
@@ -115,13 +119,16 @@ struct _VteTerminalClass {
         gpointer _extra_padding[3];
 #endif /* _VTE_GTK == 3 */
 
-        /* Add new vfuncs here, and subtract from the padding below. */
+        void (*setup_context_menu)(VteTerminal* terminal,
+                                   VteEventContext const* context);
+
+        /* Add new vfuncs just above, and subtract from the padding below. */
 
         /* Padding for future expansion. */
 #if _VTE_GTK == 3
-        gpointer _padding[13];
+        gpointer _padding[12];
 #elif _VTE_GTK == 4
-        gpointer _padding[16];
+        gpointer _padding[15];
 #endif /* _VTE_GTK */
 
 // FIXMEgtk4 use class private data instead
@@ -647,10 +654,6 @@ void vte_terminal_set_context_menu(VteTerminal* terminal,
 
 _VTE_PUBLIC
 GtkWidget* vte_terminal_get_context_menu(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
-
-typedef struct _VteEventContext VteEventContext;
-
-#define VTE_TYPE_EVENT_CONTEXT (vte_event_context_get_type())
 
 _VTE_PUBLIC
 GType vte_event_context_get_type(void);
