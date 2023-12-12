@@ -453,7 +453,7 @@ public:
                                                         this),
                                               "cursor-blink-timer"};
         CursorBlinkMode m_cursor_blink_mode{CursorBlinkMode::eSYSTEM};
-        bool m_cursor_blink_state{false};
+        bool m_cursor_blink_state{true};
         bool m_cursor_blinks{false};        /* whether the cursor is actually blinking */
         bool m_cursor_blinks_system{true};  /* gtk-cursor-blink */
         int m_cursor_blink_cycle_ms{1000};  /* gtk-cursor-blink-time / 2 */
