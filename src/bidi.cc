@@ -40,11 +40,7 @@
  * https://terminal-wg.pages.freedesktop.org/bidi/
  */
 
-#include <config.h>
-
-#if WITH_FRIBIDI
-#include <fribidi.h>
-#endif
+#include "config.h"
 
 #include "bidi.hh"
 #include "debug.h"
@@ -209,10 +205,6 @@ BidiRunner::explicit_line_shape(vte::grid::row_t row)
         FriBidiParType pbase_dir = FRIBIDI_PAR_RTL;
         FriBidiLevel level;
         FriBidiChar *fribidi_chars;
-        FriBidiCharType *fribidi_chartypes;
-        FriBidiBracketType *fribidi_brackettypes;
-        FriBidiJoiningType *fribidi_joiningtypes;
-        FriBidiLevel *fribidi_levels;
 
         int count;
 
@@ -224,6 +216,8 @@ BidiRunner::explicit_line_shape(vte::grid::row_t row)
         VteBidiChars *fribidi_chars_array = &m_fribidi_chars_array;
         vte_bidi_chars_set_size(fribidi_chars_array, 0);
         vte_bidi_chars_reserve(fribidi_chars_array, width);
+
+        static thread_local auto workspace = Workspace{};
 
         /* Walk in visual order from right to left. */
         i = width - 1;
@@ -261,11 +255,13 @@ BidiRunner::explicit_line_shape(vte::grid::row_t row)
                 count = vte_bidi_chars_get_size (fribidi_chars_array);
                 fribidi_chars = vte_bidi_chars_get_data (fribidi_chars_array);
 
+                workspace.reserve(count);
+
                 /* Run the BiDi algorithm on the paragraph to get the embedding levels. */
-                fribidi_chartypes = g_newa (FriBidiCharType, count);
-                fribidi_brackettypes = g_newa (FriBidiBracketType, count);
-                fribidi_joiningtypes = g_newa (FriBidiJoiningType, count);
-                fribidi_levels = g_newa (FriBidiLevel, count);
+                auto fribidi_chartypes = workspace.char_types_data();
+                auto fribidi_brackettypes = workspace.bracket_types_data();
+                auto fribidi_joiningtypes = workspace.joining_types_data();
+                auto fribidi_levels = workspace.levels_data();
 
                 fribidi_get_bidi_types (fribidi_chars, count, fribidi_chartypes);
                 fribidi_get_bracket_types (fribidi_chars, count, fribidi_chartypes, fribidi_brackettypes);
@@ -575,10 +571,13 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
         fribidi_to_term = vte_bidi_indexes_get_data(fribidi_to_term_array);
 
         /* Run the BiDi algorithm on the paragraph to get the embedding levels. */
-        fribidi_chartypes = g_newa (FriBidiCharType, count);
-        fribidi_brackettypes = g_newa (FriBidiBracketType, count);
-        fribidi_joiningtypes = g_newa (FriBidiJoiningType, count);
-        fribidi_levels = g_newa (FriBidiLevel, count);
+        static thread_local auto workspace = Workspace{};
+        workspace.reserve(count);
+
+        fribidi_chartypes = workspace.char_types_data();
+        fribidi_brackettypes = workspace.bracket_types_data();
+        fribidi_joiningtypes = workspace.joining_types_data();
+        fribidi_levels = workspace.levels_data();
 
         pbase_dir = autodir ? (rtl ? FRIBIDI_PAR_WRTL : FRIBIDI_PAR_WLTR)
                             : (rtl ? FRIBIDI_PAR_RTL  : FRIBIDI_PAR_LTR );
