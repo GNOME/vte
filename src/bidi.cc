@@ -210,10 +210,10 @@ BidiRunner::explicit_line_shape(vte::grid::row_t row)
         FriBidiParType pbase_dir = FRIBIDI_PAR_RTL;
         FriBidiLevel level;
         FriBidiChar *fribidi_chars;
-        FriBidiCharType *fribidi_chartypes;
-        FriBidiBracketType *fribidi_brackettypes;
-        FriBidiJoiningType *fribidi_joiningtypes;
-        FriBidiLevel *fribidi_levels;
+        std::vector<FriBidiCharType> fribidi_chartypes;
+        std::vector<FriBidiBracketType> fribidi_brackettypes;
+        std::vector<FriBidiJoiningType> fribidi_joiningtypes;
+        std::vector<FriBidiLevel> fribidi_levels;
 
         int count;
 
@@ -261,15 +261,15 @@ BidiRunner::explicit_line_shape(vte::grid::row_t row)
                 fribidi_chars = reinterpret_cast<FriBidiChar*>(fribidi_chars_array->data);
 
                 /* Run the BiDi algorithm on the paragraph to get the embedding levels. */
-                fribidi_chartypes = g_newa (FriBidiCharType, count);
-                fribidi_brackettypes = g_newa (FriBidiBracketType, count);
-                fribidi_joiningtypes = g_newa (FriBidiJoiningType, count);
-                fribidi_levels = g_newa (FriBidiLevel, count);
+                fribidi_chartypes.resize(count);
+                fribidi_brackettypes.resize(count);
+                fribidi_joiningtypes.resize(count);
+                fribidi_levels.resize(count);
 
-                fribidi_get_bidi_types (fribidi_chars, count, fribidi_chartypes);
-                fribidi_get_bracket_types (fribidi_chars, count, fribidi_chartypes, fribidi_brackettypes);
-                fribidi_get_joining_types (fribidi_chars, count, fribidi_joiningtypes);
-                level = fribidi_get_par_embedding_levels_ex (fribidi_chartypes, fribidi_brackettypes, count, &pbase_dir, fribidi_levels) - 1;
+                fribidi_get_bidi_types (fribidi_chars, count, fribidi_chartypes.data());
+                fribidi_get_bracket_types (fribidi_chars, count, fribidi_chartypes.data(), fribidi_brackettypes.data());
+                fribidi_get_joining_types (fribidi_chars, count, fribidi_joiningtypes.data());
+                level = fribidi_get_par_embedding_levels_ex (fribidi_chartypes.data(), fribidi_brackettypes.data(), count, &pbase_dir, fribidi_levels.data()) - 1;
                 if (level == (FriBidiLevel)(-1)) {
                         /* Error. Skip shaping this word. */
                         i = j - 1;
@@ -277,8 +277,8 @@ BidiRunner::explicit_line_shape(vte::grid::row_t row)
                 }
 
                 /* Shaping. */
-                fribidi_join_arabic (fribidi_chartypes, count, fribidi_levels, fribidi_joiningtypes);
-                fribidi_shape_arabic (VTE_ARABIC_SHAPING_FLAGS, fribidi_levels, count, fribidi_joiningtypes, fribidi_chars);
+                fribidi_join_arabic (fribidi_chartypes.data(), count, fribidi_levels.data(), fribidi_joiningtypes.data());
+                fribidi_shape_arabic (VTE_ARABIC_SHAPING_FLAGS, fribidi_levels.data(), count, fribidi_joiningtypes.data(), fribidi_chars);
 
                 /* If we have the shortcut notation for the trivial LTR mapping, we need to
                  * expand it to the nontrivial notation, in order to store the shaped character. */
@@ -414,10 +414,10 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
         FriBidiParType pbase_dir;
         FriBidiLevel level;
         FriBidiChar *fribidi_chars;
-        FriBidiCharType *fribidi_chartypes;
-        FriBidiBracketType *fribidi_brackettypes;
-        FriBidiJoiningType *fribidi_joiningtypes;
-        FriBidiLevel *fribidi_levels;
+        std::vector<FriBidiCharType> fribidi_chartypes;
+        std::vector<FriBidiBracketType> fribidi_brackettypes;
+        std::vector<FriBidiJoiningType> fribidi_joiningtypes;
+        std::vector<FriBidiLevel> fribidi_levels;
         FriBidiStrIndex *fribidi_map;
         FriBidiStrIndex *fribidi_to_term;
         BidiRow *bidirow;
@@ -563,18 +563,18 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
         fribidi_to_term = reinterpret_cast<FriBidiStrIndex*>(fribidi_to_term_array->data);
 
         /* Run the BiDi algorithm on the paragraph to get the embedding levels. */
-        fribidi_chartypes = g_newa (FriBidiCharType, count);
-        fribidi_brackettypes = g_newa (FriBidiBracketType, count);
-        fribidi_joiningtypes = g_newa (FriBidiJoiningType, count);
-        fribidi_levels = g_newa (FriBidiLevel, count);
+        fribidi_chartypes.resize(count);
+        fribidi_brackettypes.resize(count);
+        fribidi_joiningtypes.resize(count);
+        fribidi_levels.resize(count);
 
         pbase_dir = autodir ? (rtl ? FRIBIDI_PAR_WRTL : FRIBIDI_PAR_WLTR)
                             : (rtl ? FRIBIDI_PAR_RTL  : FRIBIDI_PAR_LTR );
 
-        fribidi_get_bidi_types (fribidi_chars, count, fribidi_chartypes);
-        fribidi_get_bracket_types (fribidi_chars, count, fribidi_chartypes, fribidi_brackettypes);
-        fribidi_get_joining_types (fribidi_chars, count, fribidi_joiningtypes);
-        level = fribidi_get_par_embedding_levels_ex (fribidi_chartypes, fribidi_brackettypes, count, &pbase_dir, fribidi_levels) - 1;
+        fribidi_get_bidi_types (fribidi_chars, count, fribidi_chartypes.data());
+        fribidi_get_bracket_types (fribidi_chars, count, fribidi_chartypes.data(), fribidi_brackettypes.data());
+        fribidi_get_joining_types (fribidi_chars, count, fribidi_joiningtypes.data());
+        level = fribidi_get_par_embedding_levels_ex (fribidi_chartypes.data(), fribidi_brackettypes.data(), count, &pbase_dir, fribidi_levels.data()) - 1;
 
         if (level == (FriBidiLevel)(-1)) {
                 /* error */
@@ -586,8 +586,8 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
 
         if (do_shaping) {
                 /* Arabic shaping (on the entire paragraph in a single run). */
-                fribidi_join_arabic (fribidi_chartypes, count, fribidi_levels, fribidi_joiningtypes);
-                fribidi_shape_arabic (VTE_ARABIC_SHAPING_FLAGS, fribidi_levels, count, fribidi_joiningtypes, fribidi_chars);
+                fribidi_join_arabic (fribidi_chartypes.data(), count, fribidi_levels.data(), fribidi_joiningtypes.data());
+                fribidi_shape_arabic (VTE_ARABIC_SHAPING_FLAGS, fribidi_levels.data(), count, fribidi_joiningtypes.data(), fribidi_chars);
         }
 
         /* For convenience, from now on this variable contains the resolved (i.e. possibly autodetected) value. */
@@ -640,11 +640,11 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
                 row_data = m_ringview->get_row(row);
 
                 level = fribidi_reorder_line (FRIBIDI_FLAGS_DEFAULT,
-                                              fribidi_chartypes,
+                                              fribidi_chartypes.data(),
                                               lines[line + 1] - lines[line],
                                               lines[line],
                                               pbase_dir,
-                                              fribidi_levels,
+                                              fribidi_levels.data(),
                                               NULL,
                                               fribidi_map) - 1;
 
