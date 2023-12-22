@@ -5916,9 +5916,16 @@ Terminal::cell_is_selected_vis(vte::grid::column_t vcol,
 void
 Terminal::widget_paste(std::string_view const& data)
 {
+        if (!m_input_enabled)
+                return;
+
         feed_child(vte::terminal::pastify_string(data,
                                                  m_modes_private.XTERM_READLINE_BRACKETED_PASTE(),
                                                  false /* C1 */));
+
+        if (m_scroll_on_insert) {
+		maybe_scroll_to_bottom();
+	}
 }
 
 bool
@@ -10203,6 +10210,16 @@ Terminal::set_fallback_scrolling(bool set)
                 return false;
 
         m_fallback_scrolling = set;
+        return true;
+}
+
+bool
+Terminal::set_scroll_on_insert(bool scroll)
+{
+        if (scroll == m_scroll_on_insert)
+                return false;
+
+        m_scroll_on_insert = scroll;
         return true;
 }
 

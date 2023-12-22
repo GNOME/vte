@@ -2640,6 +2640,7 @@ vteapp_window_constructed(GObject *object)
         vte_terminal_set_enable_fallback_scrolling(window->terminal, !options.no_fallback_scrolling);
         vte_terminal_set_mouse_autohide(window->terminal, true);
         vte_terminal_set_rewrap_on_resize(window->terminal, !options.no_rewrap);
+        vte_terminal_set_scroll_on_insert(window->terminal, true);
         vte_terminal_set_scroll_on_output(window->terminal, false);
         vte_terminal_set_scroll_on_keystroke(window->terminal, true);
         vte_terminal_set_scroll_unit_is_pixels(window->terminal, options.scroll_unit_is_pixels);

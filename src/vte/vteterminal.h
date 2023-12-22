@@ -277,13 +277,17 @@ _VTE_PUBLIC
 void vte_terminal_set_scroll_on_output(VteTerminal *terminal,
                                        gboolean scroll) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
+void vte_terminal_set_scroll_on_insert(VteTerminal *terminal,
+                                       gboolean scroll) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+gboolean vte_terminal_get_scroll_on_insert(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
 gboolean vte_terminal_get_scroll_on_output(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
 void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 					  gboolean scroll) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
 gboolean vte_terminal_get_scroll_on_keystroke(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
-
 _VTE_PUBLIC
 void vte_terminal_set_enable_fallback_scrolling(VteTerminal *terminal,
                                                 gboolean enable) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);

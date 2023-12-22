@@ -1056,6 +1056,9 @@ try
                 case PROP_SCROLLBACK_LINES:
                         g_value_set_uint (value, vte_terminal_get_scrollback_lines(terminal));
                         break;
+                case PROP_SCROLL_ON_INSERT:
+                        g_value_set_boolean(value, vte_terminal_get_scroll_on_insert(terminal));
+                        break;
                 case PROP_SCROLL_ON_KEYSTROKE:
                         g_value_set_boolean (value, vte_terminal_get_scroll_on_keystroke(terminal));
                         break;
@@ -1202,6 +1205,9 @@ try
                         break;
                 case PROP_SCROLLBACK_LINES:
                         vte_terminal_set_scrollback_lines (terminal, g_value_get_uint (value));
+                        break;
+                case PROP_SCROLL_ON_INSERT:
+                        vte_terminal_set_scroll_on_insert(terminal, g_value_get_boolean(value));
                         break;
                 case PROP_SCROLL_ON_KEYSTROKE:
                         vte_terminal_set_scroll_on_keystroke(terminal, g_value_get_boolean (value));
@@ -2394,6 +2400,22 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                    0, G_MAXUINT,
                                    VTE_SCROLLBACK_INIT,
                                    (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+
+        /**
+         * VteTerminal:scroll-on-insert:
+         *
+         * Controls whether or not the terminal will forcibly scroll to the bottom of
+         * the viewable history when the text is inserted (e.g. by a paste).
+         *
+         * Since: 0.76
+         */
+        pspecs[PROP_SCROLL_ON_INSERT] =
+                g_param_spec_boolean("scroll-on-insert", nullptr, nullptr,
+                                     true,
+                                     GParamFlags(G_PARAM_READWRITE |
+                                                 G_PARAM_STATIC_STRINGS |
+                                                 G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:scroll-on-keystroke:
@@ -6398,6 +6420,54 @@ catch (...)
 }
 
 /**
+ * vte_terminal_set_scroll_on_insert:
+ * @terminal: a #VteTerminal
+ * @scroll: whether the terminal should scroll on insert
+ *
+ * Controls whether or not the terminal will forcibly scroll to the bottom of
+ * the viewable history when text is inserted, e.g. by a paste.
+ *
+ * Since: 0.76
+ */
+void
+vte_terminal_set_scroll_on_insert(VteTerminal *terminal,
+                                  gboolean scroll) noexcept
+try
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (IMPL(terminal)->set_scroll_on_insert(scroll != false))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_SCROLL_ON_INSERT]);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
+ * vte_terminal_get_scroll_on_insert:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: whether or not the terminal will forcibly scroll to the bottom of
+ * the viewable history when the new data is received from the child.
+ *
+ * Since: 0.76
+ */
+gboolean
+vte_terminal_get_scroll_on_insert(VteTerminal *terminal) noexcept
+try
+{
+    g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
+    return IMPL(terminal)->m_scroll_on_insert;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
+
+
+/**
  * vte_terminal_set_scroll_on_keystroke:
  * @terminal: a #VteTerminal
  * @scroll: whether the terminal should scroll on keystrokes
@@ -6405,6 +6475,8 @@ catch (...)
  * Controls whether or not the terminal will forcibly scroll to the bottom of
  * the viewable history when the user presses a key.  Modifier keys do not
  * trigger this behavior.
+ *
+ * Since: 0.52
  */
 void
 vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
@@ -6451,6 +6523,8 @@ catch (...)
  *
  * Controls whether or not the terminal will forcibly scroll to the bottom of
  * the viewable history when the new data is received from the child.
+ *
+ * Since: 0.52
  */
 void
 vte_terminal_set_scroll_on_output(VteTerminal *terminal,
