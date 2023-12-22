@@ -68,6 +68,7 @@ public:
         gboolean no_fallback_scrolling{false};
         gboolean no_geometry_hints{false};
         gboolean no_hyperlink{false};
+        gboolean no_kinetic_scrolling{false};
         gboolean no_pty{false};
         gboolean no_rewrap{false};
         gboolean no_scrollbar{false};
@@ -78,6 +79,7 @@ public:
         gboolean no_xfill{false};
         gboolean no_yfill{false};
         gboolean object_notifications{false};
+        gboolean overlay_scrollbar{false};
         gboolean require_systemd_scope{false};
         gboolean reverse{false};
         gboolean scroll_unit_is_pixels{false};
@@ -705,6 +707,8 @@ public:
                           "Allow the terminal to be resized to any dimension, not constrained to fit to an integer multiple of characters", nullptr },
                         { "no-hyperlink", 'H', 0, G_OPTION_ARG_NONE, &no_hyperlink,
                           "Disable hyperlinks", nullptr },
+                        { "no-kinetic-scrolling", 'k', 0, G_OPTION_ARG_NONE, &no_kinetic_scrolling,
+                          "Disable kinetic scrolling", nullptr },
                         { "no-pty", 0, 0, G_OPTION_ARG_NONE, &no_pty,
                           "Disable PTY creation with --no-shell", nullptr },
                         { "no-rewrap", 'R', 0, G_OPTION_ARG_NONE, &no_rewrap,
@@ -723,6 +727,8 @@ public:
                           "Print VteTerminal object notifications", nullptr },
                         { "output-file", 0, 0, G_OPTION_ARG_FILENAME, &output_filename,
                           "Save terminal contents to file at exit", nullptr },
+                        { "overlay-scrollbar", 'N', 0, G_OPTION_ARG_NONE, &overlay_scrollbar,
+                          "Print VteTerminal object notifications", nullptr },
                         { "reverse", 0, 0, G_OPTION_ARG_NONE, &reverse,
                           "Reverse foreground/background colors", nullptr },
                         { "require-systemd-scope", 0, 0, G_OPTION_ARG_NONE, &require_systemd_scope,
@@ -839,7 +845,6 @@ public:
 
                 if (use_scrolled_window) {
                         no_geometry_hints = true;
-                        no_scrollbar = true;
                 }
 
 #if VTE_GTK == 4
@@ -2509,7 +2514,7 @@ vteapp_window_constructed(GObject *object)
                 gtk_widget_set_margin_bottom(GTK_WIDGET(window->terminal), margin);
         }
 
-        if (!options.no_scrollbar) {
+        if (!options.no_scrollbar && !options.use_scrolled_window) {
                 auto vadj = gtk_scrollable_get_vadjustment(GTK_SCROLLABLE(window->terminal));
 #if VTE_GTK == 3
                 gtk_range_set_adjustment(GTK_RANGE(window->scrollbar), vadj);
@@ -2518,7 +2523,7 @@ vteapp_window_constructed(GObject *object)
 #endif
         }
 
-        if (options.no_scrollbar) {
+        if (options.no_scrollbar || options.use_scrolled_window) {
 #if VTE_GTK == 3
                 gtk_widget_destroy(GTK_WIDGET(window->scrollbar));
 #elif VTE_GTK == 4
@@ -2691,6 +2696,21 @@ vteapp_window_constructed(GObject *object)
                 auto sw = gtk_scrolled_window_new();
                 gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), GTK_WIDGET(window->terminal));
 #endif /* VTE_GTK */
+                gtk_scrolled_window_set_kinetic_scrolling(GTK_SCROLLED_WINDOW(sw),
+                                                          !options.no_kinetic_scrolling);
+
+                auto vpolicy = GTK_POLICY_ALWAYS;
+                if (options.no_scrollbar)
+                        vpolicy = GTK_POLICY_EXTERNAL;
+                else if (options.overlay_scrollbar)
+                        vpolicy = GTK_POLICY_AUTOMATIC;
+
+                gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
+                                               GTK_POLICY_NEVER, // hpolicy
+                                               vpolicy);
+                gtk_scrolled_window_set_overlay_scrolling(GTK_SCROLLED_WINDOW(sw),
+                                                          options.overlay_scrollbar);
+
                 gtk_grid_attach(GTK_GRID(window->window_grid), sw,
                                 0, 0, 1, 1);
                 gtk_widget_set_halign(GTK_WIDGET(sw), GTK_ALIGN_FILL);
