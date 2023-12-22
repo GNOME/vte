@@ -1684,11 +1684,35 @@ Widget::notify_scroll_value_changed()
         }
 
         auto const v = gtk_adjustment_get_value(m_vadjustment.get());
-        if (!_vte_double_equal(v, value)) {
-                m_changing_scroll_position = true;
-                gtk_adjustment_set_value(m_vadjustment.get(), value);
-                m_changing_scroll_position = false;
+        if (_vte_double_equal(v, value))
+                return;
+
+#if VTE_GTK == 4
+        auto kinetic = false;
+        GtkWidget* sw = nullptr;
+        if (m_inside_scrolled_window) {
+                // If a kinetic scroll is in progress in the containing
+                // GtkScrolledWindow, it will continue even when we set
+                // the new value.  GtkScrolledWindow lacks direct API to
+                // stop kinetic scrolling, but it does stop when changing
+                // the kinetic-scrolling property to false. So we unset
+                // and then re-set kinetic-scrolling.
+
+                sw = gtk_widget_get_ancestor(gtk(), GTK_TYPE_SCROLLED_WINDOW);
+                kinetic = gtk_scrolled_window_get_kinetic_scrolling(GTK_SCROLLED_WINDOW(sw));
+                if (kinetic)
+                        gtk_scrolled_window_set_kinetic_scrolling(GTK_SCROLLED_WINDOW(sw), false);
         }
+#endif // VTE_GTK == 4
+
+        m_changing_scroll_position = true;
+        gtk_adjustment_set_value(m_vadjustment.get(), value);
+        m_changing_scroll_position = false;
+
+#if VTE_GTK == 4
+        if (kinetic)
+                gtk_scrolled_window_set_kinetic_scrolling(GTK_SCROLLED_WINDOW(sw), true);
+#endif // VTE_GTK == 4
 }
 
 #if VTE_GTK == 3
@@ -1979,7 +2003,11 @@ Widget::root()
                                                G_CALLBACK(root_unrealize_cb),
                                                this);
 
-        /* Already realised? */
+        // Find out if we're inside a GtkScrolledWindow
+        auto const sw = gtk_widget_get_ancestor(gtk(), GTK_TYPE_SCROLLED_WINDOW);
+        m_inside_scrolled_window = bool(sw);
+
+        // Already realised?
         if (gtk_widget_get_realized(GTK_WIDGET(r)))
                 root_realize();
 }
@@ -2361,6 +2389,10 @@ Widget::unroot()
         m_root_realize_id = 0;
         g_signal_handler_disconnect(r, m_root_unrealize_id);
         m_root_unrealize_id = 0;
+
+#if VTE_GTK == 4
+        m_inside_scrolled_window = false;
+#endif
 }
 
 #endif /* VTE_GTK == 4 */

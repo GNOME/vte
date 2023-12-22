@@ -809,6 +809,7 @@ private:
         long m_root_realize_id{0};
         long m_root_unrealize_id{0};
         long m_root_surface_state_notify_id{0};
+        bool m_inside_scrolled_window{false};
 #endif /* VTE_GTK == 4 */
 
         vte::glib::RefPtr<GMenuModel> m_context_menu_model;
