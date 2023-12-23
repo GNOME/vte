@@ -680,6 +680,11 @@ public:
                                 bool deactivate,
                                 bool notify = true);
 
+#if VTE_GTK == 4
+        void unset_context_menu_on_idle();
+        void context_menu_closed(GtkWidget* widget);
+#endif
+
         GtkWidget* get_context_menu() const noexcept
         {
                 return m_context_menu.get();
@@ -815,6 +820,9 @@ private:
         vte::glib::RefPtr<GMenuModel> m_context_menu_model;
         vte::glib::RefPtr<GtkWidget> m_context_menu;
         vte::glib::RefPtr<GtkWidget> m_menu_showing;
+#if VTE_GTK == 4
+        unsigned m_context_menu_unset_on_idle_source{0};
+#endif
 };
 
 } // namespace platform

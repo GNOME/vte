@@ -155,6 +155,14 @@ Widget::unset_context_menu(GtkWidget* widget,
         if (!widget || widget != m_menu_showing.get())
                 return;
 
+#if VTE_GTK == 4
+        // Cancel idle
+        if (m_context_menu_unset_on_idle_source != 0) {
+                g_source_remove(m_context_menu_unset_on_idle_source);
+                m_context_menu_unset_on_idle_source = 0;
+        }
+#endif // VTE_GTK == 4
+
         // Take ownership of the menu
         auto menu = std::move(m_menu_showing);
 
@@ -224,16 +232,10 @@ catch (...)
 #elif VTE_GTK == 4
 
 static void
-context_menu_visible_notify_cb(GtkWidget* menu,
-                               GParamSpec* pspec,
-                               vte::platform::Widget* that) noexcept
+context_menu_unset_on_idle_cb(vte::platform::Widget* that) noexcept
 try
 {
-        if (!menu || gtk_widget_get_visible(menu))
-                return;
-
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Context menu visibility:hidden notify\n");
-        that->unset_context_menu(menu, false);
+        that->unset_context_menu_on_idle();
 }
 catch (...)
 {
@@ -246,7 +248,7 @@ context_menu_closed_cb(GtkWidget* menu,
 try
 {
         _vte_debug_print(VTE_DEBUG_EVENTS, "Context menu closed\n");
-        that->unset_context_menu(menu, false);
+        that->context_menu_closed(menu);
 }
 catch (...)
 {
@@ -2395,6 +2397,39 @@ Widget::unroot()
 #endif
 }
 
+void
+Widget::context_menu_closed(GtkWidget* widget)
+{
+        if (!widget || m_menu_showing.get() != widget)
+                return;
+
+        // There is a design flaw in the gtk popover handling here
+        // in that we cannot directly unset the context menu now,
+        // because the selected action is resolved *after* this
+        // function has run, and unsetting the parent will make
+        // resolving the action fail.
+        // So instead, we need to delay this to idle.
+        // See https://gitlab.gnome.org/GNOME/vte/-/issues/2716
+
+        if (m_context_menu_unset_on_idle_source != 0)
+                return; // already scheduled
+
+        m_context_menu_unset_on_idle_source =
+                g_idle_add_once(GSourceOnceFunc(context_menu_unset_on_idle_cb),
+                                this);
+}
+
+void
+Widget::unset_context_menu_on_idle()
+{
+        m_context_menu_unset_on_idle_source = 0;
+
+        // We can assume that the menu-to-unset is m_menu_showing,
+        // since otherwise unset_context_menu() would have been called
+        // directly, and that cancels the idle.
+        unset_context_menu(m_menu_showing.get(), false, true);
+}
+
 #endif /* VTE_GTK == 4 */
 
 void
@@ -2542,9 +2577,6 @@ Widget::show_context_menu(EventContext const& context)
                 gtk_popover_set_pointing_to(popover, &rect);
         }
 
-        g_signal_connect(m_menu_showing.get(), "notify::visible",
-                         G_CALLBACK(context_menu_visible_notify_cb),
-                         this);
         g_signal_connect(m_menu_showing.get(), "closed",
                          G_CALLBACK(context_menu_closed_cb),
                          this);
