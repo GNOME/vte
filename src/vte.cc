@@ -4854,6 +4854,10 @@ Terminal::im_preedit_changed(std::string_view const& str,
 
         /* And tell the input method where the cursor is on the screen */
         im_update_cursor();
+
+        if (m_scroll_on_keystroke && m_input_enabled) {
+                maybe_scroll_to_bottom();
+        }
 }
 
 bool
