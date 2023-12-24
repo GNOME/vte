@@ -4475,6 +4475,49 @@ warn_if_attributes(void* array,
 }
 
 /**
+ * vte_terminal_get_text_format:
+ * @terminal: a #VteTerminal
+ * @format: the #VteFormat to use
+ *
+ * Returns text from the visible part of the terminal in the specified format.
+ *
+ * This method is unaware of BiDi. The columns returned in @attributes are
+ * logical columns.
+ *
+ * Returns: (transfer full) (nullable): a newly allocated text string, or %NULL.
+ *
+ * Since: 0.76
+ */
+char*
+vte_terminal_get_text_format(VteTerminal* terminal,
+                             VteFormat format) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
+        g_return_val_if_fail(check_enum_value(format), nullptr);
+
+        VteCharAttrList attributes;
+        vte_char_attr_list_init(&attributes);
+
+        auto const impl = IMPL(terminal);
+        auto text = vte::take_freeable(g_string_new(nullptr));
+
+        impl->get_text_displayed(text.get(), format == VTE_FORMAT_HTML ? &attributes : nullptr);
+
+        if (format == VTE_FORMAT_HTML)
+                text = vte::take_freeable(impl->attributes_to_html(text.get(), &attributes));
+
+        vte_char_attr_list_clear(&attributes);
+
+        return vte::glib::release_to_string(std::move(text));
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
  * vte_terminal_get_text:
  * @terminal: a #VteTerminal
  * @is_selected: (scope call) (nullable) (closure user_data): a #VteSelectionFunc callback. Deprecated: 0.44: Always pass %NULL here.
@@ -4497,19 +4540,10 @@ vte_terminal_get_text(VteTerminal *terminal,
 		      VteSelectionFunc is_selected,
 		      gpointer user_data,
 		      GArray *attributes) noexcept
-try
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	g_return_val_if_fail(attributes == nullptr, nullptr);
+        g_return_val_if_fail(attributes == nullptr, nullptr);
         warn_if_callback(is_selected);
-        auto text = g_string_new(nullptr);
-        IMPL(terminal)->get_text_displayed(text, nullptr);
-        return (char*)g_string_free(text, FALSE);
-}
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
+        return vte_terminal_get_text_format(terminal, VTE_FORMAT_TEXT);
 }
 
 /**

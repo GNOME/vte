@@ -430,6 +430,11 @@ char *vte_terminal_get_text(VteTerminal *terminal,
 			    VteSelectionFunc is_selected,
 			    gpointer user_data,
 			    GArray *attributes) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+
+_VTE_PUBLIC
+char* vte_terminal_get_text_format(VteTerminal* terminal,
+                                   VteFormat format) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+
 _VTE_PUBLIC
 char *vte_terminal_get_text_range(VteTerminal *terminal,
 				  glong start_row, glong start_col,
