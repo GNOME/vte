@@ -135,11 +135,6 @@ struct _VteTerminalClass {
         VteTerminalClassPrivate *priv;
 };
 
-typedef gboolean (*VteSelectionFunc)(VteTerminal *terminal,
-                                     glong column,
-                                     glong row,
-                                     gpointer data) _VTE_GNUC_NONNULL(1);
-
 /* The widget's type. */
 _VTE_PUBLIC
 GType vte_terminal_get_type(void);
@@ -419,29 +414,9 @@ void vte_terminal_reset(VteTerminal *terminal,
                         gboolean clear_tabstops,
 			gboolean clear_history) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
-/* Read the contents of the terminal, using a callback function to determine
- * if a particular location on the screen (0-based) is interesting enough to
- * include.  Each byte in the returned string will have a corresponding
- * VteCharAttributes structure in the passed GArray, if the array was not %NULL.
- * Note that it will have one entry per byte, not per character, so indexes
- * should match up exactly. */
-_VTE_PUBLIC
-char *vte_terminal_get_text(VteTerminal *terminal,
-			    VteSelectionFunc is_selected,
-			    gpointer user_data,
-			    GArray *attributes) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
-
 _VTE_PUBLIC
 char* vte_terminal_get_text_format(VteTerminal* terminal,
                                    VteFormat format) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
-
-_VTE_PUBLIC
-char *vte_terminal_get_text_range(VteTerminal *terminal,
-				  glong start_row, glong start_col,
-				  glong end_row, glong end_col,
-				  VteSelectionFunc is_selected,
-				  gpointer user_data,
-				  GArray *attributes) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 
 _VTE_PUBLIC
 char* vte_terminal_get_text_range_format(VteTerminal* terminal,

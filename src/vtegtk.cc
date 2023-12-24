@@ -4434,6 +4434,8 @@ catch (...)
  * a cell has to be selected or not.
  *
  * Returns: %TRUE if cell has to be selected; %FALSE if otherwise.
+ *
+ * Deprecated: 0.76
  */
 
 static void
@@ -4534,6 +4536,8 @@ catch (...)
  * Since 0.72, passing a non-%NULL @is_selected parameter will make this function itself return %NULL.
  *
  * Returns: (transfer full) (nullable): a newly allocated text string, or %NULL.
+
+ * Deprecated: 0.76: Use vte_terminal_get_text_format() instead
  */
 char *
 vte_terminal_get_text(VteTerminal *terminal,
@@ -4564,7 +4568,7 @@ vte_terminal_get_text(VteTerminal *terminal,
  *
  * Returns: (transfer full): a newly allocated text string, or %NULL.
  *
- * Deprecated: 0.56: Use vte_terminal_get_text() instead.
+ * Deprecated: 0.56: Use vte_terminal_get_text_format() instead.
  */
 char *
 vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
@@ -4600,7 +4604,9 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
  *   itself return %NULL.
  *
  * Returns: (transfer full) (nullable): a newly allocated text string, or %NULL.
- */
+ *
+ * Deprecated: 0.76: Use vte_terminal_get_text_range_format() instead
+*/
 char *
 vte_terminal_get_text_range(VteTerminal *terminal,
 			    long start_row,

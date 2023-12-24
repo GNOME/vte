@@ -138,6 +138,27 @@ _VTE_DEPRECATED
 _VTE_PUBLIC
 const char *vte_terminal_get_encoding(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
+typedef gboolean (*VteSelectionFunc)(VteTerminal *terminal,
+                                     glong column,
+                                     glong row,
+                                     gpointer data) _VTE_GNUC_NONNULL(1) _VTE_DEPRECATED;
+
+_VTE_DEPRECATED
+_VTE_PUBLIC
+char *vte_terminal_get_text(VteTerminal *terminal,
+			    VteSelectionFunc is_selected,
+			    gpointer user_data,
+			    GArray *attributes) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+
+_VTE_DEPRECATED
+_VTE_PUBLIC
+char *vte_terminal_get_text_range(VteTerminal *terminal,
+				  glong start_row, glong start_col,
+				  glong end_row, glong end_col,
+				  VteSelectionFunc is_selected,
+				  gpointer user_data,
+				  GArray *attributes) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+
 _VTE_DEPRECATED
 _VTE_PUBLIC
 char *vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
