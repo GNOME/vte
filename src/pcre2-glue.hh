@@ -32,6 +32,7 @@ static_assert(PCRE2_ZERO_TERMINATED == (size_t)-1, "PCRE2_ZERO_TERMINATED has wr
 namespace vte {
 
 VTE_DECLARE_FREEABLE(pcre2_code_8, pcre2_code_free_8);
+VTE_DECLARE_FREEABLE(pcre2_compile_context_8, pcre2_compile_context_free_8);
 VTE_DECLARE_FREEABLE(pcre2_match_context_8, pcre2_match_context_free_8);
 VTE_DECLARE_FREEABLE(pcre2_match_data_8, pcre2_match_data_free_8);
 

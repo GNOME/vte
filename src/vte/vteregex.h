@@ -56,10 +56,24 @@ VteRegex *vte_regex_new_for_match (const char *pattern,
                                    GError    **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
+VteRegex *vte_regex_new_for_match_full (char const* pattern,
+                                        gssize pattern_length,
+                                        uint32_t flags,
+                                        uint32_t extra_flags,
+                                        GError** error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
 VteRegex *vte_regex_new_for_search (const char *pattern,
                                     gssize      pattern_length,
                                     guint32     flags,
                                     GError    **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+VteRegex *vte_regex_new_for_search_full (char const* pattern,
+                                         gssize pattern_length,
+                                         uint32_t flags,
+                                         uint32_t extra_flags,
+                                         GError** error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
 gboolean  vte_regex_jit     (VteRegex *regex,

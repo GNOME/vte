@@ -87,10 +87,60 @@ static VteRegex*
 vte_regex_new(vte::base::Regex::Purpose purpose,
               std::string_view const& pattern,
               uint32_t flags,
+              uint32_t extra_flags,
               GError** error) noexcept
 try
 {
-        return wrapper_from_regex(vte::base::Regex::compile(purpose, pattern, flags, error));
+        return wrapper_from_regex(vte::base::Regex::compile(purpose,
+                                                            pattern,
+                                                            flags,
+                                                            extra_flags,
+                                                            error));
+}
+catch (...)
+{
+        vte::glib::set_error_from_exception(error);
+        return nullptr;
+}
+
+/**
+ * vte_regex_new_for_match_full:
+ * @pattern: a regex pattern string
+ * @pattern_length: the length of @pattern in bytes, or -1 if the
+ *  string is NUL-terminated and the length is unknown
+ * @flags: PCRE2 compile flags
+ * @extra_flags: PCRE2 extra compile flags
+ * @error: (allow-none): return location for a #GError, or %NULL
+ *
+ * Compiles @pattern into a regex for use as a match regex
+ * with vte_terminal_match_add_regex() or
+ * vte_terminal_event_check_regex_simple().
+ *
+ * See man:pcre2pattern(3) for information
+ * about the supported regex language, and man:pcre2api(3) for
+ * information about the supported @flags and @extra_flags.
+ *
+ * The regex will be compiled using <literal>PCRE2_UTF</literal> and
+ * possibly other flags, in addition to the flags supplied in @flags.
+ *
+ * Returns: (transfer full): a newly created #VteRegex, or %NULL with @error filled in
+ *
+ * Since: 0.76
+ */
+VteRegex *
+vte_regex_new_for_match_full(char const* pattern,
+                             gssize pattern_length,
+                             uint32_t flags,
+                             uint32_t extra_flags,
+                             GError** error) noexcept
+try
+{
+        auto const len = size_t{pattern_length == -1 ? strlen(pattern) : size_t(pattern_length)};
+        return vte_regex_new(vte::base::Regex::Purpose::eMatch,
+                             {pattern, len},
+                             flags,
+                             extra_flags,
+                             error);
 }
 catch (...)
 {
@@ -111,7 +161,8 @@ catch (...)
  * vte_terminal_event_check_regex_simple().
  *
  * See man:pcre2pattern(3) for information
- * about the supported regex language.
+ * about the supported regex language, and man:pcre2api(3) for
+ * information about the supported @flags.
  *
  * The regex will be compiled using <literal>PCRE2_UTF</literal> and
  * possibly other flags, in addition to the flags supplied in @flags.
@@ -123,12 +174,46 @@ vte_regex_new_for_match(const char *pattern,
                         gssize      pattern_length,
                         guint32     flags,
                         GError    **error) noexcept
+{
+        return vte_regex_new_for_match_full(pattern, pattern_length, flags, 0, error);
+}
+
+/**
+ * vte_regex_new_for_search_full:
+ * @pattern: a regex pattern string
+ * @pattern_length: the length of @pattern in bytes, or -1 if the
+ *  string is NUL-terminated and the length is unknown
+ * @flags: PCRE2 compile flags
+ * @extra_flags: PCRE2 extra compile flags
+ * @error: (allow-none): return location for a #GError, or %NULL
+ *
+ * Compiles @pattern into a regex for use as a search regex
+ * with vte_terminal_search_set_regex().
+ *
+ * See man:pcre2pattern(3) for information
+ * about the supported regex language, and man:pcre2api(3) for
+ * information about the supported @flags and @extra_flags.
+ *
+ * The regex will be compiled using <literal>PCRE2_UTF</literal> and
+ * possibly other flags, in addition to the flags supplied in @flags.
+ *
+ * Returns: (transfer full): a newly created #VteRegex, or %NULL with @error filled in
+ *
+ * Since: 0.76
+ */
+VteRegex*
+vte_regex_new_for_search_full(char const* pattern,
+                              gssize pattern_length,
+                              uint32_t flags,
+                              uint32_t extra_flags,
+                              GError** error) noexcept
 try
 {
         auto const len = size_t{pattern_length == -1 ? strlen(pattern) : size_t(pattern_length)};
-        return vte_regex_new(vte::base::Regex::Purpose::eMatch,
+        return vte_regex_new(vte::base::Regex::Purpose::eSearch,
                              {pattern, len},
                              flags,
+                             extra_flags,
                              error);
 }
 catch (...)
@@ -149,7 +234,8 @@ catch (...)
  * with vte_terminal_search_set_regex().
  *
  * See man:pcre2pattern(3) for information
- * about the supported regex language.
+ * about the supported regex language, and man:pcre2api(3) for
+ * information about the supported @flags.
  *
  * The regex will be compiled using <literal>PCRE2_UTF</literal> and
  * possibly other flags, in addition to the flags supplied in @flags.
@@ -161,18 +247,8 @@ vte_regex_new_for_search(const char *pattern,
                          gssize      pattern_length,
                          guint32     flags,
                          GError    **error) noexcept
-try
 {
-        auto const len = size_t{pattern_length == -1 ? strlen(pattern) : size_t(pattern_length)};
-        return vte_regex_new(vte::base::Regex::Purpose::eSearch,
-                             {pattern, len},
-                             flags,
-                             error);
-}
-catch (...)
-{
-        vte::glib::set_error_from_exception(error);
-        return nullptr;
+        return vte_regex_new_for_search_full(pattern, pattern_length, flags, 0, error);
 }
 
 /**
