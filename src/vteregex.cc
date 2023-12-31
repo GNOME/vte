@@ -88,6 +88,7 @@ vte_regex_new(vte::base::Regex::Purpose purpose,
               std::string_view const& pattern,
               uint32_t flags,
               uint32_t extra_flags,
+              gsize* error_offset,
               GError** error) noexcept
 try
 {
@@ -95,6 +96,7 @@ try
                                                             pattern,
                                                             flags,
                                                             extra_flags,
+                                                            error_offset,
                                                             error));
 }
 catch (...)
@@ -110,7 +112,8 @@ catch (...)
  *  string is NUL-terminated and the length is unknown
  * @flags: PCRE2 compile flags
  * @extra_flags: PCRE2 extra compile flags
- * @error: (allow-none): return location for a #GError, or %NULL
+ * @error_offset: (out) (optional): return location to store the error offset
+ * @error: (nullable): return location for a #GError
  *
  * Compiles @pattern into a regex for use as a match regex
  * with vte_terminal_match_add_regex() or
@@ -123,7 +126,10 @@ catch (...)
  * The regex will be compiled using <literal>PCRE2_UTF</literal> and
  * possibly other flags, in addition to the flags supplied in @flags.
  *
- * Returns: (transfer full): a newly created #VteRegex, or %NULL with @error filled in
+ * If regex compilation fails, @error will be set and @error_offset point
+ * to error as an offset into @pattern.
+ *
+ * Returns: (transfer full): a newly created #VteRegex, or %NULL
  *
  * Since: 0.76
  */
@@ -132,6 +138,7 @@ vte_regex_new_for_match_full(char const* pattern,
                              gssize pattern_length,
                              uint32_t flags,
                              uint32_t extra_flags,
+                             gsize* error_offset,
                              GError** error) noexcept
 try
 {
@@ -140,6 +147,7 @@ try
                              {pattern, len},
                              flags,
                              extra_flags,
+                             error_offset,
                              error);
 }
 catch (...)
@@ -175,7 +183,7 @@ vte_regex_new_for_match(const char *pattern,
                         guint32     flags,
                         GError    **error) noexcept
 {
-        return vte_regex_new_for_match_full(pattern, pattern_length, flags, 0, error);
+        return vte_regex_new_for_match_full(pattern, pattern_length, flags, 0, nullptr, error);
 }
 
 /**
@@ -184,8 +192,8 @@ vte_regex_new_for_match(const char *pattern,
  * @pattern_length: the length of @pattern in bytes, or -1 if the
  *  string is NUL-terminated and the length is unknown
  * @flags: PCRE2 compile flags
- * @extra_flags: PCRE2 extra compile flags
- * @error: (allow-none): return location for a #GError, or %NULL
+ * @error_offset: (out) (optional): return location to store the error offset
+ * @error: (nullable): return location for a #GError
  *
  * Compiles @pattern into a regex for use as a search regex
  * with vte_terminal_search_set_regex().
@@ -197,7 +205,10 @@ vte_regex_new_for_match(const char *pattern,
  * The regex will be compiled using <literal>PCRE2_UTF</literal> and
  * possibly other flags, in addition to the flags supplied in @flags.
  *
- * Returns: (transfer full): a newly created #VteRegex, or %NULL with @error filled in
+ * If regex compilation fails, @error will be set and @error_offset point
+ * to error as an offset into @pattern.
+ *
+ * Returns: (transfer full): a newly created #VteRegex, or %NULL
  *
  * Since: 0.76
  */
@@ -206,6 +217,7 @@ vte_regex_new_for_search_full(char const* pattern,
                               gssize pattern_length,
                               uint32_t flags,
                               uint32_t extra_flags,
+                              gsize* error_offset,
                               GError** error) noexcept
 try
 {
@@ -214,6 +226,7 @@ try
                              {pattern, len},
                              flags,
                              extra_flags,
+                             error_offset,
                              error);
 }
 catch (...)
@@ -248,7 +261,7 @@ vte_regex_new_for_search(const char *pattern,
                          guint32     flags,
                          GError    **error) noexcept
 {
-        return vte_regex_new_for_search_full(pattern, pattern_length, flags, 0, error);
+        return vte_regex_new_for_search_full(pattern, pattern_length, flags, 0, nullptr, error);
 }
 
 /**

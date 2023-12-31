@@ -87,6 +87,7 @@ Regex::compile(Regex::Purpose purpose,
                std::string_view const& pattern,
                uint32_t flags,
                uint32_t extra_flags,
+               size_t* error_offset,
                GError** error)
 {
         assert(error == nullptr || *error == nullptr);
@@ -114,6 +115,9 @@ Regex::compile(Regex::Purpose purpose,
 
         if (!code) {
                 set_gerror_from_pcre_error(errcode, error);
+                if (error_offset)
+                        *error_offset = erroffset;
+
                 g_prefix_error(error, "Failed to compile pattern to regex at offset %" G_GSIZE_FORMAT ":",
                                erroffset);
                 return nullptr;
