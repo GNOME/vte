@@ -487,6 +487,44 @@ _vte_terminal_accessible_text_modified(VteTerminalAccessible* accessible)
         g_array_free(old_characters, TRUE);
 }
 
+/* Compute a simple diff between the `before` string (before_len bytes) and the
+   `after` string (after_len bytes). We here only check for common head and
+   tail.
+
+   If the strings are equal, this returns FALSE.
+
+   If the strings differ, this returns TRUE, and *head_len is set to the number
+   of bytes that are identical at the beginning of `before` and `after`, and
+   *tail_len is set to the number of bytes that are identical at the end of
+   `before` and `after`. */
+static gboolean
+check_diff(const gchar *before, guint before_len,
+	   const gchar *after, guint after_len,
+	   guint *head_len, guint *tail_len)
+{
+	guint i;
+
+	for (i = 0; i < before_len && i < after_len; i++)
+		if (before[i] != after[i])
+			break;
+
+	if (i == before_len && i == after_len)
+		/* They are identical. */
+		return FALSE;
+
+	/* They started diverging at i. */
+	*head_len = i;
+
+	for (i = 1; i <= before_len - *head_len && i <= after_len - *head_len; i++)
+		if (before[before_len - i] != after[after_len - i])
+			break;
+
+	/* They finished diverging here. */
+	*tail_len = i - 1;
+
+	return TRUE;
+}
+
 void
 _vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
                                        long howmuch)
@@ -494,7 +532,7 @@ _vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
 	VteTerminalAccessiblePrivate *priv = (VteTerminalAccessiblePrivate *)_vte_terminal_accessible_get_instance_private(accessible);
 	struct _VteCharAttributes attr;
 	long delta, row_count;
-	guint i, len;
+	guint drop, old_len, new_len, old_common, new_common;
 
         /* TODOegmont: Fix this for smooth scrolling */
         /* g_assert(howmuch != 0); */
@@ -531,6 +569,7 @@ _vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
                 vte_terminal_accessible_maybe_emit_text_caret_moved(accessible);
 		return;
 	}
+
 	/* Find the start point. */
 	delta = 0;
         if (vte_char_attr_list_get_size(&priv->snapshot_attributes) > 0) {
@@ -540,85 +579,207 @@ _vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
 	/* We scrolled up, so text was added at the top and removed
 	 * from the bottom. */
 	if ((howmuch < 0) && (howmuch > -row_count)) {
-		gboolean inserted = FALSE;
 		howmuch = -howmuch;
 		if (priv->snapshot_text != NULL) {
+			old_len = vte_char_attr_list_get_size(&priv->snapshot_attributes);
+
 			/* Find the first byte that scrolled off. */
-			for (i = 0; i < vte_char_attr_list_get_size(&priv->snapshot_attributes); i++) {
-                                attr = *vte_char_attr_list_get(&priv->snapshot_attributes, i);
+			for (old_common = 0; old_common < old_len; old_common++) {
+				attr = *vte_char_attr_list_get(&priv->snapshot_attributes, old_common);
 				if (attr.row >= delta + row_count - howmuch) {
 					break;
 				}
 			}
-			if (i < vte_char_attr_list_get_size(&priv->snapshot_attributes)) {
-				/* The rest of the string was deleted -- make a note. */
+			if (old_common < old_len) {
+				drop = old_len - old_common;
+
+				GString *old_text;
+				GArray *old_characters;
+
+				/* Refresh. */
+				priv->snapshot_contents_invalid = TRUE;
+				vte_terminal_accessible_update_private_data_if_needed(accessible,
+										      &old_text,
+										      &old_characters);
+
+				GString *new_text = priv->snapshot_text;
+				GArray *new_characters = priv->snapshot_characters;
+				new_len = new_text->len;
+
+				if (old_common > new_len)
+					/* Not only did we scroll, but we even removed some text */
+					new_common = new_len;
+				else
+					new_common = old_common;
+
+				guint head_len, tail_len;
+				gboolean diff;
+
+				/* Check for more difference than just the addition at top and removal at bottom */
+				diff = check_diff(old_text->str, old_common,
+						  new_text->str + new_len - new_common, new_common,
+						  &head_len, &tail_len);
+
+				/* Note: to keep offsets correct, we need to
+				 * notify deletions from bottom to top and
+				 * additions from top to bottom
+				 */
+
+				/* Temporarily switch to old text to emit deletion events */
+				priv->snapshot_text = old_text;
+				priv->snapshot_characters = old_characters;
+
+				/* Delete bottom first */
 				emit_text_changed_delete(G_OBJECT(accessible),
-						priv->snapshot_text->str,
-						i,
-						vte_char_attr_list_get_size(&priv->snapshot_attributes) - i);
+						old_text->str,
+						old_common,
+						drop);
+
+				if (diff)
+					/* Not only did we scroll, but we also modified some bits */
+					/* Delete middle */
+					emit_text_changed_delete(G_OBJECT(accessible),
+								 old_text->str,
+								 head_len,
+								 old_common - tail_len - head_len);
+
+				/* Switch to new text */
+				priv->snapshot_text = new_text;
+				priv->snapshot_characters = new_characters;
+
+				g_string_free(old_text, TRUE);
+				g_array_free(old_characters, TRUE);
+
+				/* If we now have more text than before, the initial portion
+				 * was added. */
+				if (new_len > new_common)
+					/* Add top */
+					emit_text_changed_insert(G_OBJECT(accessible),
+								 new_text->str,
+								 0,
+								 new_len - new_common);
+
+				if (diff)
+					/* Add middle */
+					emit_text_changed_insert(G_OBJECT(accessible),
+								 new_text->str,
+								 new_len - new_common + head_len,
+								 new_common - tail_len - head_len);
 			}
-			inserted = TRUE;
+		} else {
+			/* Just refresh. */
+			priv->snapshot_contents_invalid = TRUE;
+			vte_terminal_accessible_update_private_data_if_needed(accessible,
+									      NULL,
+									      NULL);
 		}
-		/* Refresh.  Note that i is now the length of the data which
-		 * we expect to have left over. */
-		priv->snapshot_contents_invalid = TRUE;
-		vte_terminal_accessible_update_private_data_if_needed(accessible,
-								      NULL,
-								      NULL);
-		/* If we now have more text than before, the initial portion
-		 * was added. */
-		if (inserted) {
-			len = priv->snapshot_text->len;
-			if (len > i) {
-				emit_text_changed_insert(G_OBJECT(accessible),
-							 priv->snapshot_text->str,
-							 0,
-							 len - i);
-			}
-		}
+
                 vte_terminal_accessible_maybe_emit_text_caret_moved(accessible);
 		return;
 	}
 	/* We scrolled down, so text was added at the bottom and removed
 	 * from the top. */
 	if ((howmuch > 0) && (howmuch < row_count)) {
-		gboolean inserted = FALSE;
 		if (priv->snapshot_text != NULL) {
+			/* Leave trailing '\n' untouched, so that the exposed text always contains a trailing '\n',
+			   insertion happens in front of it: bug 657960 */
+			old_len = vte_char_attr_list_get_size(&priv->snapshot_attributes) - 1;
+
 			/* Find the first byte that wasn't scrolled off the top. */
-			for (i = 0; i < vte_char_attr_list_get_size(&priv->snapshot_attributes); i++) {
-                                attr = *vte_char_attr_list_get(&priv->snapshot_attributes, i);
+			for (drop = 0; drop < old_len; drop++) {
+				attr = *vte_char_attr_list_get(&priv->snapshot_attributes, drop);
 				if (attr.row >= delta + howmuch) {
 					break;
 				}
 			}
-			/* That many bytes disappeared -- make a note. */
+
+			/* Figure out how much text was common, and refresh. */
+			old_common = old_len - drop;
+
+			GString *old_text;
+			GArray *old_characters;
+
+			priv->snapshot_contents_invalid = TRUE;
+			vte_terminal_accessible_update_private_data_if_needed(accessible,
+									      &old_text,
+									      &old_characters);
+
+			GString *new_text = priv->snapshot_text;
+			GArray *new_characters = priv->snapshot_characters;
+			new_len = new_text->len - 1;
+
+			if (old_common > new_len)
+				/* Not only did we scroll, but we even removed some text */
+				new_common = new_len;
+			else
+				new_common = old_common;
+
+			guint head_len, tail_len;
+			guint extra_add = 0;
+			gboolean diff;
+
+			/* Check for more difference than just the removal at top and addition at bottom */
+			diff = check_diff(old_text->str + drop, old_common,
+				       new_text->str, new_common,
+				       &head_len, &tail_len);
+
+			/* Note: to keep offsets correct, we need to
+			 * notify deletions from bottom to top and
+			 * additions from top to bottom
+			 */
+
+			/* Temporarily switch to old text to emit deletion events */
+			priv->snapshot_text = old_text;
+			priv->snapshot_characters = old_characters;
+
+			if (diff)
+				/* Not only did we scroll, but we also modified some bits */
+				/* Delete middle first */
+				emit_text_changed_delete(G_OBJECT(accessible),
+							 old_text->str,
+							 drop + head_len,
+							 old_common - tail_len - head_len);
+
+			/* Delete top */
 			emit_text_changed_delete(G_OBJECT(accessible),
-					priv->snapshot_text->str,
+					old_text->str,
 					0,
-					i);
-			/* Figure out how much text was left, and refresh. */
-			i = strlen(priv->snapshot_text->str + i);
-			inserted = TRUE;
-		}
-		priv->snapshot_contents_invalid = TRUE;
-		vte_terminal_accessible_update_private_data_if_needed(accessible,
-								      NULL,
-								      NULL);
-		/* Any newly-added string data is new, so note that it was
-		 * inserted. */
-		if (inserted) {
-			len = priv->snapshot_text->len;
-			if (len > i) {
-				/* snapshot_text always contains a trailing '\n',
-				 * insertion happens in front of it: bug 657960 */
-				// g_assert(i >= 1);
-                            if (i > 0)
+                                        drop);
+
+			/* Switch to new text */
+			priv->snapshot_text = new_text;
+			priv->snapshot_characters = new_characters;
+
+			g_string_free(old_text, TRUE);
+			g_array_free(old_characters, TRUE);
+
+			if (diff)
+			{
+				/* Add middle */
+				if (tail_len)
+					emit_text_changed_insert(G_OBJECT(accessible),
+								 new_text->str,
+								 head_len,
+								 new_common - head_len - tail_len);
+				else
+					/* Diff was at bottom, merge with addition below */
+					extra_add = new_common - head_len - tail_len;
+			}
+
+			/* Add bottom */
+			if (new_len > new_common - extra_add)
 				emit_text_changed_insert(G_OBJECT(accessible),
 							 priv->snapshot_text->str,
-							 i - 1,
-							 len - i);
-			}
+							 new_common - extra_add,
+							 new_len - (new_common - extra_add));
+		} else {
+			/* Just refresh. */
+			priv->snapshot_contents_invalid = TRUE;
+			vte_terminal_accessible_update_private_data_if_needed(accessible,
+									      NULL,
+									      NULL);
 		}
+
                 vte_terminal_accessible_maybe_emit_text_caret_moved(accessible);
 		return;
 	}
