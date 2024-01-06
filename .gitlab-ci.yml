@@ -29,7 +29,7 @@ doc:
         gobject-introspection-devel gperf gtk3-devel gtk4-devel
         libicu-devel meson pango-devel pcre2-devel python3-jinja2
         python3-packaging python3-pygments python3-toml python3-typogrify
-        systemd-devel zlib-devel gi-docgen
+        systemd-devel lz4-devel gi-docgen
   script:
     - meson --prefix=/app ${MESON_ARGS} _build
     - ninja -C _build
