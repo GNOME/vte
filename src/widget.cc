@@ -896,6 +896,8 @@ Widget::css_changed(GtkCssStyleChange* change)
 
         auto need_resize = padding_changed();
 
+        m_terminal->widget_style_updated();
+
         if (need_resize)
                 gtk_widget_queue_resize(gtk());
 }
