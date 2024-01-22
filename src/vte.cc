@@ -7337,9 +7337,9 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
         // If we haven't handled the event yet, and it's a right button,
         // with no modifiers, try showing the context menu.
         if (!handled &&
-            ((event.button() == vte::platform::MouseEvent::Button::eRIGHT) ||
-             !(event.modifiers() & (GDK_BUTTON1_MASK | GDK_BUTTON2_MASK))) &&
-            ((m_modifiers & (GDK_SHIFT_MASK |
+            ((event.button() == vte::platform::MouseEvent::Button::eRIGHT) &&
+             ((m_modifiers & (GDK_BUTTON1_MASK | GDK_BUTTON2_MASK)) == 0) &&
+             (m_modifiers & (GDK_SHIFT_MASK |
                              GDK_CONTROL_MASK |
 #if VTE_GTK == 3
                              GDK_MOD1_MASK |
