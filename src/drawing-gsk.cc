@@ -242,7 +242,7 @@ DrawingGsk::draw_rectangle(int x,
                           color->red, color->green, color->blue);
 
         static const float border_width[4] = {VTE_LINE_WIDTH, VTE_LINE_WIDTH, VTE_LINE_WIDTH, VTE_LINE_WIDTH};
-        auto const rounded = GSK_ROUNDED_RECT_INIT (float(x+VTE_LINE_WIDTH/2.), float(y+VTE_LINE_WIDTH/2.), float(width-VTE_LINE_WIDTH), float(height-VTE_LINE_WIDTH));
+        auto const rounded = GSK_ROUNDED_RECT_INIT (float(x), float(y), float(width), float(height));
         GdkRGBA rgba[4];
         rgba[0] = rgba[1] = rgba[2] = rgba[3] = color->rgba(1.0);
         gtk_snapshot_append_border(m_snapshot, &rounded, border_width, rgba);
