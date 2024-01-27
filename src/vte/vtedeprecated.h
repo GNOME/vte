@@ -143,13 +143,16 @@ typedef gboolean (*VteSelectionFunc)(VteTerminal *terminal,
                                      glong row,
                                      gpointer data) _VTE_GNUC_NONNULL(1) _VTE_DEPRECATED;
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 _VTE_DEPRECATED
 _VTE_PUBLIC
 char *vte_terminal_get_text(VteTerminal *terminal,
 			    VteSelectionFunc is_selected,
 			    gpointer user_data,
 			    GArray *attributes) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+G_GNUC_END_IGNORE_DEPRECATIONS
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 _VTE_DEPRECATED
 _VTE_PUBLIC
 char *vte_terminal_get_text_range(VteTerminal *terminal,
@@ -158,13 +161,16 @@ char *vte_terminal_get_text_range(VteTerminal *terminal,
 				  VteSelectionFunc is_selected,
 				  gpointer user_data,
 				  GArray *attributes) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+G_GNUC_END_IGNORE_DEPRECATIONS
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 _VTE_DEPRECATED
 _VTE_PUBLIC
 char *vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 						    VteSelectionFunc is_selected,
 						    gpointer user_data,
 						    GArray *attributes) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+G_GNUC_END_IGNORE_DEPRECATIONS
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
