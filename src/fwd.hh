@@ -46,6 +46,13 @@ class Sequence;
 
 } // namespace sixel
 
+namespace terminal {
+
+enum class TermpropType;
+class Termprop;
+
+} // namespace terminal
+
 namespace view {
 
 class FontInfo;

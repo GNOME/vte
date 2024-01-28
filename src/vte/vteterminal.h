@@ -21,6 +21,8 @@
 #error "Only <vte/vte.h> can be included directly."
 #endif
 
+#include <stdint.h>
+
 #include <glib.h>
 #include <gio/gio.h>
 #include <cairo.h>
@@ -31,6 +33,7 @@
 #include "vtemacros.h"
 #include "vtepty.h"
 #include "vteregex.h"
+#include "vteuuid.h"
 
 G_BEGIN_DECLS
 
@@ -119,16 +122,24 @@ struct _VteTerminalClass {
         gpointer _extra_padding[3];
 #endif /* _VTE_GTK == 3 */
 
+        /*< protected >*/
         void (*setup_context_menu)(VteTerminal* terminal,
                                    VteEventContext const* context);
+
+        gboolean (* termprops_changed)(VteTerminal* terminal,
+                                       int const* props,
+                                       int n_props);
+
+        void (* termprop_changed)(VteTerminal* terminal,
+                                  char const* prop);
 
         /* Add new vfuncs just above, and subtract from the padding below. */
 
         /* Padding for future expansion. */
 #if _VTE_GTK == 3
-        gpointer _padding[12];
+        gpointer _padding[10];
 #elif _VTE_GTK == 4
-        gpointer _padding[15];
+        gpointer _padding[13];
 #endif /* _VTE_GTK */
 
 // FIXMEgtk4 use class private data instead
@@ -655,6 +666,118 @@ gboolean vte_event_context_get_coordinates(VteEventContext const* context,
                                            double* y) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 #endif /* VTE_GTK */
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_bool(VteTerminal* terminal,
+                                        char const* prop,
+                                        gboolean *valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_bool_by_id(VteTerminal* terminal,
+                                              int prop,
+                                              gboolean *valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_int(VteTerminal* terminal,
+                                       char const* prop,
+                                       intmax_t *valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_int_by_id(VteTerminal* terminal,
+                                             int prop,
+                                             intmax_t *valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_uint(VteTerminal* terminal,
+                                        char const* prop,
+                                        uintmax_t *valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_uint_by_id(VteTerminal* terminal,
+                                              int prop,
+                                              uintmax_t *valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_color(VteTerminal* terminal,
+                                         char const* prop,
+                                         GdkRGBA* color) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_color_by_id(VteTerminal* terminal,
+                                               int prop,
+                                               GdkRGBA* color) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+char const* vte_terminal_get_termprop_string(VteTerminal* terminal,
+                                             char const* prop,
+                                             size_t* size) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+char const* vte_terminal_get_termprop_string_by_id(VteTerminal* terminal,
+                                                   int prop,
+                                                   size_t* size) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+char* vte_terminal_dup_termprop_string(VteTerminal* terminal,
+                                       char const* prop,
+                                       size_t* size) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+char* vte_terminal_dup_termprop_string_by_id(VteTerminal* terminal,
+                                             int prop,
+                                             size_t* size) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+uint8_t const* vte_terminal_get_termprop_data(VteTerminal* terminal,
+                                              char const* prop,
+                                              size_t* size) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2, 3);
+
+_VTE_PUBLIC
+uint8_t const* vte_terminal_get_termprop_data_by_id(VteTerminal* terminal,
+                                                    int prop,
+                                                    size_t* size) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 3);
+
+_VTE_PUBLIC
+GBytes* vte_terminal_ref_termprop_data_bytes(VteTerminal* terminal,
+                                             char const* prop) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+GBytes* vte_terminal_ref_termprop_data_bytes_by_id(VteTerminal* terminal,
+                                                   int prop) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+VteUuid* vte_terminal_dup_termprop_uuid(VteTerminal* terminal,
+                                        char const* prop) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+VteUuid* vte_terminal_dup_termprop_uuid_by_id(VteTerminal* terminal,
+                                              int prop) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_value(VteTerminal* terminal,
+                                         char const* prop,
+                                         GValue* gvalue) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2, 3);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_value_by_id(VteTerminal* terminal,
+                                               int prop,
+                                               GValue* gvalue) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 3);
+
+_VTE_PUBLIC
+GVariant* vte_terminal_ref_termprop_variant(VteTerminal* terminal,
+                                            char const* prop) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+GVariant* vte_terminal_ref_termprop_variant_by_id(VteTerminal* terminal,
+                                                  int prop) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+void vte_terminal_reset_termprop(VteTerminal* terminal,
+                                 char const* prop) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+void vte_terminal_reset_termprop_by_id(VteTerminal* terminal,
+                                       int prop) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VteTerminal, g_object_unref)
 

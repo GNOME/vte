@@ -1565,6 +1565,109 @@ Terminal::set_current_hyperlink(vte::parser::Sequence const& seq,
         m_defaults.attr.hyperlink_idx = idx;
 }
 
+void
+Terminal::parse_termprop(std::string_view const& str,
+                         bool& set,
+                         bool& query) noexcept
+try
+{
+        auto const pos = str.find_first_of("=?!"); // possibly str.npos
+        auto const info = vte::terminal::get_termprop_info(str.substr(0, pos));
+        if (!info || (info->flags() & unsigned(vte::terminal::TermpropFlags::NO_OSC))) {
+                // Set query even for unknown termprops, for forward compatibility
+                if (pos != str.npos && str[pos] == '?' && (pos + 1) == str.size())
+                        query = true;
+
+                return;
+        }
+
+        // Valueless termprops are special in that they can only be
+        // emitted or reset, and resetting cancels the emission
+        auto const is_valueless = info->type() == vte::terminal::TermpropType::VALUELESS;
+
+        if (pos == str.npos) {
+                // Reset
+                set = true;
+                m_termprops_dirty.at(info->id()) = !is_valueless;
+                m_termprop_values.at(info->id()) = {};
+        } else if (str[pos] == '=' && !is_valueless) {
+                set = true;
+                m_termprops_dirty.at(info->id()) = true;
+
+                if (auto value = vte::terminal::parse_termprop_value(info->type(),
+                                                                     str.substr(pos + 1))) {
+                        // Set
+                        m_termprop_values.at(info->id()) = std::move(*value);
+                } else {
+                        // Reset
+                        m_termprop_values.at(info->id()) = {};
+                }
+        } else if (str[pos] == '?') {
+                if ((pos + 1) == str.size()) {
+                        // Query
+                        query = true;
+                }
+        } else if (str[pos] == '!') {
+                if ((pos + 1) == str.size() && is_valueless) {
+                        set = true;
+                        m_termprops_dirty.at(info->id()) = true;
+                        // no need to set a value
+                }
+        }
+}
+catch (...)
+{
+        set = true; // something may have happened already
+}
+
+void
+Terminal::vte_extension(vte::parser::Sequence const& seq,
+                        vte::parser::StringTokeniser::const_iterator& token,
+                        vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
+{
+        // This is a new and vte-only feature, so reject BEL-terminated OSC.
+        if (seq.is_st_bel()) {
+                token = endtoken;
+                return;
+        }
+
+        if (token == endtoken)
+                return;
+
+        auto set = false, query = false;
+        auto const cmd = *token;
+        if (cmd == "set") {
+
+                while (++token != endtoken) {
+                        parse_termprop(*token, set, query);
+                }
+
+        } else if (cmd == "get") {
+                // Reserved for future extension
+                query = true;
+        }
+
+        if (set) {
+                // https://gitlab.gnome.org/GNOME/vte/-/issues/2125#note_1155148
+                // mentions that we may want to break out of processing input now
+                // and dispatch the changed notification immediately. However,
+                // (at least for now) it's better not to give that guarantee, and
+                // instead make this asynchronous (and thus also automatically
+                // rate-limited). Also, due to the documented prohibition of
+                // calling any API on VteTerminal except the termprop value
+                // retrieval functions, this should not be further limiting.
+
+                m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+        }
+
+        if (query) {
+                // Reserved for future extension. Reply with an empty
+                // termprop set statement for forward compatibility.
+
+                reply(seq, VTE_REPLY_OSC, {}, "%d;set", VTE_OSC_VTE_EXTENSION);
+        }
+}
+
 /*
  * Command Handlers
  * This is the unofficial documentation of all the VTE_CMD_* definitions.
@@ -6676,6 +6779,10 @@ Terminal::OSC(vte::parser::Sequence const& seq)
 
         case VTE_OSC_XTERM_RESET_COLOR_HIGHLIGHT_FG:
                 reset_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_ESCAPE);
+                break;
+
+        case VTE_OSC_VTE_EXTENSION:
+                vte_extension(seq, it, cend);
                 break;
 
         case VTE_OSC_XTERM_SET_ICON_TITLE:

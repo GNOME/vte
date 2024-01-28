@@ -215,7 +215,7 @@ typedef enum {
         VTE_ALIGN_END         = 3U,
 } VteAlign;
 
-/**
+/*
  * VteUuidFormat:
  * @VTE_UUID_FORMAT_SIMPLE: simple format
  * @VTE_UUID_FORMAT_BRACED: braced format
@@ -232,5 +232,50 @@ typedef enum /*< flags >*/ {
         VTE_UUID_FORMAT_URN = 1u << 2,
         VTE_UUID_FORMAT_ANY = 0x7u,
 } VteUuidFormat;
+
+/**
+ * VtePropertyFlags:
+ * @VTE_PROPERTY_FLAG_NONE: no flags, default
+ *
+ * A flags type.
+ *
+ * Since: 0.76
+ */
+typedef enum /*< flags >*/ {
+        VTE_PROPERTY_FLAG_NONE = 0,
+} VtePropertyFlags;
+
+/**
+ * VtePropertyType:
+ * @VTE_PROPERTY_VALUELESS: no value, use for signalling
+ * @VTE_PROPERTY_BOOL: a bool
+ * @VTE_PROPERTY_INT16: a signed 16-bit integer
+ * @VTE_PROPERTY_UINT16: an unsigned 16 bit integer
+ * @VTE_PROPERTY_INT64: a signed 64-bit integer
+ * @VTE_PROPERTY_UINT64: an unsigned 64-bit integer
+ * @VTE_PROPERTY_RGB: a color
+ * @VTE_PROPERTY_RGBA: a color with alpha
+ * @VTE_PROPERTY_STRING: a string
+ * @VTE_PROPERTY_DATA: binary data
+ * @VTE_PROPERTY_UUID: a UUID
+ *
+ * An enumeration type describing types of properties.
+ *
+ * Since: 0.76
+ */
+typedef enum {
+        VTE_PROPERTY_INVALID = -1, /*< skip >*/
+        VTE_PROPERTY_VALUELESS = 0,
+        VTE_PROPERTY_BOOL,
+        VTE_PROPERTY_INT16,
+        VTE_PROPERTY_UINT16,
+        VTE_PROPERTY_INT64,
+        VTE_PROPERTY_UINT64,
+        VTE_PROPERTY_RGB,
+        VTE_PROPERTY_RGBA,
+        VTE_PROPERTY_STRING,
+        VTE_PROPERTY_DATA,
+        VTE_PROPERTY_UUID,
+} VtePropertyType;
 
 G_END_DECLS

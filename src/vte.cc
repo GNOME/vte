@@ -8141,8 +8141,13 @@ Terminal::Terminal(vte::platform::Widget* w,
         m_widget(&t->widget),
         m_normal_screen(VTE_SCROLLBACK_INIT, true),
         m_alternate_screen(VTE_ROWS, false),
-        m_screen(&m_normal_screen)
+        m_screen(&m_normal_screen),
+        m_termprop_values(vte::terminal::n_registered_termprops()),
+        m_termprops_dirty(vte::terminal::n_registered_termprops())
 {
+        assert(m_termprop_values.size() == vte::terminal::n_registered_termprops());
+        assert(m_termprops_dirty.size() == vte::terminal::n_registered_termprops());
+
         /* Inits allocation to 1x1 @ -1,-1 */
         cairo_rectangle_int_t allocation;
         gtk_widget_get_allocation(m_widget, &allocation);
@@ -10787,6 +10792,21 @@ Terminal::emit_pending_signals()
         auto const freezer = vte::glib::FreezeObjectNotify{m_terminal};
 
 	emit_adjustment_changed();
+
+	if (m_pending_changes & vte::to_integral(PendingChanges::TERMPROPS)) {
+                auto const n_props = m_termprops_dirty.size();
+                auto changed_props = g_newa(int, n_props);
+
+                auto n_changed_props = 0;
+                for (auto i = 0u; i < n_props; ++i) {
+                        if (m_termprops_dirty[i])
+                                changed_props[n_changed_props++] = int(i);
+
+                        m_termprops_dirty[i] = false;
+                }
+
+                widget()->notify_termprops_changed(changed_props, n_changed_props);
+        }
 
 	if (m_pending_changes & vte::to_integral(PendingChanges::TITLE)) {
                 if (m_window_title != m_window_title_pending) {

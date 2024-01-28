@@ -39,4 +39,38 @@ VteFeatureFlags vte_get_feature_flags(void) _VTE_CXX_NOEXCEPT;
 _VTE_PUBLIC
 void vte_set_test_flags(guint64 flags) _VTE_CXX_NOEXCEPT;
 
+_VTE_PUBLIC
+guint64 vte_get_test_flags(void) _VTE_CXX_NOEXCEPT;
+
+/**
+ * VTE_TERMPROP_NAME_PREFIX:
+ *
+ * The string prefix that any termprop's name must start with to be installed
+ * by vte_install_termprop().
+ *
+ * Since: 0.76
+ */
+#define VTE_TERMPROP_NAME_PREFIX "vte.ext."
+
+_VTE_PUBLIC
+int vte_install_termprop(char const* name,
+                         VtePropertyType type,
+                         VtePropertyFlags flags) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+int vte_install_termprop_alias(char const* name,
+                               char const* target_name) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+gboolean vte_query_termprop(char const* name,
+                            int* prop,
+                            VtePropertyType* type,
+                            VtePropertyFlags* flags) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+gboolean vte_query_termprop_by_id(int prop,
+                                  char const** name,
+                                  VtePropertyType* type,
+                                  VtePropertyFlags* flags) _VTE_CXX_NOEXCEPT;
+
 G_END_DECLS

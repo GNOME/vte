@@ -740,6 +740,38 @@ protected:
         void notify_char_size_changed(int width,
                                       int height);
 
+        void notify_termprops_changed(int const* props,
+                                      int n_props) noexcept;
+
+public:
+
+        void register_termprop(std::string_view const& name,
+                               uint32_t id,
+                               vte::terminal::TermpropType type)
+        {
+                vte::terminal::register_termprop(name, id, type);
+        }
+
+        auto get_termprop_info(std::string_view const& name) const
+        {
+                return vte::terminal::get_termprop_info(name);
+        }
+
+        auto get_termprop_info(int id) const
+        {
+                return vte::terminal::get_termprop_info(id);
+        }
+
+        auto get_termprop(vte::terminal::TermpropInfo const& info) const
+        {
+                return terminal()->get_termprop(info);
+        }
+
+        void reset_termprop(vte::terminal::TermpropInfo const& info) const
+        {
+                terminal()->reset_termprop(info);
+        }
+
 public: // FIXMEchpe
         void im_preedit_changed() noexcept;
         void vadjustment_value_changed();

@@ -1274,6 +1274,18 @@ public:
                 return (st() & 0x80) != 0;
         }
 
+        /* is_st_bel:
+         *
+         * Whether the control string was terminated with a BEL. This is only supported
+         * for OSC, for xterm compatibility, and is deprecated.
+         *
+         * Returns: true iff the terminator was BEL
+         */
+        inline constexpr bool is_st_bel() const noexcept
+        {
+                return st() == 0x7;
+        }
+
         /* is_ripe:
          *
          * Whether the control string is complete.

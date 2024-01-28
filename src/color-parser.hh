@@ -51,4 +51,18 @@ std::optional<Color> parse_x11like(std::string const& spec) noexcept
         return std::nullopt;
 }
 
+template<class Color>
+std::optional<Color> parse_any(std::string const& spec) noexcept
+{
+        if (auto const v = impl::parse_csslike(spec)) {
+                return impl::from_tuple<Color>(*v);
+        }
+
+        if (auto const v = impl::parse_x11like(spec)) {
+                return impl::from_tuple<Color>(*v);
+        }
+
+        return std::nullopt;
+}
+
 } // namespace vte::color
