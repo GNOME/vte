@@ -215,4 +215,22 @@ typedef enum {
         VTE_ALIGN_END         = 3U,
 } VteAlign;
 
+/**
+ * VteUuidFormat:
+ * @VTE_UUID_FORMAT_SIMPLE: simple format
+ * @VTE_UUID_FORMAT_BRACED: braced format
+ * @VTE_UUID_FORMAT_URN: urn format
+ * @VTE_UUID_FORMAT_ANY: any format of the above
+ *
+ * An enumeration that specifies the format of an UUID.
+ *
+ * Since: 0.76
+ */
+typedef enum /*< flags >*/ {
+        VTE_UUID_FORMAT_SIMPLE = 1u << 0,
+        VTE_UUID_FORMAT_BRACED = 1u << 1,
+        VTE_UUID_FORMAT_URN = 1u << 2,
+        VTE_UUID_FORMAT_ANY = 0x7u,
+} VteUuidFormat;
+
 G_END_DECLS

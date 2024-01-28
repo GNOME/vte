@@ -24,5 +24,6 @@
 namespace vte {
 
 VTE_DECLARE_FREEABLE(VteRegex, vte_regex_unref);
+VTE_DECLARE_FREEABLE(VteUuid, vte_uuid_free);
 
 } // namespace vte

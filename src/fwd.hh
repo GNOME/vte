@@ -19,6 +19,8 @@
 
 namespace vte {
 
+class uuid;
+
 namespace base {
 
 class Pty;

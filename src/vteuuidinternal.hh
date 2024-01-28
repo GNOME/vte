@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001,2002,2003,2009,2010 Red Hat, Inc.
+ * Copyright © 2023 Christian Persch
  *
  * This library is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -17,25 +17,14 @@
 
 #pragma once
 
-#include <glib.h>
-#include <gtk/gtk.h>
+#include "fwd.hh"
 
-#define __VTE_VTE_H_INSIDE__ 1
+#include <vte/vteuuid.h>
 
-/* This must always be included first */
-#include "vtemacros.h"
+VteUuid* _vte_uuid_new_from_uuid(vte::uuid const& u) noexcept;
 
-#include "vteenums.h"
-#include "vteglobals.h"
-#include "vtepty.h"
-#include "vteregex.h"
-#include "vteterminal.h"
-#include "vtetypebuiltins.h"
-#include "vteuuid.h"
-#include "vteversion.h"
+VteUuid* _vte_uuid_wrap(vte::uuid& u) noexcept;
 
-#if !defined(VTE_DISABLE_DEPRECATED) || defined(VTE_COMPILATION)
-#include "vtedeprecated.h"
-#endif /* !VTE_DISABLE_DEPRECATED */
+vte::uuid& _vte_uuid_unwrap(VteUuid* u) noexcept;
 
-#undef __VTE_VTE_H_INSIDE__
+vte::uuid const& _vte_uuid_unwrap(VteUuid const* u) noexcept;
