@@ -5487,9 +5487,6 @@ Terminal::DSR_DEC(vte::parser::Sequence const& seq)
                 reply(seq, VTE_REPLY_DECDSR, {27, 0, 0, 5});
                 break;
 
-        case 53:
-                /* XTERM alias for 55 */
-                [[fallthrough]];
         case 55:
                 /* Request locator status report
                  * Reply: DECDSR
