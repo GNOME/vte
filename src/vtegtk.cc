@@ -2520,10 +2520,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * The terminal's font options, or %NULL to use the default font options.
          *
          * Note that on GTK4, the terminal by default uses font options
-         * with %CAIRO_HINT_METRICS_ON and %CAIRO_HINT_STYLE_NONE set;
-         * to override that, use this property to set a #cairo_font_options_t
-         * that has a different %cairo_hint_metricts_t and/or a different
-         * #cairo_hint_style_t value set.
+         * with %CAIRO_HINT_METRICS_ON set; to override that, use this
+         * function to set a #cairo_font_options_t that has
+         * %CAIRO_HINT_METRICS_OFF set.
          *
          * Since: 0.74
          */
@@ -6423,10 +6422,9 @@ catch (...)
  * Sets the terminal's font options to @options.
  *
  * Note that on GTK4, the terminal by default uses font options
- * with %CAIRO_HINT_METRICS_ON and %CAIRO_HINT_STYLE_NONE set;
- * to override that, use this function to set a #cairo_font_options_t
- * that has a different %cairo_hint_metricts_t and/or a different
- * #cairo_hint_style_t value set.
+ * with %CAIRO_HINT_METRICS_ON set; to override that, use this
+ * function to set a #cairo_font_options_t that has
+ * %CAIRO_HINT_METRICS_OFF set.
  *
  * Since: 0.74
  */
