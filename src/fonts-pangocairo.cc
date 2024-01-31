@@ -395,8 +395,6 @@ FontInfo::create_for_context(vte::glib::RefPtr<PangoContext> context,
                 // See issue#2573.
                 cairo_font_options_set_hint_metrics(builtin_font_options.get(),
                                                     CAIRO_HINT_METRICS_ON);
-                cairo_font_options_set_hint_style(builtin_font_options.get(),
-                                                  CAIRO_HINT_STYLE_NONE);
 #endif /* VTE_GTK == 4 */
 
                 // Allow using the API to override the built-in hint metrics setting.
