@@ -3878,6 +3878,7 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
         case VTE_CMD_DECSDPT:
         case VTE_CMD_DECSEST:
         case VTE_CMD_DECSFC:
+        case VTE_CMD_DECSGR:
         case VTE_CMD_DECSKCV:
         case VTE_CMD_DECSLCK:
         case VTE_CMD_DECSLPP:
@@ -3896,6 +3897,7 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
         case VTE_CMD_DECSZS:
         case VTE_CMD_DECTME:
         case VTE_CMD_SGR:
+        case VTE_CMD_XTERM_MODKEYS:
         default:
                 return reply(seq, VTE_REPLY_DECRPSS, {0});
         }
