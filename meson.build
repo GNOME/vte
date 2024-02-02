@@ -109,7 +109,7 @@ vte_systemduserunitdir = vte_prefix / 'lib' / 'systemd' / 'user'
 
 # Debug
 
-enable_debug = get_option('debugg') or get_option('debug') or get_option('buildtype').contains('debug')
+enable_debug = get_option('buildtype').contains('debug')
 
 # Meson modules
 
