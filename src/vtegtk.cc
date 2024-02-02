@@ -8178,7 +8178,7 @@ try
             std::holds_alternative<vte::terminal::termprop_rgba>(*value)) {
                 if (color) [[likely]] {
                         auto const& c = std::get<vte::terminal::termprop_rgba>(*value);
-                        *color = GdkRGBA(c.red(), c.green(), c.blue(), c.alpha());
+                        *color = GdkRGBA{c.red(), c.green(), c.blue(), c.alpha()};
                 }
                 return true;
         }
@@ -8651,7 +8651,7 @@ try
                 if (std::holds_alternative<vte::terminal::termprop_rgba>(*value)) {
                         rv = true;
                         auto const& c = std::get<vte::terminal::termprop_rgba>(*value);
-                        auto color = GdkRGBA(c.red(), c.green(), c.blue(), c.alpha());
+                        auto color = GdkRGBA{c.red(), c.green(), c.blue(), c.alpha()};
                         g_value_init(gvalue, GDK_TYPE_RGBA);
                         g_value_set_boxed(gvalue, &color);
                 }

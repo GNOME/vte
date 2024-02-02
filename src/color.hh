@@ -51,9 +51,9 @@ public:
         {
         }
 
-        constexpr auto const red()   const noexcept { return m_red;   }
-        constexpr auto const green() const noexcept { return m_green; }
-        constexpr auto const blue()  const noexcept { return m_blue;  }
+        constexpr auto red()   const noexcept { return m_red;   }
+        constexpr auto green() const noexcept { return m_green; }
+        constexpr auto blue()  const noexcept { return m_blue;  }
 
         friend bool operator==(rgb_base const& lhs,
                                rgb_base const& rhs) = default;
@@ -69,7 +69,7 @@ template<std::floating_point C>
 class rgba_base : public rgb_base<C> {
 public:
         using base_type = rgb_base<C>;
-        using base_type::component_type;
+        using component_type = typename base_type::component_type;
 
         constexpr rgba_base() noexcept = default;
 
@@ -83,13 +83,13 @@ public:
         {
         }
 
-        constexpr auto const alpha() const noexcept { return m_alpha; }
+        constexpr auto alpha() const noexcept { return m_alpha; }
 
         friend bool operator==(rgba_base const& lhs,
                                rgba_base const& rhs) = default;
 
 private:
-        base_type::component_type m_alpha{1};
+        component_type m_alpha{1};
 
 }; // class rgba_base
 
@@ -103,7 +103,7 @@ inline constexpr auto has_alpha_component_v() -> auto
 }
 
 template<typename Color>
-using component_type_t = traits<Color>::component_type;
+using component_type_t = typename traits<Color>::component_type;
 
 template<std::floating_point C>
 class traits<rgb_base<C>> final {
