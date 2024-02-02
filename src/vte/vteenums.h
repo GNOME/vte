@@ -211,8 +211,7 @@ typedef enum /*< skip >*/ {
 typedef enum {
         VTE_ALIGN_START       = 0U,
         VTE_ALIGN_CENTER      = 1U,
-        /* VTE_ALIGN_BASELINE    = 2U, */
-        VTE_ALIGN_END         = 3U,
+        VTE_ALIGN_END         = 2U,
 } VteAlign;
 
 /*
