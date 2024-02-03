@@ -3780,12 +3780,14 @@ Terminal::DECRQPSR(vte::parser::Sequence const& seq)
          * be restored with DECRSPS.
          *
          * References: VT525
+         *             DEC STD 070 p5–197ff
          */
 
         switch (seq.collect1(0)) {
         case -1:
         case 0:
-                /* Error; ignore request */
+        default:
+                /* Ignore request and send no report */
                 break;
 
         case 1:
@@ -3796,19 +3798,24 @@ Terminal::DECRQPSR(vte::parser::Sequence const& seq)
                  *   - the character sets designated to the G0, G1, G2, and G3 sets.
                  *
                  * Reply: DECCIR
-                 *   DATA: the report in a unspecified format
-                 *         See WY370 for a possible format to use.
+                 *   DATA: report in the format specified in DEC STD 070 p5–200ff
                  */
+                // For now, send an error report
+                reply(seq, VTE_REPLY_DECPSR, {0});
                 break;
 
         case 2:
-                /* Tabstop report.
+                /* Cursor information report. This contains:
+                 *   - the cursor position, including character attributes and
+                 *     character protection attribute,
+                 *   - origin mode (DECOM),
+                 *   - the character sets designated to the G0, G1, G2, and G3 sets.
                  *
                  * Reply: DECTABSR
+                 *   DATA: report in the format specified in DEC STD 070 p5–204
                  */
-                break;
-
-        default:
+                // For now, send an error report
+                reply(seq, VTE_REPLY_DECPSR, {0});
                 break;
         }
 }
@@ -3929,25 +3936,27 @@ Terminal::DECRQTSR(vte::parser::Sequence const& seq)
          * be restored by DECRSTS.
          *
          * References: VT525
+         *             DEC STD 070 p5–206ff
          */
 
         switch (seq.collect1(0)) {
         case -1:
         case 0:
-                /* Ignore */
+        default:
+                /* Ignore, send no report*/
                 break;
 
         case 1:
-                /* Terminal state report.
+                /* DECTSR – Terminal state request
                  *
                  * Reply: DECTSR
-                 *   DATA: the report in an unspecified format
+                 *   DATA: report in an unspecified format
                  */
-                /* return reply(seq, VTE_REPLY_DECTSR, {1}, "FIXME"); */
-                break;
+                // For now, send an error report
+                return reply(seq, VTE_REPLY_DECTSR, {0});
 
         case 2:
-                /* Color table report.
+                /* DECCTR – Color table request
                  *
                  * Arguments:
                  *   args[1]: color coordinate system
@@ -3955,14 +3964,11 @@ Terminal::DECRQTSR(vte::parser::Sequence const& seq)
                  *     1: HLS (0…360, 0…100, 0…100)
                  *     2: RGB (0…100, 0…100, 0…100) (yes, really!)
                  *
-                 * Reply: DECTSR
-                 *   DATA: the report
+                 * Reply: DECCTR
+                 *   DATA: report in an unspecified format
                  */
-                /* return reply(seq, VTE_REPLY_DECTSR, {2}, "FIXME"); */
-                break;
-
-        default:
-                break;
+                // For now, send an error report
+                return reply(seq, VTE_REPLY_DECTSR, {0});
         }
 }
 
@@ -3991,11 +3997,13 @@ Terminal::DECRSPS(vte::parser::Sequence const& seq)
          * Restores terminal state from a DECRQPSR response.
          *
          * References: VT525
+         *             DEC STD 070 p5–197ff
          */
 
         switch (seq.collect1(0)) {
         case -1:
         case 0:
+        default:
                 /* Error; ignore */
                 break;
 
@@ -4005,9 +4013,6 @@ Terminal::DECRSPS(vte::parser::Sequence const& seq)
 
         case 2:
                 /* Tabstop report */
-                break;
-
-        default:
                 break;
         }
 }
@@ -4020,6 +4025,7 @@ Terminal::DECRSTS(vte::parser::Sequence const& seq)
          * Restore terminal state from a DECRQTSR response.
          *
          * References: VT525
+         *             DEC STD 070 p5–206ff
          */
 
         switch (seq.collect1(0)) {

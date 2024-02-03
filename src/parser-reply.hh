@@ -56,7 +56,7 @@ _VTE_REPLY(DECRPSS,     DCS, 'r', NONE, CASH,  ) /* report state or setting */
 _VTE_REPLY(DECTSR,      DCS, 's', NONE, CASH,  ) /* terminal state report */
 _VTE_REPLY(DECCTR,      DCS, 's', NONE, CASH,  _VTE_REPLY_PARAMS({2})) /* color table report */
 _VTE_REPLY(DECAUPSS,    DCS, 'u', NONE, BANG,  ) /* assign user preferred supplemental set */
-_VTE_REPLY(DECCIR,      DCS, 'u', NONE, CASH,  _VTE_REPLY_PARAMS({1})) /* cursor information report */
+_VTE_REPLY(DECPSR,      DCS, 'u', NONE, CASH,  ) /* presentation state report */
 _VTE_REPLY(DECRPTUI,    DCS, '|', NONE, BANG,  _VTE_REPLY_STRING("7E565445") /* "~VTE" */) /* report terminal unit ID */
 _VTE_REPLY(DECRPFK,     DCS, '}', NONE, DQUOTE,) /* report function key */
 _VTE_REPLY(DECCKSR,     DCS, '~', NONE, BANG,  ) /* memory checksum report */
