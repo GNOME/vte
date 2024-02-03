@@ -2398,12 +2398,21 @@ Terminal::DA1(vte::parser::Sequence const& seq)
         if (seq.collect1(0, 0) != 0)
                 return;
 
-        reply(seq, VTE_REPLY_DECDA1R, {65, 1,
+        // When testing, use level 5 (VT525); otherwise be more honest and
+        // use level 1 (VT100-ish) since we don't implement some/many of the
+        // things the higher level mandates.
+        // See https://gitlab.gnome.org/GNOME/vte/-/issues/2724
+        auto const level = g_test_flags ? 65 : 61;
+
+        reply(seq, VTE_REPLY_DECDA1R,
+              {level,
+               1, // 132-column mode
 #if WITH_SIXEL
-                                       m_sixel_enabled ? 4 : -2 /* skip */,
+               m_sixel_enabled ? 4 : -2 /* skip */, // sixel graphics
 #endif
-                                       9,
-                                       21});
+               21, // horizontal scrolling
+               22 // colour text
+              });
 }
 
 void
@@ -2416,24 +2425,32 @@ Terminal::DA2(vte::parser::Sequence const& seq)
          * informational-only and should not be used by the host to detect
          * terminal features.
          *
-         * Reply: DECDA2R (CSI > 65 ; FIRMWARE ; KEYBOARD c)
+         * Reply: DECDA2R (CSI > 65 ; FIRMWARE ; KEYBOARD [; OPTION…]* c)
          * where 65 is fixed for VT525 color terminals, the last terminal-line that
          * increased this number (64 for VT520). FIRMWARE is the firmware
          * version encoded as major/minor (20 == 2.0) and KEYBOARD is 0 for STD
-         * keyboard and 1 for PC keyboards.
+         * keyboard and 1 for PC keyboards. None or more OPTION values may
+         * be present, indicating which options are installed in the device.
          *
          * We replace the firmware-version with the VTE version so clients
          * can decode it again.
          *
          * References: VT525
+         *             DECSTD 070 p4–24
          */
 
         /* Param != 0 means this is a reply, not a request */
         if (seq.collect1(0, 0) != 0)
                 return;
 
-        int const version = (VTE_MAJOR_VERSION * 100 + VTE_MINOR_VERSION) * 100 + VTE_MICRO_VERSION;
-        reply(seq, VTE_REPLY_DECDA2R, {65, version, 1});
+        // When testing, use level 5 (VT525); otherwise be more honest and
+        // use level 1 (VT100-ish) since we don't implement some/many of the
+        // things the higher level mandates.
+        // See https://gitlab.gnome.org/GNOME/vte/-/issues/2724
+        auto const level = g_test_flags ? 65 : 61;
+
+        auto const version = (VTE_MAJOR_VERSION * 100 + VTE_MINOR_VERSION) * 100 + VTE_MICRO_VERSION;
+        reply(seq, VTE_REPLY_DECDA2R, {level, version, 1});
 }
 
 void
