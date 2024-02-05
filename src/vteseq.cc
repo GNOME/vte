@@ -9202,12 +9202,12 @@ Terminal::XTERM_VERSION(vte::parser::Sequence const& seq)
          *     0: report xterm name and version
          *
          * Defaults:
-         *   args[0]: no defaults
+         *   args[0]: 0 (as per xterm code, no default as per xterm docs)
          *
          * References: XTERM
          */
 
-        if (seq.collect1(0) != 0)
+        if (seq.collect1(0, 0) != 0)
                 return;
 
         reply(seq, VTE_REPLY_XTERM_DSR, {}, "VTE(%d)", firmware_version());
