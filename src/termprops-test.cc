@@ -313,6 +313,10 @@ test_termprops_string(void)
         // Test escapes
         assert_termprop_parse_value<std::string>(TermpropType::STRING, "a\\cb\\sc\\nd\\\\e"sv, "a:b;c\nd\\e"s);
 
+        // Test string value containing the termprop assignment characters ! or =
+        assert_termprop_parse_value<std::string>(TermpropType::STRING, "a=b"sv, "a=b"s);
+        assert_termprop_parse_value<std::string>(TermpropType::STRING, "a!"sv, "a!"s);
+
         assert_termprop_parse_nothing(TermpropType::STRING, "a:b"sv);
         assert_termprop_parse_nothing(TermpropType::STRING, "a\\"sv);
         assert_termprop_parse_nothing(TermpropType::STRING, "a\\a"sv);
