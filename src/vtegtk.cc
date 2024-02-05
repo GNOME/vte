@@ -2920,7 +2920,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
  *   This type of property can be used for signalling.
  *
  * * A property of type %VTE_PROPERTY_BOOL is a boolean property, and
- *   takes the <value> "0" for %FALSE and and "1" for %TRUE.
+ *   takes the strings "0" or "false" for %FALSE, and "1" or "true" for %TRUE.
  *   The default value is %FALSE.
  *
  * * A property of type %VTE_PROPERTY_INT16 is an 16-bit signed integer,

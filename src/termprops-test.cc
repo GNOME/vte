@@ -148,8 +148,16 @@ test_termprops_bool(void)
 {
         assert_termprop_parse_value<bool>(TermpropType::BOOL, "0"sv, false);
         assert_termprop_parse_value<bool>(TermpropType::BOOL, "1"sv, true);
-        assert_termprop_parse_nothing(TermpropType::BOOL, "false"sv);
-        assert_termprop_parse_nothing(TermpropType::BOOL, "true"sv);
+        assert_termprop_parse_value<bool>(TermpropType::BOOL, "false"sv, false);
+        assert_termprop_parse_value<bool>(TermpropType::BOOL, "true"sv, true);
+
+        // No case variants
+        assert_termprop_parse_nothing(TermpropType::BOOL, "False"sv);
+        assert_termprop_parse_nothing(TermpropType::BOOL, "True"sv);
+
+        // No other names
+        assert_termprop_parse_nothing(TermpropType::BOOL, "yes"sv);
+        assert_termprop_parse_nothing(TermpropType::BOOL, "no"sv);
 }
 
 static void

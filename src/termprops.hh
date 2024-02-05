@@ -280,9 +280,9 @@ parse_termprop_base64(std::string_view const& str) noexcept
 inline std::optional<TermpropValue>
 parse_termprop_bool(std::string_view const& str) noexcept
 {
-        if (str == "1"sv)
+        if (str == "1"sv || str == "true"sv)
                 return true;
-        else if (str == "0"sv)
+        else if (str == "0"sv || str == "false"sv)
                 return false;
         else
                 return std::nullopt;
