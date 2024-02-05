@@ -311,16 +311,17 @@ test_termprops_string(void)
         assert_termprop_parse_nothing(TermpropType::STRING, str);
 
         // Test escapes
-        assert_termprop_parse_value<std::string>(TermpropType::STRING, "a\\cb\\sc\\nd\\\\e"sv, "a:b;c\nd\\e"s);
+        assert_termprop_parse_value<std::string>(TermpropType::STRING, "a\\sb\\nc\\\\d"sv, "a;b\nc\\d"s);
 
         // Test string value containing the termprop assignment characters ! or =
         assert_termprop_parse_value<std::string>(TermpropType::STRING, "a=b"sv, "a=b"s);
         assert_termprop_parse_value<std::string>(TermpropType::STRING, "a!"sv, "a!"s);
 
-        assert_termprop_parse_nothing(TermpropType::STRING, "a:b"sv);
+        // Missing or invalid escapes
+        assert_termprop_parse_nothing(TermpropType::STRING, "a;b");
+        assert_termprop_parse_nothing(TermpropType::STRING, "a\\");
         assert_termprop_parse_nothing(TermpropType::STRING, "a\\"sv);
         assert_termprop_parse_nothing(TermpropType::STRING, "a\\a"sv);
-        assert_termprop_parse_nothing(TermpropType::STRING, "a\\ab"sv);
 }
 
 static void

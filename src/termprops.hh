@@ -351,7 +351,6 @@ parse_string_escape(std::string_view const& str,
         switch (char8_t(str[pos++])) {
         case 'n':  return u8'\n'; // U+000A LINE FEED (LF)
         case '\\': return u8'\\'; // U+005C REVERSE SOLIDUS
-        case 'c':  return u8':'; // U+003A COLON
         case 's':  return u8';'; // U+003B SEMICOLON
         default:   return std::nullopt; // unsupported escape
         }
@@ -360,7 +359,7 @@ parse_string_escape(std::string_view const& str,
 inline std::optional<TermpropValue>
 parse_termprop_string(std::string_view str)
 {
-        static constinit auto const needle = std::string_view{"\\:"};
+        static constinit auto const needle = std::string_view{"\\;"};
 
         auto unescaped = std::string{};
         unescaped.reserve(str.size());
@@ -374,7 +373,7 @@ parse_termprop_string(std::string_view str)
                         break;
 
                 auto const c = str[run];
-                if (c == '\\') {
+                if (c == '\\') [[likely]] {
                         ++run;
                         auto ec = parse_string_escape(str, run);
                         ok = bool(ec);
@@ -383,8 +382,8 @@ parse_termprop_string(std::string_view str)
 
                         // c is a 7-bit character actually, so can just append
                         unescaped.push_back(*ec);
-                } else if (c == ':') {
-                        // unescaped colon
+                } else if (c == ';') {
+                        // unescaped semicolon
                         ok = false;
                         break;
                 } else {
