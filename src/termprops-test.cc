@@ -117,7 +117,10 @@ assert_termprop_parse_value(TermpropType type,
         assert(value);
         assert(!value->valueless_by_exception());
         assert(std::holds_alternative<T>(*value));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
         assert(std::get<T>(*value) == expected_value);
+#pragma GCC diagnostic pop
 }
 
 template<std::integral T>
@@ -206,6 +209,31 @@ test_termprops_uint(void)
         assert_termprop_parse_nothing(TermpropType::UINT64, "0a"sv);
         assert_termprop_parse_nothing(TermpropType::UINT64, "a0"sv);
         assert_termprop_parse_nothing(TermpropType::UINT64, "18446744073709551616"sv);
+}
+
+static void
+test_termprops_double(void)
+{
+        assert_termprop_parse_value(TermpropType::DOUBLE, "0"sv, 0.0);
+        assert_termprop_parse_value(TermpropType::DOUBLE, "0.1"sv, 0.1);
+        assert_termprop_parse_value(TermpropType::DOUBLE, "1.0"sv, 1.0);
+        assert_termprop_parse_value(TermpropType::DOUBLE, "2.0E8"sv, 2.0E8);
+
+        // No leading whitespace
+        assert_termprop_parse_nothing(TermpropType::DOUBLE, " 1.0"sv);
+
+        // No trailing whitespace
+        assert_termprop_parse_nothing(TermpropType::DOUBLE, "1.0 "sv);
+
+        // No hex format
+        assert_termprop_parse_nothing(TermpropType::DOUBLE, "0x12345678"sv);
+
+        // No infinities
+        assert_termprop_parse_nothing(TermpropType::DOUBLE, "Inf"sv);
+        assert_termprop_parse_nothing(TermpropType::DOUBLE, "-Inf"sv);
+
+        // No NaNs
+        assert_termprop_parse_nothing(TermpropType::DOUBLE, "NaN"sv);
 }
 
 static void
@@ -326,6 +354,7 @@ main(int argc,
         g_test_add_func("/vte/terminal/termprops/type/uint16", test_termprops_uint16);
         g_test_add_func("/vte/terminal/termprops/type/int64", test_termprops_int);
         g_test_add_func("/vte/terminal/termprops/type/uint64", test_termprops_uint);
+        g_test_add_func("/vte/terminal/termprops/type/double", test_termprops_double);
         g_test_add_func("/vte/terminal/termprops/type/rgb", test_termprops_rgb);
         g_test_add_func("/vte/terminal/termprops/type/rgba", test_termprops_rgba);
         g_test_add_func("/vte/terminal/termprops/type/string", test_termprops_string);

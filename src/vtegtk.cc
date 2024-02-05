@@ -1306,6 +1306,7 @@ constexpr bool check_enum_value<VtePropertyType>(VtePropertyType value) noexcept
         case VTE_PROPERTY_UINT16:
         case VTE_PROPERTY_INT64:
         case VTE_PROPERTY_UINT64:
+        case VTE_PROPERTY_DOUBLE:
         case VTE_PROPERTY_RGB:
         case VTE_PROPERTY_RGBA:
         case VTE_PROPERTY_STRING:
@@ -2941,6 +2942,11 @@ vte_terminal_class_init(VteTerminalClass *klass)
  *   and takes a string of digits that, when converted to a number, must be
  *   between 0 and 18446744073709551615.
  *   The default value is 0.
+ *
+ * * A property of type %VTE_PROPERTY_DOUBLE is a finite double-precision
+ *   floating-point number, and takes a string specifying the floating-point
+ *   number in fixed or scientific format, with no leading or trailing
+ *   whitespace.
  *
  * * A property of type %VTE_PROPERTY_RGBA or %VTE_PROPERTY_RGBA is a color,
  *    and takes a string in the CSS color format, accepting colors in either
@@ -8144,6 +8150,83 @@ vte_terminal_get_termprop_uint(VteTerminal* terminal,
 }
 
 /**
+ * vte_terminal_get_termprop_double_by_id:
+ * @terminal: a #VteTerminal
+ * @prop: a termprop ID
+ * @valuep: (out) (optional): a location to store the value, or %NULL
+ *
+ * Like vte_terminal_get_termprop_double() except that it takes the termprop
+ * by ID. See that function for more information.
+ *
+ * Returns: %TRUE iff the termprop is set
+ *
+ * Since: 0.76
+ */
+gboolean
+vte_terminal_get_termprop_double_by_id(VteTerminal* terminal,
+                                       int prop,
+                                       double* valuep) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
+        g_return_val_if_fail(prop >= 0, false);
+
+        auto const widget = WIDGET(terminal);
+        auto const info = widget->get_termprop_info(prop);
+        if (!info) {
+                if (valuep) [[likely]]
+                        *valuep = 0.0;
+                return false;
+        }
+
+        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::DOUBLE, false);
+
+        auto const value = widget->get_termprop(*info);
+        if (value &&
+            std::holds_alternative<double>(*value)) {
+                if (valuep) [[likely]]
+                        *valuep = std::get<double>(*value);
+                return true;
+        }
+
+        return false;
+}
+catch (...)
+{
+        vte::log_exception();
+
+        if (valuep) [[likely]]
+                *valuep = 0.0;
+        return false;
+}
+
+/**
+ * vte_terminal_get_termprop_double:
+ * @terminal: a #VteTerminal
+ * @prop: a termprop name
+ * @valuep: (out) (optional): a location to store the value, or %NULL
+ *
+ * For a %VTE_PROPERTY_DOUBLE termprop, sets @value to @prop's value,
+ *   which is finite; or to 0.0 if @prop is unset, or @prop is not a
+ *   registered property.
+ *
+ * Returns: %TRUE iff the termprop is set
+ *
+ * Since: 0.76
+ */
+gboolean
+vte_terminal_get_termprop_double(VteTerminal* terminal,
+                                 char const* prop,
+                                 double* valuep) noexcept
+{
+        g_return_val_if_fail(prop != nullptr, false);
+
+        return vte_terminal_get_termprop_double_by_id(terminal,
+                                                      vte::terminal::get_termprop_id(prop),
+                                                      valuep);
+}
+
+/**
  * vte_terminal_get_termprop_color_by_id:
  * @terminal: a #VteTerminal
  * @prop: a termprop ID
@@ -8646,6 +8729,14 @@ try
                 }
                 break;
 
+        case vte::terminal::TermpropType::DOUBLE:
+                if (std::holds_alternative<double>(*value)) {
+                        rv = true;
+                        g_value_init(gvalue, G_TYPE_DOUBLE);
+                        g_value_set_double(gvalue, std::get<double>(*value));
+                }
+                break;
+
         case vte::terminal::TermpropType::RGB:
         case vte::terminal::TermpropType::RGBA:
                 if (std::holds_alternative<vte::terminal::termprop_rgba>(*value)) {
@@ -8713,6 +8804,7 @@ catch (...)
  * * A %VTE_PROPERTY_UINT16 termprop stores a %G_TYPE_UINT value.
  * * A %VTE_PROPERTY_INT termprop stores a %G_TYPE_INT64 value.
  * * A %VTE_PROPERTY_UINT termprop stores a %G_TYPE_UINT64 value.
+ * * A %VTE_PROPERTY_DOUBLE termprop stores a %G_TYPE_DOUBLE value.
  * * A %VTE_PROPERTY_RGB termprop stores a boxed #GdkRGBA value with alpha 1.0.
  * * A %VTE_PROPERTY_RGBA termprop stores a boxed #GdkRGBA value.
  * * A %VTE_PROPERTY_STRING termprop stores a %G_TYPE_STRING value.
@@ -8799,6 +8891,12 @@ try
                 }
                 break;
 
+        case vte::terminal::TermpropType::DOUBLE:
+                if (std::holds_alternative<uintmax_t>(*value)) {
+                        return g_variant_new_double(std::get<double>(*value));
+                }
+                break;
+
         case vte::terminal::TermpropType::RGB:
         case vte::terminal::TermpropType::RGBA:
                 if (std::holds_alternative<vte::terminal::termprop_rgba>(*value)) {
@@ -8858,6 +8956,7 @@ catch (...)
  * * A %VTE_PROPERTY_UINT16 termprop returns a %G_VARIANT_TYPE_UINT16 variant.
  * * A %VTE_PROPERTY_INT termprop returns a %G_VARIANT_TYPE_INT64 variant.
  * * A %VTE_PROPERTY_UINT termprop returns a %G_VARIANT_TYPE_UINT64 variant.
+ * * A %VTE_PROPERTY_DOUBLE termprop returns a %G_VARIANT_TYPE_DOUBLE variant.
  * * A %VTE_PROPERTY_RGB or %VTE_PROPERTY_RGBA termprop returns a "(dddd)"
  *   tuple containing the red, green, blue, and alpha (1.0 for %VTE_PROPERTY_RGB)
  *   components of the color.

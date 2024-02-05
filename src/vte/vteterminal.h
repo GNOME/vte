@@ -670,32 +670,42 @@ gboolean vte_event_context_get_coordinates(VteEventContext const* context,
 _VTE_PUBLIC
 gboolean vte_terminal_get_termprop_bool(VteTerminal* terminal,
                                         char const* prop,
-                                        gboolean *valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+                                        gboolean* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
 
 _VTE_PUBLIC
 gboolean vte_terminal_get_termprop_bool_by_id(VteTerminal* terminal,
                                               int prop,
-                                              gboolean *valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+                                              gboolean* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
 gboolean vte_terminal_get_termprop_int(VteTerminal* terminal,
                                        char const* prop,
-                                       intmax_t *valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+                                       intmax_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
 
 _VTE_PUBLIC
 gboolean vte_terminal_get_termprop_int_by_id(VteTerminal* terminal,
                                              int prop,
-                                             intmax_t *valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+                                             intmax_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
 gboolean vte_terminal_get_termprop_uint(VteTerminal* terminal,
                                         char const* prop,
-                                        uintmax_t *valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+                                        uintmax_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
 
 _VTE_PUBLIC
 gboolean vte_terminal_get_termprop_uint_by_id(VteTerminal* terminal,
                                               int prop,
-                                              uintmax_t *valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+                                              uintmax_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_double(VteTerminal* terminal,
+                                          char const* prop,
+                                          double* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_double_by_id(VteTerminal* terminal,
+                                                int prop,
+                                                double* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
 gboolean vte_terminal_get_termprop_color(VteTerminal* terminal,

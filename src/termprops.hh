@@ -22,6 +22,8 @@
 #include "color.hh"
 #include "color-parser.hh"
 
+#include <cmath> // for std::isfinite
+
 #include <charconv>
 #include <optional>
 #include <string>
@@ -42,6 +44,7 @@ enum class TermpropType {
         UINT16,
         INT64,
         UINT64,
+        DOUBLE,
         RGB,
         RGBA,
         STRING,
@@ -245,6 +248,7 @@ using TermpropValue = std::variant<std::monostate,
                                    bool,
                                    intmax_t,
                                    uintmax_t,
+                                   double,
                                    termprop_rgba,
                                    vte::uuid,
 				   std::string>;
@@ -313,6 +317,24 @@ parse_termprop_integral(std::string_view const& str) noexcept
                 } else {
                         return intmax_t(v);
                 }
+        }
+
+        return std::nullopt;
+}
+
+template<std::floating_point T>
+inline std::optional<TermpropValue>
+parse_termprop_floating(std::string_view const& str) noexcept
+{
+        auto v = T{};
+        if (auto [ptr, err] = std::from_chars(std::begin(str),
+                                              std::end(str),
+                                              v,
+                                              std::chars_format::general);
+            err == std::errc() &&
+            ptr == std::end(str) &&
+            std::isfinite(v)) {
+                return double(v);
         }
 
         return std::nullopt;
@@ -416,6 +438,9 @@ parse_termprop_value(TermpropType type,
 
         case TermpropType::UINT64:
                 return impl::parse_termprop_integral<uint64_t>(value);
+
+        case TermpropType::DOUBLE:
+                return impl::parse_termprop_floating<double>(value);
 
         case TermpropType::RGB:
         case TermpropType::RGBA:

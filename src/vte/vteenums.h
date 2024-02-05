@@ -252,6 +252,7 @@ typedef enum /*< flags >*/ {
  * @VTE_PROPERTY_UINT16: an unsigned 16 bit integer
  * @VTE_PROPERTY_INT64: a signed 64-bit integer
  * @VTE_PROPERTY_UINT64: an unsigned 64-bit integer
+ * @VTE_PROPERTY_DOUBLE: a finite double-precision floating point number
  * @VTE_PROPERTY_RGB: a color
  * @VTE_PROPERTY_RGBA: a color with alpha
  * @VTE_PROPERTY_STRING: a string
@@ -270,6 +271,7 @@ typedef enum {
         VTE_PROPERTY_UINT16,
         VTE_PROPERTY_INT64,
         VTE_PROPERTY_UINT64,
+        VTE_PROPERTY_DOUBLE,
         VTE_PROPERTY_RGB,
         VTE_PROPERTY_RGBA,
         VTE_PROPERTY_STRING,
