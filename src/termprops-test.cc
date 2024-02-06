@@ -151,9 +151,15 @@ test_termprops_bool(void)
         assert_termprop_parse_value<bool>(TermpropType::BOOL, "false"sv, false);
         assert_termprop_parse_value<bool>(TermpropType::BOOL, "true"sv, true);
 
-        // No case variants
-        assert_termprop_parse_nothing(TermpropType::BOOL, "False"sv);
-        assert_termprop_parse_nothing(TermpropType::BOOL, "True"sv);
+        // Case variants
+        assert_termprop_parse_value<bool>(TermpropType::BOOL, "False"sv, false);
+        assert_termprop_parse_value<bool>(TermpropType::BOOL, "True"sv, true);
+        assert_termprop_parse_value<bool>(TermpropType::BOOL, "FALSE"sv, false);
+        assert_termprop_parse_value<bool>(TermpropType::BOOL, "TRUE"sv, true);
+
+        // Invalid case variants
+        assert_termprop_parse_nothing(TermpropType::BOOL, "tRue"sv);
+        assert_termprop_parse_nothing(TermpropType::BOOL, "FaLSe"sv);
 
         // No other names
         assert_termprop_parse_nothing(TermpropType::BOOL, "yes"sv);
