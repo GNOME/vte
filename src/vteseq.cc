@@ -7495,7 +7495,7 @@ Terminal::SGR(vte::parser::Sequence const& seq)
                         auto v = 1;
                         // If we have a subparameter, get it
                         if (seq.param_nonfinal(i)) {
-                                v = seq.param_range(i + 1, 1, 0, 3, -2);
+                                v = seq.param_range(i + 1, 1, 0, 5, -2);
                                 // Skip the subparam sequence if the subparam
                                 // is outside the supported range. See issue
                                 // https://gitlab.gnome.org/GNOME/vte/-/issues/2640

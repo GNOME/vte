@@ -6759,7 +6759,7 @@ Terminal::cellattr_to_html(VteCellAttr const* attr,
 	}
         /* <u> should be inside <font> so that it inherits its color by default */
         if (attr->underline() != 0) {
-                static const char styles[][7] = {"", "single", "double", "wavy"};
+                static const char styles[][7] = {"", "single", "double", "wavy", "dotted", "dashed"};
                 char *tag, *colorattr;
 
                 if (deco != VTE_DEFAULT_FG) {
@@ -8811,7 +8811,7 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
                                 }
 			}
                         switch (vte_attr_get_value(attr, VTE_ATTR_UNDERLINE_VALUE_MASK, VTE_ATTR_UNDERLINE_SHIFT)) {
-                        case 1:
+                        case 1:  /* single underline */
                                 m_draw.draw_line(
                                                     xl,
                                                     y + m_underline_position,
@@ -8820,7 +8820,7 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
                                                     VTE_LINE_WIDTH,
                                                     &dc);
                                 break;
-                        case 2:
+                        case 2:  /* double underline */
                                 m_draw.draw_line(
                                                     xl,
                                                     y + m_double_underline_position,
@@ -8836,7 +8836,7 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
                                                     VTE_LINE_WIDTH,
                                                     &dc);
                                 break;
-                        case 3:
+                        case 3:  /* curly underline */
                                 m_draw.draw_undercurl(
                                                          xl,
                                                          y + m_undercurl_position,
@@ -8844,6 +8844,39 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
                                                          columns,
                                                          widget()->scale_factor(),
                                                          &dc);
+                                break;
+                        case 4:  /* dotted underline */
+                                for (int j = 0; j < columns; j++) {
+                                        for (int k = 0; k < column_width - m_underline_thickness; k += 2 * m_underline_thickness) {
+                                                m_draw.draw_line(
+                                                                    xl + j * column_width + k,
+                                                                    y + m_underline_position,
+                                                                    xl + j * column_width + k + m_underline_thickness - 1,
+                                                                    y + m_underline_position + m_underline_thickness - 1,
+                                                                    VTE_LINE_WIDTH,
+                                                                    &dc);
+                                        }
+                                }
+                                break;
+                        case 5:  /* dashed underline */
+                                for (int j = 0; j < columns; j++) {
+                                        /* left quarter */
+                                        m_draw.draw_line(
+                                                            xl + j * column_width,
+                                                            y + m_underline_position,
+                                                            xl + j * column_width + MAX(column_width / 4, 1) - 1,
+                                                            y + m_underline_position + m_underline_thickness - 1,
+                                                            VTE_LINE_WIDTH,
+                                                            &dc);
+                                        /* right quarter */
+                                        m_draw.draw_line(
+                                                            xl + j * column_width + MAX(column_width * 3 / 4, 1) - 1,
+                                                            y + m_underline_position,
+                                                            xl + (j + 1) * column_width - 1,
+                                                            y + m_underline_position + m_underline_thickness - 1,
+                                                            VTE_LINE_WIDTH,
+                                                            &dc);
+                                }
                                 break;
 			}
 			if (attr & VTE_ATTR_STRIKETHROUGH) {
