@@ -248,10 +248,8 @@ typedef enum /*< flags >*/ {
  * VtePropertyType:
  * @VTE_PROPERTY_VALUELESS: no value, use for signalling
  * @VTE_PROPERTY_BOOL: a bool
- * @VTE_PROPERTY_INT16: a signed 16-bit integer
- * @VTE_PROPERTY_UINT16: an unsigned 16 bit integer
- * @VTE_PROPERTY_INT64: a signed 64-bit integer
- * @VTE_PROPERTY_UINT64: an unsigned 64-bit integer
+ * @VTE_PROPERTY_INT: a signed 64-bit integer
+ * @VTE_PROPERTY_UINT: an unsigned 64-bit integer
  * @VTE_PROPERTY_DOUBLE: a finite double-precision floating point number
  * @VTE_PROPERTY_RGB: a color
  * @VTE_PROPERTY_RGBA: a color with alpha
@@ -267,10 +265,8 @@ typedef enum {
         VTE_PROPERTY_INVALID = -1, /*< skip >*/
         VTE_PROPERTY_VALUELESS = 0,
         VTE_PROPERTY_BOOL,
-        VTE_PROPERTY_INT16,
-        VTE_PROPERTY_UINT16,
-        VTE_PROPERTY_INT64,
-        VTE_PROPERTY_UINT64,
+        VTE_PROPERTY_INT,
+        VTE_PROPERTY_UINT,
         VTE_PROPERTY_DOUBLE,
         VTE_PROPERTY_RGB,
         VTE_PROPERTY_RGBA,

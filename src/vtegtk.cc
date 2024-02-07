@@ -1302,10 +1302,8 @@ constexpr bool check_enum_value<VtePropertyType>(VtePropertyType value) noexcept
         switch (value) {
         case VTE_PROPERTY_VALUELESS:
         case VTE_PROPERTY_BOOL:
-        case VTE_PROPERTY_INT16:
-        case VTE_PROPERTY_UINT16:
-        case VTE_PROPERTY_INT64:
-        case VTE_PROPERTY_UINT64:
+        case VTE_PROPERTY_INT:
+        case VTE_PROPERTY_UINT:
         case VTE_PROPERTY_DOUBLE:
         case VTE_PROPERTY_RGB:
         case VTE_PROPERTY_RGBA:
@@ -2924,22 +2922,12 @@ vte_terminal_class_init(VteTerminalClass *klass)
  *   and "1", "true", "True", and "TRUE" for %TRUE.
  *   The default value is %FALSE.
  *
- * * A property of type %VTE_PROPERTY_INT16 is an 16-bit signed integer,
- *   and takes a string of digits and an optional leading minus sign, that,
- *   when converted to a number, must be between -32768 and 32767.
- *   The default value is 0.
- *
- * * A property of type %VTE_PROPERTY_UINT16 is an 16-bit unsigned integer,
- *   and takes a string of digits that, when converted to a number, must be
- *   between 0 and 65535.
- *   The default value is 0.
- *
- * * A property of type %VTE_PROPERTY_INT64 is an 64-bit signed integer,
+ * * A property of type %VTE_PROPERTY_INT is an 64-bit signed integer,
  *   and takes a string of digits and an optional leading minus sign, that,
  *   when converted to a number must be between -9223372036854775808 and
  *   9223372036854775807. The default value is 0.
  *
- * * A property of type %VTE_PROPERTY_UINT64 is a 64-bit unsigned integer,
+ * * A property of type %VTE_PROPERTY_UINT is a 64-bit unsigned integer,
  *   and takes a string of digits that, when converted to a number, must be
  *   between 0 and 18446744073709551615.
  *   The default value is 0.
@@ -8024,8 +8012,7 @@ try
                 return false;
         }
 
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::INT16 ||
-                             info->type() == vte::terminal::TermpropType::INT64, false);
+        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::INT, false);
 
         auto const value = widget->get_termprop(*info);
         if (value &&
@@ -8052,9 +8039,13 @@ catch (...)
  * @prop: a termprop name
  * @valuep: (out) (optional): a location to store the value, or %NULL
  *
- * For a %VTE_PROPERTY_INT16 or %VTE_PROPERTY_INT64 termprop, sets @value
- *   to @prop's value or to 0 if @prop is unset, or @prop is not a
- *   registered property.
+ * For a %VTE_PROPERTY_INT termprop, sets @value to @prop's value,
+ * or to 0 if @prop is unset, or if @prop is not a registered property.
+ *
+ * If only a subset or range of values are acceptable for the given property,
+ * the caller must validate the returned value and treat any out-of-bounds
+ * value as if the termprop had no value; in particular it *must not* clamp
+ * the values to the expected range.
  *
  * Returns: %TRUE iff the termprop is set
  *
@@ -8102,8 +8093,7 @@ try
                 return false;
         }
 
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::UINT16 ||
-                             info->type() == vte::terminal::TermpropType::UINT64, false);
+        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::UINT, false);
 
         auto const value = widget->get_termprop(*info);
         if (value &&
@@ -8130,9 +8120,13 @@ catch (...)
  * @prop: a termprop name
  * @valuep: (out) (optional): a location to store the value, or %NULL
  *
- * For a %VTE_PROPERTY_UINT16 or %VTE_PROPERTY_UINT64 termprop, sets @value
- *   to @prop's value, or to 0 if @prop is unset, or @prop is not a
- *   registered property.
+ * For a %VTE_PROPERTY_UINT termprop, sets @value to @prop's value,
+ * or to 0 if @prop is unset, or @prop is not a registered property.
+ *
+ * If only a subset or range of values are acceptable for the given property,
+ * the caller must validate the returned value and treat any out-of-bounds
+ * value as if the termprop had no value; in particular it *must not* clamp
+ * the values to the expected range.
  *
  * Returns: %TRUE iff the termprop is set
  *
@@ -8698,23 +8692,7 @@ try
                 }
                 break;
 
-        case vte::terminal::TermpropType::INT16:
-                if (std::holds_alternative<intmax_t>(*value)) {
-                        rv = true;
-                        g_value_init(gvalue, G_TYPE_INT);
-                        g_value_set_int(gvalue, int16_t(std::get<intmax_t>(*value)));
-                }
-                break;
-
-        case vte::terminal::TermpropType::UINT16:
-                if (std::holds_alternative<uintmax_t>(*value)) {
-                        rv = true;
-                        g_value_init(gvalue, G_TYPE_UINT);
-                        g_value_set_uint(gvalue, uint16_t(std::get<uintmax_t>(*value)));
-                }
-                break;
-
-        case vte::terminal::TermpropType::INT64:
+        case vte::terminal::TermpropType::INT:
                 if (std::holds_alternative<intmax_t>(*value)) {
                         rv = true;
                         g_value_init(gvalue, G_TYPE_INT64);
@@ -8722,7 +8700,7 @@ try
                 }
                 break;
 
-        case vte::terminal::TermpropType::UINT64:
+        case vte::terminal::TermpropType::UINT:
                 if (std::holds_alternative<uintmax_t>(*value)) {
                         rv = true;
                         g_value_init(gvalue, G_TYPE_UINT64);
@@ -8801,8 +8779,6 @@ catch (...)
  * * A %VTE_PROPERTY_VALUELESS termprop stores no value, and returns %FALSE
  *   from this function.
  * * A %VTE_PROPERTY_BOOL termprop stores a %G_TYPE_BOOLEAN value.
- * * A %VTE_PROPERTY_INT16 termprop stores a %G_TYPE_INT value.
- * * A %VTE_PROPERTY_UINT16 termprop stores a %G_TYPE_UINT value.
  * * A %VTE_PROPERTY_INT termprop stores a %G_TYPE_INT64 value.
  * * A %VTE_PROPERTY_UINT termprop stores a %G_TYPE_UINT64 value.
  * * A %VTE_PROPERTY_DOUBLE termprop stores a %G_TYPE_DOUBLE value.
@@ -8870,23 +8846,12 @@ try
                 }
                 break;
 
-        case vte::terminal::TermpropType::INT16:
-                if (std::holds_alternative<intmax_t>(*value)) {
-                        return g_variant_new_int16(int16_t(std::get<intmax_t>(*value)));
-                }
-                break;
-        case vte::terminal::TermpropType::UINT16:
-                if (std::holds_alternative<uintmax_t>(*value)) {
-                        return g_variant_new_uint16(uint16_t(std::get<uintmax_t>(*value)));
-                }
-                break;
-
-        case vte::terminal::TermpropType::INT64:
+        case vte::terminal::TermpropType::INT:
                 if (std::holds_alternative<intmax_t>(*value)) {
                         return g_variant_new_int64(int64_t(std::get<intmax_t>(*value)));
                 }
                 break;
-        case vte::terminal::TermpropType::UINT64:
+        case vte::terminal::TermpropType::UINT:
                 if (std::holds_alternative<uintmax_t>(*value)) {
                         return g_variant_new_uint64(uint64_t(std::get<uintmax_t>(*value)));
                 }
@@ -8953,8 +8918,6 @@ catch (...)
  * The #GVariantType of the returned #GVariant depends on the termprop type:
  * * A %VTE_PROPERTY_VALUELESS termprop returns a %G_VARIANT_TYPE_UNIT variant.
  * * A %VTE_PROPERTY_BOOL termprop returns a %G_VARIANT_TYPE_BOOLEAN variant.
- * * A %VTE_PROPERTY_INT16 termprop returns a %G_VARIANT_TYPE_INT16 variant.
- * * A %VTE_PROPERTY_UINT16 termprop returns a %G_VARIANT_TYPE_UINT16 variant.
  * * A %VTE_PROPERTY_INT termprop returns a %G_VARIANT_TYPE_INT64 variant.
  * * A %VTE_PROPERTY_UINT termprop returns a %G_VARIANT_TYPE_UINT64 variant.
  * * A %VTE_PROPERTY_DOUBLE termprop returns a %G_VARIANT_TYPE_DOUBLE variant.

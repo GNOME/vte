@@ -101,7 +101,7 @@ test_termprops_register(void)
 {
         assert_registered("test.valueless", TermpropType::VALUELESS);
         assert_registered("test.bool", TermpropType::BOOL);
-        assert_registered("test.uint16", TermpropType::UINT16);
+        assert_registered("test.uint", TermpropType::UINT);
         assert_registered("test.string", TermpropType::STRING);
         assert_registered("test.data", TermpropType::DATA);
 }
@@ -167,62 +167,32 @@ test_termprops_bool(void)
 }
 
 static void
-test_termprops_int16(void)
-{
-        assert_termprop_parse_integral_value(TermpropType::INT16, "0"sv, 0);
-        assert_termprop_parse_integral_value(TermpropType::INT16, "1"sv, 1);
-        assert_termprop_parse_integral_value(TermpropType::INT16, "32767"sv, 32767);
-        assert_termprop_parse_integral_value(TermpropType::INT16, "-1"sv, -1);
-        assert_termprop_parse_integral_value(TermpropType::INT16, "-32768"sv, -32768);
-        assert_termprop_parse_nothing(TermpropType::INT16, "32768"sv);
-        assert_termprop_parse_nothing(TermpropType::INT16, "-32769"sv);
-        assert_termprop_parse_nothing(TermpropType::INT16, "0a"sv);
-        assert_termprop_parse_nothing(TermpropType::INT16, "a0"sv);
-        assert_termprop_parse_nothing(TermpropType::INT16, "65536"sv);
-        assert_termprop_parse_nothing(TermpropType::INT16, "-"sv);
-        assert_termprop_parse_nothing(TermpropType::INT16, "-a"sv);
-}
-
-static void
-test_termprops_uint16(void)
-{
-        assert_termprop_parse_integral_value(TermpropType::UINT16, "0"sv, 0u);
-        assert_termprop_parse_integral_value(TermpropType::UINT16, "1"sv, 1u);
-        assert_termprop_parse_integral_value(TermpropType::UINT16, "65534"sv, 65534u);
-        assert_termprop_parse_integral_value(TermpropType::UINT16, "65535"sv, 65535u);
-        assert_termprop_parse_nothing(TermpropType::UINT16, "-1"sv);
-        assert_termprop_parse_nothing(TermpropType::UINT16, "0a"sv);
-        assert_termprop_parse_nothing(TermpropType::UINT16, "a0"sv);
-        assert_termprop_parse_nothing(TermpropType::UINT16, "65536"sv);
-}
-
-static void
 test_termprops_int(void)
 {
-        assert_termprop_parse_integral_value(TermpropType::INT64, "0"sv, 0ll);
-        assert_termprop_parse_integral_value(TermpropType::INT64, "1"sv, 1ll);
-        assert_termprop_parse_integral_value(TermpropType::INT64, "9223372036854775807"sv, 9223372036854775807ll);
-        assert_termprop_parse_integral_value(TermpropType::INT64, "-1"sv, -1ll);
-        assert_termprop_parse_integral_value(TermpropType::INT64, "-9223372036854775808"sv, INT64_MIN);
-        assert_termprop_parse_nothing(TermpropType::INT64, "9223372036854775808"sv);
-        assert_termprop_parse_nothing(TermpropType::INT64, "-9223372036854775809"sv);
-        assert_termprop_parse_nothing(TermpropType::INT64, "0a"sv);
-        assert_termprop_parse_nothing(TermpropType::INT64, "a0"sv);
-        assert_termprop_parse_nothing(TermpropType::INT64, "-"sv);
-        assert_termprop_parse_nothing(TermpropType::INT64, "-a"sv);
+        assert_termprop_parse_integral_value(TermpropType::INT, "0"sv, 0ll);
+        assert_termprop_parse_integral_value(TermpropType::INT, "1"sv, 1ll);
+        assert_termprop_parse_integral_value(TermpropType::INT, "9223372036854775807"sv, 9223372036854775807ll);
+        assert_termprop_parse_integral_value(TermpropType::INT, "-1"sv, -1ll);
+        assert_termprop_parse_integral_value(TermpropType::INT, "-9223372036854775808"sv, INT64_MIN);
+        assert_termprop_parse_nothing(TermpropType::INT, "9223372036854775808"sv);
+        assert_termprop_parse_nothing(TermpropType::INT, "-9223372036854775809"sv);
+        assert_termprop_parse_nothing(TermpropType::INT, "0a"sv);
+        assert_termprop_parse_nothing(TermpropType::INT, "a0"sv);
+        assert_termprop_parse_nothing(TermpropType::INT, "-"sv);
+        assert_termprop_parse_nothing(TermpropType::INT, "-a"sv);
 }
 
 static void
 test_termprops_uint(void)
 {
-        assert_termprop_parse_integral_value(TermpropType::UINT64, "0"sv, 0ull);
-        assert_termprop_parse_integral_value(TermpropType::UINT64, "1"sv, 1ull);
-        assert_termprop_parse_integral_value(TermpropType::UINT64, "18446744073709551614"sv, 18446744073709551614ull);
-        assert_termprop_parse_integral_value(TermpropType::UINT64, "18446744073709551615"sv, 18446744073709551615ull);
-        assert_termprop_parse_nothing(TermpropType::UINT64, "-1"sv);
-        assert_termprop_parse_nothing(TermpropType::UINT64, "0a"sv);
-        assert_termprop_parse_nothing(TermpropType::UINT64, "a0"sv);
-        assert_termprop_parse_nothing(TermpropType::UINT64, "18446744073709551616"sv);
+        assert_termprop_parse_integral_value(TermpropType::UINT, "0"sv, 0ull);
+        assert_termprop_parse_integral_value(TermpropType::UINT, "1"sv, 1ull);
+        assert_termprop_parse_integral_value(TermpropType::UINT, "18446744073709551614"sv, 18446744073709551614ull);
+        assert_termprop_parse_integral_value(TermpropType::UINT, "18446744073709551615"sv, 18446744073709551615ull);
+        assert_termprop_parse_nothing(TermpropType::UINT, "-1"sv);
+        assert_termprop_parse_nothing(TermpropType::UINT, "0a"sv);
+        assert_termprop_parse_nothing(TermpropType::UINT, "a0"sv);
+        assert_termprop_parse_nothing(TermpropType::UINT, "18446744073709551616"sv);
 }
 
 static void
@@ -369,10 +339,8 @@ main(int argc,
         g_test_add_func("/vte/terminal/termprops/register", test_termprops_register);
         g_test_add_func("/vte/terminal/termprops/type/valueless", test_termprops_valueless);
         g_test_add_func("/vte/terminal/termprops/type/bool", test_termprops_bool);
-        g_test_add_func("/vte/terminal/termprops/type/int16", test_termprops_int16);
-        g_test_add_func("/vte/terminal/termprops/type/uint16", test_termprops_uint16);
-        g_test_add_func("/vte/terminal/termprops/type/int64", test_termprops_int);
-        g_test_add_func("/vte/terminal/termprops/type/uint64", test_termprops_uint);
+        g_test_add_func("/vte/terminal/termprops/type/int", test_termprops_int);
+        g_test_add_func("/vte/terminal/termprops/type/uint", test_termprops_uint);
         g_test_add_func("/vte/terminal/termprops/type/double", test_termprops_double);
         g_test_add_func("/vte/terminal/termprops/type/rgb", test_termprops_rgb);
         g_test_add_func("/vte/terminal/termprops/type/rgba", test_termprops_rgba);

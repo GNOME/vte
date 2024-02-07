@@ -1462,17 +1462,11 @@ vteapp_terminal_class_init(VteappTerminalClass *klass)
                 vte_install_termprop("vte.ext.vteapp.test.bool",
                                      VTE_PROPERTY_BOOL,
                                      VTE_PROPERTY_FLAG_NONE);
-                vte_install_termprop("vte.ext.vteapp.test.int16",
-                                     VTE_PROPERTY_INT16,
+                vte_install_termprop("vte.ext.vteapp.test.int",
+                                     VTE_PROPERTY_INT,
                                      VTE_PROPERTY_FLAG_NONE);
-                vte_install_termprop("vte.ext.vteapp.test.uint16",
-                                     VTE_PROPERTY_UINT16,
-                                     VTE_PROPERTY_FLAG_NONE);
-                vte_install_termprop("vte.ext.vteapp.test.int64",
-                                     VTE_PROPERTY_INT64,
-                                     VTE_PROPERTY_FLAG_NONE);
-                vte_install_termprop("vte.ext.vteapp.test.uint64",
-                                     VTE_PROPERTY_UINT64,
+                vte_install_termprop("vte.ext.vteapp.test.uint",
+                                     VTE_PROPERTY_UINT,
                                      VTE_PROPERTY_FLAG_NONE);
                 vte_install_termprop("vte.ext.vteapp.test.rgb",
                                      VTE_PROPERTY_RGB,

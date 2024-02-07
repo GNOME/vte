@@ -36,14 +36,13 @@ namespace vte::terminal {
 
 using namespace std::literals::string_view_literals;
 
-// Termprops
+// Termprops. Make sure the enum values are the same as in the
+// public VtePropertyType enum.
 enum class TermpropType {
         VALUELESS,
         BOOL,
-        INT16,
-        UINT16,
-        INT64,
-        UINT64,
+        INT,
+        UINT,
         DOUBLE,
         RGB,
         RGBA,
@@ -432,16 +431,10 @@ parse_termprop_value(TermpropType type,
         case TermpropType::BOOL:
                 return impl::parse_termprop_bool(value);
 
-        case TermpropType::INT16:
-                return impl::parse_termprop_integral<int16_t>(value);
-
-        case TermpropType::UINT16:
-                return impl::parse_termprop_integral<uint16_t>(value);
-
-        case TermpropType::INT64:
+        case TermpropType::INT:
                 return impl::parse_termprop_integral<int64_t>(value);
 
-        case TermpropType::UINT64:
+        case TermpropType::UINT:
                 return impl::parse_termprop_integral<uint64_t>(value);
 
         case TermpropType::DOUBLE:
