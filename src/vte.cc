@@ -6759,7 +6759,7 @@ Terminal::cellattr_to_html(VteCellAttr const* attr,
 	}
         /* <u> should be inside <font> so that it inherits its color by default */
         if (attr->underline() != 0) {
-                static const char styles[][7] = {"", "single", "double", "wavy", "dotted", "dashed"};
+                static const char styles[][7] = {"", "solid", "double", "wavy", "dotted", "dashed"};
                 char *tag, *colorattr;
 
                 if (deco != VTE_DEFAULT_FG) {
