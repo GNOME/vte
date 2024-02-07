@@ -10248,6 +10248,17 @@ Terminal::set_text_blink_mode(TextBlinkMode setting)
 }
 
 bool
+Terminal::set_enable_a11y(bool setting)
+{
+        if (setting == m_enable_a11y)
+                return false;
+
+        m_enable_a11y = setting;
+
+        return true;
+}
+
+bool
 Terminal::set_enable_bidi(bool setting)
 {
         if (setting == m_enable_bidi)

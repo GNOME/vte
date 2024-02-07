@@ -67,9 +67,11 @@
 #include <cairo-gobject.h>
 
 #if WITH_A11Y
-#if VTE_GTK == 3
-#include "vteaccess.h"
-#endif /* VTE_GTK == 3 */
+# if VTE_GTK == 3
+#  include "vteaccess.h"
+# elif VTE_GTK == 4
+#  include "vteaccess-gtk4.h"
+# endif
 #endif /* WITH_A11Y */
 
 #if WITH_ICU
@@ -159,6 +161,14 @@ private:
         std::shared_ptr<vte::platform::Widget> m_widget;
 };
 
+#if defined(WITH_A11Y) && VTE_GTK == 4
+# define VTE_IMPLEMENT_ACCESSIBLE \
+  G_IMPLEMENT_INTERFACE(GTK_TYPE_ACCESSIBLE_TEXT, \
+                        _vte_accessible_text_iface_init)
+#else
+# define VTE_IMPLEMENT_ACCESSIBLE
+#endif
+
 #if VTE_DEBUG
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                         {
@@ -167,6 +177,7 @@ G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                         }
                         g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
                         G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, nullptr)
+                        VTE_IMPLEMENT_ACCESSIBLE
                         if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
                                 g_printerr("vte_terminal_get_type()\n");
                         })
@@ -177,7 +188,8 @@ G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                                         g_type_add_instance_private(g_define_type_id, sizeof(VteTerminalPrivate));
                         }
                         g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
-                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, nullptr))
+                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, nullptr)
+                        VTE_IMPLEMENT_ACCESSIBLE)
 #endif
 
 static inline auto
@@ -935,6 +947,10 @@ try
         gtk_widget_set_has_window(&terminal->widget, FALSE);
 #endif
 
+#if defined(WITH_A11Y) && VTE_GTK == 4
+        _vte_accessible_text_init (GTK_ACCESSIBLE_TEXT (terminal));
+#endif
+
 	place = vte_terminal_get_instance_private(terminal);
         new (place) VteTerminalPrivate{terminal};
 }
@@ -1046,6 +1062,9 @@ try
                         break;
                 case PROP_DELETE_BINDING:
                         g_value_set_enum (value, widget->delete_binding());
+                        break;
+                case PROP_ENABLE_A11Y:
+                        g_value_set_boolean (value, vte_terminal_get_enable_a11y (terminal));
                         break;
                 case PROP_ENABLE_BIDI:
                         g_value_set_boolean (value, vte_terminal_get_enable_bidi (terminal));
@@ -1201,6 +1220,9 @@ try
                         break;
                 case PROP_DELETE_BINDING:
                         vte_terminal_set_delete_binding (terminal, (VteEraseBinding)g_value_get_enum (value));
+                        break;
+                case PROP_ENABLE_A11Y:
+                        vte_terminal_set_enable_a11y (terminal, g_value_get_boolean (value));
                         break;
                 case PROP_ENABLE_BIDI:
                         vte_terminal_set_enable_bidi (terminal, g_value_get_boolean (value));
@@ -2473,6 +2495,22 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                    (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
+         * VteTerminal:enable-a11y:
+         *
+         * Controls whether or not a11y is enabled for the widget.
+         *
+         * Since: 0.78
+         */
+        pspecs[PROP_ENABLE_A11Y] =
+                g_param_spec_boolean ("enable-a11y", NULL, NULL,
+#if VTE_GTK == 3
+                                      TRUE,
+#else
+                                      FALSE,
+#endif
+                                      (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
          * VteTerminal:enable-bidi:
          *
          * Controls whether or not the terminal will perform bidirectional text rendering.
@@ -2881,10 +2919,12 @@ vte_terminal_class_init(VteTerminalClass *klass)
         err.assert_no_error();
 #endif
 
-#if VTE_GTK == 3
 #if WITH_A11Y
+#if VTE_GTK == 3
         /* a11y */
         gtk_widget_class_set_accessible_type(widget_class, VTE_TYPE_TERMINAL_ACCESSIBLE);
+#elif VTE_GTK == 4
+        gtk_widget_class_set_accessible_role(widget_class, GTK_ACCESSIBLE_ROLE_TERMINAL);
 #endif
 #endif
 
@@ -6246,6 +6286,53 @@ try
 
         if (WIDGET(terminal)->set_delete_binding(binding))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_DELETE_BINDING]);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
+ * vte_terminal_get_enable_a11y:
+ * @terminal: a #VteTerminal
+ *
+ * Checks whether the terminal communicates with a11y backends
+ *
+ * Returns: %TRUE if a11y is enabled, %FALSE if not
+ *
+ * Since: 0.78
+ */
+gboolean
+vte_terminal_get_enable_a11y(VteTerminal *terminal) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
+        return IMPL(terminal)->m_enable_a11y;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
+
+/**
+ * vte_terminal_set_enable_a11y:
+ * @terminal: a #VteTerminal
+ * @enable_a11y: %TRUE to enable a11y support
+ *
+ * Controls whether or not the terminal will communicate with a11y backends.
+ *
+ * Since: 0.78
+ */
+void
+vte_terminal_set_enable_a11y(VteTerminal *terminal,
+                             gboolean enable_a11y) noexcept
+try
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (IMPL(terminal)->set_enable_a11y(enable_a11y != FALSE))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_ENABLE_A11Y]);
 }
 catch (...)
 {

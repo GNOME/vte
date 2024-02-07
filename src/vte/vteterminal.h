@@ -399,6 +399,13 @@ _VTE_PUBLIC
 void vte_terminal_set_delete_binding(VteTerminal *terminal,
 				     VteEraseBinding binding) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
+/* Accessibility */
+_VTE_PUBLIC
+void vte_terminal_set_enable_a11y(VteTerminal *terminal,
+                                  gboolean enable_a11y) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+gboolean vte_terminal_get_enable_a11y(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
 /* BiDi and shaping */
 _VTE_PUBLIC
 void vte_terminal_set_enable_bidi(VteTerminal *terminal,

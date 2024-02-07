@@ -807,6 +807,13 @@ public:
         const char *m_hyperlink_hover_uri; /* data is owned by the ring */
         long m_hyperlink_auto_id{0};
 
+        /* Accessibility support */
+#if VTE_GTK == 3
+        bool m_enable_a11y{true};
+#elif VTE_GTK == 4
+        bool m_enable_a11y{false};
+#endif
+
         /* RingView and friends */
         vte::base::RingView m_ringview;
         bool m_enable_bidi{true};
@@ -1591,6 +1598,7 @@ public:
         bool set_cursor_style(CursorStyle style);
         bool set_delete_binding(EraseMode binding);
         auto delete_binding() const noexcept { return m_delete_binding; }
+        bool set_enable_a11y(bool setting);
         bool set_enable_bidi(bool setting);
         bool set_enable_shaping(bool setting);
         bool set_encoding(char const* codeset,

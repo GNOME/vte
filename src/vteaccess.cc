@@ -386,6 +386,12 @@ _vte_terminal_accessible_text_modified(VteTerminalAccessible* accessible)
 	glong offset, caret_offset, olen, clen;
 	gint old_snapshot_caret;
 
+        auto widget = gtk_accessible_get_widget(GTK_ACCESSIBLE(accessible));
+        auto terminal = VTE_TERMINAL(widget);
+
+        if (!vte_terminal_get_enable_a11y (terminal))
+                return;
+
 	old_snapshot_caret = priv->snapshot_caret;
 	priv->snapshot_contents_invalid = TRUE;
 	vte_terminal_accessible_update_private_data_if_needed(accessible,
@@ -540,6 +546,9 @@ _vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
 
         auto widget = gtk_accessible_get_widget(GTK_ACCESSIBLE(accessible));
         auto terminal = VTE_TERMINAL(widget);
+
+        if (!vte_terminal_get_enable_a11y (terminal))
+                return;
 
         row_count = vte_terminal_get_row_count(terminal);
 	if (((howmuch < 0) && (howmuch <= -row_count)) ||
@@ -793,6 +802,9 @@ vte_terminal_accessible_invalidate_cursor(VteTerminal *terminal, gpointer data)
         VteTerminalAccessible *accessible = (VteTerminalAccessible *)data;
 	VteTerminalAccessiblePrivate *priv = (VteTerminalAccessiblePrivate *)_vte_terminal_accessible_get_instance_private(accessible);
 
+        if (!vte_terminal_get_enable_a11y (terminal))
+                return;
+
 	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Invalidating accessibility cursor.\n");
 	priv->snapshot_caret_invalid = TRUE;
@@ -807,6 +819,9 @@ vte_terminal_accessible_title_changed(VteTerminal *terminal, gpointer data)
 {
         VteTerminalAccessible *accessible = (VteTerminalAccessible *)data;
 
+        if (!vte_terminal_get_enable_a11y (terminal))
+                return;
+
 	atk_object_set_description(ATK_OBJECT(accessible), vte_terminal_get_window_title(terminal));
 }
 
@@ -819,6 +834,9 @@ vte_terminal_accessible_visibility_notify(VteTerminal *terminal,
         VteTerminalAccessible *accessible = (VteTerminalAccessible *)data;
 	GtkWidget *widget;
 	gboolean visible;
+
+        if (!vte_terminal_get_enable_a11y (terminal))
+                return FALSE;
 
 	visible = event->state != GDK_VISIBILITY_FULLY_OBSCURED;
 	/* The VISIBLE state indicates that this widget is "visible". */
@@ -850,6 +868,9 @@ vte_terminal_accessible_selection_changed (VteTerminal *terminal,
 					   gpointer data)
 {
         VteTerminalAccessible *accessible = (VteTerminalAccessible *)data;
+
+        if (!vte_terminal_get_enable_a11y (terminal))
+                return;
 
 	g_signal_emit_by_name (accessible, "text_selection_changed");
 }
