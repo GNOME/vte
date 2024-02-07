@@ -60,6 +60,7 @@ public:
         gboolean feed_stdin{false};
         gboolean icon_title{false};
         gboolean keep{false};
+        gboolean no_a11y{false};
         gboolean no_bidi{false};
         gboolean no_bold{false};
         gboolean no_builtin_dingus{false};
@@ -691,6 +692,8 @@ public:
                           "Enable the setting of the icon title", nullptr },
                         { "keep", 'k', 0, G_OPTION_ARG_NONE, &keep,
                           "Live on after the command exits", nullptr },
+                        { "no-a11y", 0, 0, G_OPTION_ARG_NONE, &no_a11y,
+                          "Disable accessibility", nullptr },
                         { "no-bidi", 0, 0, G_OPTION_ARG_NONE, &no_bidi,
                           "Disable BiDi", nullptr },
                         { "no-bold", 0, 0, G_OPTION_ARG_NONE, &no_bold,
@@ -2690,6 +2693,7 @@ vteapp_window_constructed(GObject *object)
         vte_terminal_set_cjk_ambiguous_width(window->terminal, options.cjk_ambiguous_width);
         vte_terminal_set_cursor_blink_mode(window->terminal, options.cursor_blink_mode);
         vte_terminal_set_cursor_shape(window->terminal, options.cursor_shape);
+        vte_terminal_set_enable_a11y(window->terminal, !options.no_a11y);
         vte_terminal_set_enable_bidi(window->terminal, !options.no_bidi);
         vte_terminal_set_enable_shaping(window->terminal, !options.no_shaping);
         vte_terminal_set_enable_sixel(window->terminal, !options.no_sixel);

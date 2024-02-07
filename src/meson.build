@@ -19,9 +19,14 @@ subdir('vte')
 
 src_inc = include_directories('.')
 
-a11y_sources = files(
+a11y_gtk3_sources = files(
   'vteaccess.cc',
   'vteaccess.h',
+)
+
+a11y_gtk4_sources = files(
+  'vteaccess-gtk4.cc',
+  'vteaccess-gtk4.h',
 )
 
 color_sources = files(
@@ -341,7 +346,7 @@ if get_option('gtk3')
   libvte_gtk3_public_deps = libvte_common_public_deps + [gtk3_dep,]
 
   if get_option('a11y')
-    libvte_gtk3_sources += a11y_sources
+    libvte_gtk3_sources += a11y_gtk3_sources
   endif
 
   libvte_gtk3 = shared_library(
@@ -389,6 +394,10 @@ if get_option('gtk4')
   libvte_gtk4_cppflags = libvte_common_cppflags + gtk4_version_cppflags + ['-DVTE_GTK=4',] + release_args
   libvte_gtk4_deps = libvte_common_deps + [gtk4_dep,]
   libvte_gtk4_public_deps = libvte_common_public_deps + [gtk4_dep,]
+
+  if get_option('a11y')
+    libvte_gtk4_sources += a11y_gtk4_sources
+  endif
 
   libvte_gtk4 = shared_library(
     vte_gtk4_api_name,
