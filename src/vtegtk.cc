@@ -2894,6 +2894,161 @@ vte_terminal_class_init(VteTerminalClass *klass)
 /* public API */
 
 /**
+ * SECTION: Terminal properties
+ * @short_description:
+ *
+ * A terminal property ("termprop") is a variable in #VteTerminal.  It can be
+ * assigned a value (or no value) via an OSC sequence; and the value can
+ * be observed by the application embedding the #VteTerminal.
+ *
+ * When a termprop value changes, a change notification is delivered
+ * asynchronously to the #VteTerminal via the #VteTerminal:termprops-changed
+ * signal, which will receive the IDs of the termprops that were changed since
+ * the last emission of the signal.  Its default handler will emit the
+ * #VteTerminal:termprop-changed detailed signal for each changed property
+ * separately.  Note that since the emission of these signals is delayed
+ * to an unspecified time after the change, when changing a termprop multiple
+ * times in succession, only the last change may be visible to the
+ * #VteTerminal, with intermediate value changes being unobservable.
+ * However, a call to one of the vte_terminal_get_termprop*() functions
+ * will always deliver the current value, even if no change notification
+ * for it has been dispatched yet.
+ *
+ * The OSC sequence to change termprop values has the following syntax:
+ * ```
+ * OSC              = INTRODUCER, CONTROL_STRING, ST;
+ * INTRODUCER       = U+009D | ( U+001B, U+005D );
+ * ST               = U+009C | ( U+001B, U+005C );
+ * CONTROL_STRING   = SELECTOR, ";", COMMAND, { ";", STATEMENT };
+ * SELECTOR         = "999";
+ * COMMAND          = "set";
+ * STATEMENT        = SET_STATEMENT | RESET_STATEMENT | SIGNAL_STATEMENT | QUERY_STATEMENT;
+ * SET_STATEMENT    = KEY, "=", VALUE;
+ * QUERY_STATEMENT  = KEY, "?";
+ * SIGNAL_STATEMENT = KEY, "!";
+ * RESET_STATEMENT  = KEY;
+ * ```
+ *
+ * Note that there is a limit on the total length of the `CONTROL_STRING` of 4096
+ * unicode codepoints between the `INTRODUCER` and the `ST`, excluding both.
+ *
+ * A `SET_STATEMENT` consists of the name of a termprop, followed by an equal
+ * sign ('=') and the new value of the termprop.  The syntax of the value
+ * depends on the type of the termprop; if the value is not valid for the type,
+ * the set-statement behaves identical to a reset-statement.  If the name does not
+ * refer to a registered termprop, the set-statement is ignored.
+ *
+ * A `RESET_STATEMENT` consists of just the name of the termprop; it will reset the
+ * termprop to having no value set.  If the name does not refer to a registered termprop,
+ * the reset-statement is ignored.
+ *
+ * A `SIGNAL_STATEMENT` consists of the name of a valueless termprop, followed by
+ * an exclamation mark ('!').  If the name does not refer to a registered termprop,
+ * or to a termprop that is not valueless, the signal-statement is ignored.
+ * See below for more information about valueless termprops.
+ *
+ * A `QUERY_STATEMENT` consists of the name of a termprop, followed by a question
+ * mark ('?').  This will cause the terminal to respond with one or more OSC sequences
+ * using the same syntax as above, that may each contain none or more statements,
+ * for none or some of termprops being queried.  If the queried termprop has a value,
+ * there may be a set-statement for that termprop and that value; if the termprop
+ * has no value, there may be a reset-statement for that termprop.
+ * Note that this is reserved for future extension; currently, for security reasons,
+ * the terminal will respond with exactly one such OSC sequence containing zero
+ * statements.  If the name does not refer to a registered termprop, there
+ * nevertheless will be an OSC response.
+ *
+ * Termprop names (`KEY`) must follow this syntax:
+ * ```
+ * KEY            = KEY_COMPONENT, { ".", KEY_COMPONENT };
+ * KEY_COMPONENT  = KEY_IDENTIFIER, { "-", KEY_IDENTIFIER };
+ * KEY_IDENTIFIER = LETTER, { LETTER }, [ DIGIT, { DIGIT } ];
+ * LETTER         = "a" | ... | "z";
+ * DIGIT          = "0" | ... | "9";
+ * ```
+ *
+ * Or in words, the must consist of two or more components, each of which
+ * consists of a sequence of one or more identifier separated with a dash ('-'),
+ * each identifier starting with a lowercase letter followed by zero or more
+ * lowercase letters, followed by zero or more digits.
+ *
+ * There are multiple types of termprops supported.
+ *
+ * * A termprop of type %VTE_PROPERTY_VALUELESS has no value, and its use
+ *   is solely for the side-effect of emitting the change signal. It may be
+ *   raised (that is, cause the change signal to be emitted) by using
+ *   a signal-statement as detailed above, and unraised (that is, cancel
+ *   a pending change signal emission for it) by using a reset-statement.
+ *   A set-statement has no effect for this property type.
+ *
+ * * A termprop of type %VTE_PROPERTY_BOOL is a boolean property, and
+ *   takes the strings "0", "false", "False", and "FALSE" to denote the %FALSE
+ *   value, and "1", "true", "True", and "TRUE" to denote the %TRUE value.
+ *
+ * * A termprop of type %VTE_PROPERTY_INT is an 64-bit signed integer,
+ *   and takes a string of digits and an optional leading minus sign, that,
+ *   when converted to a number must be between -9223372036854775808 and
+ *   9223372036854775807.
+ *
+ * * A termprop of type %VTE_PROPERTY_UINT is a 64-bit unsigned integer,
+ *   and takes a string of digits that, when converted to a number, must be
+ *   between 0 and 18446744073709551615.
+ *
+ * * A termprop of type %VTE_PROPERTY_DOUBLE is a finite double-precision
+ *   floating-point number, and takes a string specifying the floating-point
+ *   number in fixed or scientific format, with no leading or trailing
+ *   whitespace.
+ *
+ * * A termprop of type %VTE_PROPERTY_RGBA or %VTE_PROPERTY_RGBA is a color,
+ *   and takes a string in the CSS color format, accepting colors in either
+ *   hex format, rgb, rgba, hsl, or hsla format, or a named color.  Termprops
+ *   of type %VTE_PROPERTY_RGB will always have an alpha value of 1.0, while
+ *   termprops of type %VTE_PROPERTY_RGBA will have the alpha value as specified
+ *   in the set-statement.  See the CSS spec and man:XParseColor(3) for more
+ *   information on the syntax of the termprop value.
+ *
+ * * A termprop of type %VTE_PROPERTY_STRING is a string.
+ *   Note that due to the OSC syntax, the value string must not contain
+ *   semicolons (';') nor any C0 or C1 control characters.  Instead, escape
+ *   sequences '\s' for semicolon, and '\n' for LF are provided; and therefore
+ *   backslashes need to be escaped too, using '\\'.
+ *   The maximum size after unescaping is 1024 unicode codepoints.
+ *
+ * * A termprop of type %VTE_PROPERTY_DATA is binary data, and takes
+ *   a string that is base64-encoded in the default alphabet as per RFC 4648.
+ *   The maximum size of the data after base64 decoding is 2048 bytes.
+ *
+ * * A termprop of type %VTE_PROPERTY_UUID is a UUID, and takes a
+ *   string representation of an UUID in simple, braced, or URN form.
+ *   See RFC 4122 for more information.
+ *
+ * Note that any values any termprop has must be treated as *untrusted*.
+ *
+ * Note that %VTE_PROPERTY_STRING and %VTE_PROPERTY_DATA types are not
+ * intended to transfer arbitrary data, and may not be used to either tranfer
+ * image data, file upload of arbitrary file data, clipboard data, as a general
+ * free-form protocol, or for textual user notifications.  Also you must never
+ * feed the data received back to the terminal, in full or in part.
+ *
+ * If you do perform any further parsing on the contents of a termprop value,
+ * you must do so in the strictest way possible, and treat any errors by
+ * performing the same action as if the termprop had been reset to having
+ * no value at all.
+ *
+ * Note also that when the terminal is reset (by RIS, DECSTR, or DECSR) all
+ * termprops are reset to their default values, with the
+ * #VteTerminal:termprops-changed signal being emitted with an empty array.
+ *
+ * It is a programming error to call any of the vte_terminal_*_termprop*()
+ * functions for a termprop that is not of the type specified by the function
+ * name.  However, is permissible to call these functions for a name that
+ * is not a registered termprop, in which case they will return the same
+ * as if a termprop of that name existed but had no value.
+ *
+ * Since: 0.76
+ */
+
+/**
  * vte_install_termprop:
  * @name: a namespaced property name
  * @type: a #VtePropertyType to use for the property
@@ -2901,101 +3056,22 @@ vte_terminal_class_init(VteTerminalClass *klass)
  *
  * Installs a new terminal property that can be set by the application.
  *
- * Note that @name must contain consist of at least 4 components separated by
- * a dot ('.'), and each component must only contain the characters [a-z0-9-]
- * and start with a character from [a-z], and start with "vte.ext.". You should
- * use an identifier for your terminal as the first component after the prefix
- * as a namespace marker.
+ * @name must follow the rules for termprop names as laid out above; it
+ * must have at least 4 components, the first of which must be "vte", and
+ * "ext". Use the %VTE_TERMPROP_NAME_PREFIX macro which defines this
+ * name prefix.
  *
- * To set such a property, use the "OSC 999 ; set ( ; <prop> ( = <value> )? )* ST"
- * sequence containing zero or more "<prop> (= <value>)" assignments delimited
- * by semicolons (';').
- * Omitting the "= <value>" part resets the property to its default value.
+ * You should use an identifier for your terminal as the first component
+ * after the prefix, as a namespace marker.
  *
- * The supported values for each type are as follows:
- *
- * * A property of type %VTE_PROPERTY_VALUELESS has no value.
- *   This type of property can be used for signalling.
- *
- * * A property of type %VTE_PROPERTY_BOOL is a boolean property, and
- *   takes the strings "0", "false", "False", and "FALSE" for %FALSE,
- *   and "1", "true", "True", and "TRUE" for %TRUE.
- *   The default value is %FALSE.
- *
- * * A property of type %VTE_PROPERTY_INT is an 64-bit signed integer,
- *   and takes a string of digits and an optional leading minus sign, that,
- *   when converted to a number must be between -9223372036854775808 and
- *   9223372036854775807. The default value is 0.
- *
- * * A property of type %VTE_PROPERTY_UINT is a 64-bit unsigned integer,
- *   and takes a string of digits that, when converted to a number, must be
- *   between 0 and 18446744073709551615.
- *   The default value is 0.
- *
- * * A property of type %VTE_PROPERTY_DOUBLE is a finite double-precision
- *   floating-point number, and takes a string specifying the floating-point
- *   number in fixed or scientific format, with no leading or trailing
- *   whitespace.
- *
- * * A property of type %VTE_PROPERTY_RGBA or %VTE_PROPERTY_RGBA is a color,
- *    and takes a string in the CSS color format, accepting colors in either
- *    hex format, rgb, rgba, hsl, or hsla format, or a named color.
- *
- * * A property of type %VTE_PROPERTY_STRING is a string.
- *   Note that due to the OSC syntax, that string must not contain
- *   semicolons (';') nor colons (':'), nor any C0 or C1 control
- *   characters.  Instead, escape sequences '\c' for colon and '\s' for
- *   semicolon, and '\n' for LF are provided; and therefore
- *   backslashes need to be escaped too, using '\\'.
- *   The maximum size after unescaping is 1024 codepoints.
- *   The default value is %NULL.
- *
- * * A property of type %VTE_PROPERTY_DATA is binary data, and takes
- *   a string that is base64-encoded in the default alphabet as per RFC 4648.
- *   The maximum size of the data after base64 decoding is 2048 bytes.
- *   The default value is %NULL.
- *
- * * A property of type %VTE_PROPERTY_UUID is a UUID, and takes a
- *   string representation of an UUID in simple, braced, or URN form.
- *   The default value is %NULL.
- *
- * Setting a property to a <value> that does not conform to these requirements
- * resets the value to its default value.
- *
- * Note also the limit on the total length of the OSC control string of 4096
- * unicode codepoints between the OSC and the ST, excluding both.
- *
- * On reset (RIS, DECSTR, DECSR), all termprops are reset to their default values.
- *
- * The #VteTerminal:termprop-changed signal will be emitted with
- * the names of the changed properties.  Note that emission of this signal
- * is delayed; if the same termprop is set or reset more than once in
- * succession, only the last change may be visible, with intermediate
- * value changes being lost.
- *
- * Note that %VTE_PROPERTY_STRING and %VTE_PROPERTY_DATA types are not
- * intended to transfer arbitrary data, and may not be used to either tranfer
- * image data, file upload arbitrary file data, clipboard data, as a general
- * free-form protocol, or for textual notifications.  Also you must never feed
- * the data back to the terminal, in full or in part.
- *
- * If you do perform any further parsing on the contents of a termprop value,
- * you must do so very strictly, and treat any errors by performing
- * the same action as if the termprop had been reset to having no value.
- *
- * Also note that any values any termprop has must be treated as *untrusted*.
+ * It is a programming error to call this function with a @name that does
+ * meet these requirements.
  *
  * It is a programming error to call this function after any #VteTerminal
  * instances have been created.
  *
  * It is a programming error to call this function if the named termprop
- * is already installed but with a different type or flags.
- *
- * It is a programming error to call any of the vte_terminal_*_termprop*()
- * functions for a termprop that is not of the type specified by the function
- * name.  However, is permissible to call these functions for a name that
- * is not a registered termprop, in which case they will return the same
- * as if a termprop of that name existed but had no value.
+ * is already installed with a different type or flags.
  *
  * Returns: an ID for the termprop
  *
