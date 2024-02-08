@@ -29,15 +29,15 @@ case "$TERM" in
 esac
 
 __vte_osc7 () {
-  printf "\033]7;file://%s%s\033\\" "${HOSTNAME}" "$(@libexecdir@/vte-urlencode-cwd)"
+    printf "\033]7;file://%s%s\033\\" "${HOSTNAME}" "$(@libexecdir@/vte-urlencode-cwd)"
 }
 
 __vte_prompt_command() {
-  local pwd='~'
-  [ "$PWD" != "$HOME" ] && pwd=${PWD/#$HOME\//\~\/}
-  pwd="${pwd//[[:cntrl:]]}"
-  printf "\033]0;%s@%s:%s\033\\" "${USER}" "${HOSTNAME%%.*}" "${pwd}"
-  __vte_osc7
+    local pwd='~'
+    [ "$PWD" != "$HOME" ] && pwd=${PWD/#$HOME\//\~\/}
+    pwd="${pwd//[[:cntrl:]]}"
+    printf "\033]0;%s@%s:%s\033\\" "${USER}" "${HOSTNAME%%.*}" "${pwd}"
+    __vte_osc7
 }
 
 if [[ -n "${BASH_VERSION:-}" ]]; then
