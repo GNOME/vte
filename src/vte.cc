@@ -10688,6 +10688,9 @@ Terminal::reset(bool clear_tabstops,
          * (DEC PPLV2 § 5.8)
          */
         reset_graphics_color_registers();
+
+        // Reset termprops
+        reset_termprops();
 }
 
 void

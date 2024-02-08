@@ -854,6 +854,15 @@ public:
                 }
         }
 
+        void reset_termprops()
+        {
+                for (auto const& info: vte::terminal::s_registered_termprops) {
+                        reset_termprop(info);
+                }
+
+                m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+        }
+
 public:
 
         inline VteRowData const* find_row_data(vte::grid::row_t row) const;

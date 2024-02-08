@@ -3036,8 +3036,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
  * no value at all.
  *
  * Note also that when the terminal is reset (by RIS, DECSTR, or DECSR) all
- * termprops are reset to their default values, with the
- * #VteTerminal:termprops-changed signal being emitted with an empty array.
+ * termprops are reset to having no value.
  *
  * It is a programming error to call any of the vte_terminal_*_termprop*()
  * functions for a termprop that is not of the type specified by the function
