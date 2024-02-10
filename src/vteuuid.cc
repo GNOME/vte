@@ -19,7 +19,7 @@
  * SECTION: vte-uuid
  * @short_description: Simple UUID class
  *
- * Since: 0.74
+ * Since: 0.78
  */
 
 #include "config.h"
@@ -97,7 +97,7 @@ _vte_uuid_unwrap(VteUuid const* u) noexcept
  *
  * An object representing an UUID.
  *
- * Since: 0.74
+ * Since: 0.78
  */
 
 /**
@@ -107,7 +107,7 @@ _vte_uuid_unwrap(VteUuid const* u) noexcept
  *
  * Returns: (transfer full): a new v4 UUID
  *
- * Since: 0.74
+ * Since: 0.78
  */
 VteUuid*
 vte_uuid_new_v4(void) noexcept
@@ -130,7 +130,7 @@ catch (...)
  *
  * Returns: (transfer full): a new v5 UUID
  *
- * Since: 0.74
+ * Since: 0.78
  */
 VteUuid*
 vte_uuid_new_v5(VteUuid const* ns,
@@ -161,7 +161,7 @@ catch (...)
  * Returns: (transfer full) (nullable): a new UUID, or %NULL is
  *   @str is not a valid UUID string representation
  *
- * Since: 0.74
+ * Since: 0.78
  */
 VteUuid*
 vte_uuid_new_from_string(char const* str,
@@ -187,7 +187,7 @@ catch (...)
  *
  * Returns: (transfer full): a new copy of @@uuid
  *
- * Since: 0.74
+ * Since: 0.78
  */
 VteUuid*
 vte_uuid_dup(VteUuid const* uuid) noexcept
@@ -208,7 +208,7 @@ catch (...)
  *
  * Frees @uuid.
  *
- * Since: 0.74
+ * Since: 0.78
  */
 void
 vte_uuid_free(VteUuid* uuid) noexcept
@@ -233,7 +233,7 @@ catch (...)
  *
  * Returns: (transfer full): a string representation of @uuid
  *
- * Since: 0.74
+ * Since: 0.78
  */
 char*
 vte_uuid_free_to_string(VteUuid* uuid,
@@ -263,7 +263,7 @@ catch (...)
  *
  * Returns: (transfer full): a string representation of @uuid
  *
- * Since: 0.74
+ * Since: 0.78
  */
 char*
 vte_uuid_to_string(VteUuid const* uuid,
@@ -293,7 +293,7 @@ catch (...)
  *
  * Returns: %TRUE iff @uuid and @other are equal
  *
- * Since: 0.74
+ * Since: 0.78
  */
 gboolean
 vte_uuid_equal(VteUuid const* uuid,
@@ -320,7 +320,7 @@ catch (...)
  *
  * Returns: %TRUE iff @str is a valid string representation
  *
- * Since: 0.74
+ * Since: 0.78
  */
 gboolean
 vte_uuid_validate_string(char const* str,

@@ -223,7 +223,7 @@ typedef enum {
  *
  * An enumeration that specifies the format of an UUID.
  *
- * Since: 0.76
+ * Since: 0.78
  */
 typedef enum /*< flags >*/ {
         VTE_UUID_FORMAT_SIMPLE = 1u << 0,
@@ -238,7 +238,7 @@ typedef enum /*< flags >*/ {
  *
  * A flags type.
  *
- * Since: 0.76
+ * Since: 0.78
  */
 typedef enum /*< flags >*/ {
         VTE_PROPERTY_FLAG_NONE = 0,
@@ -259,7 +259,7 @@ typedef enum /*< flags >*/ {
  *
  * An enumeration type describing types of properties.
  *
- * Since: 0.76
+ * Since: 0.78
  */
 typedef enum {
         VTE_PROPERTY_INVALID = -1, /*< skip >*/

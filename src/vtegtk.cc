@@ -2184,7 +2184,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * to "termprop-changed::name" only runs the callback when the
          * termprop "name" has changed.
          *
-         * Since: 0.76
+         * Since: 0.78
          */
         signals[SIGNAL_TERMPROP_CHANGED] =
                 g_signal_new(I_("termprop-changed"),
@@ -2229,7 +2229,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Returns: %TRUE to stop further handlers being invoked for this signal,
          *   or %FALSE to continue signal emission
          *
-         * Since: 0.76
+         * Since: 0.78
          */
         signals[SIGNAL_TERMPROPS_CHANGED] =
                 g_signal_new(I_("termprops-changed"),
@@ -3047,7 +3047,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
  * is not a registered termprop, in which case they will return the same
  * as if a termprop of that name existed but had no value.
  *
- * Since: 0.76
+ * Since: 0.78
  */
 
 /**
@@ -3077,7 +3077,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
  *
  * Returns: an ID for the termprop
  *
- * Since: 0.76
+ * Since: 0.78
  */
 int
 vte_install_termprop(char const* name,
@@ -3150,7 +3150,7 @@ catch (...)
  *
  * Returns: the ID for the termprop @target_name
  *
- * Since: 0.76
+ * Since: 0.78
  */
 int
 vte_install_termprop_alias(char const* name,
@@ -3215,7 +3215,7 @@ catch (...)
  * Returns: %TRUE iff the termprop exists, and then @prop, @type and
  *   @flags will be filled in
  *
- * Since: 0.76
+ * Since: 0.78
  */
 gboolean
 vte_query_termprop(char const* name,
@@ -3257,7 +3257,7 @@ catch (...)
  * Returns: %TRUE iff the termprop exists, and then @name, @type and
  *   @flags will be filled in
  *
- * Since: 0.76
+ * Since: 0.78
  */
 gboolean
 vte_query_termprop_by_id(int prop,
@@ -3463,7 +3463,7 @@ vte_set_test_flags(guint64 flags) noexcept
  *
  * Returns: the test flags
  *
- * Since: 0.76
+ * Since: 0.78
  */
 guint64
 vte_get_test_flags(void) noexcept
@@ -7995,7 +7995,7 @@ catch (...)
  *
  * Returns: %TRUE iff the termprop is set
  *
- * Since: 0.76
+ * Since: 0.78
  */
 gboolean
 vte_terminal_get_termprop_bool_by_id(VteTerminal* terminal,
@@ -8046,7 +8046,7 @@ catch (...)
  *
  * Returns: %TRUE iff the termprop is set
  *
- * Since: 0.76
+ * Since: 0.78
  */
 gboolean
 vte_terminal_get_termprop_bool(VteTerminal* terminal,
@@ -8071,7 +8071,7 @@ vte_terminal_get_termprop_bool(VteTerminal* terminal,
  *
  * Returns: %TRUE iff the termprop is set
  *
- * Since: 0.76
+ * Since: 0.78
  */
 gboolean
 vte_terminal_get_termprop_int_by_id(VteTerminal* terminal,
@@ -8127,7 +8127,7 @@ catch (...)
  *
  * Returns: %TRUE iff the termprop is set
  *
- * Since: 0.76
+ * Since: 0.78
  */
 gboolean
 vte_terminal_get_termprop_int(VteTerminal* terminal,
@@ -8152,7 +8152,7 @@ vte_terminal_get_termprop_int(VteTerminal* terminal,
  *
  * Returns: %TRUE iff the termprop is set
  *
- * Since: 0.76
+ * Since: 0.78
  */
 gboolean
 vte_terminal_get_termprop_uint_by_id(VteTerminal* terminal,
@@ -8208,7 +8208,7 @@ catch (...)
  *
  * Returns: %TRUE iff the termprop is set
  *
- * Since: 0.76
+ * Since: 0.78
  */
 gboolean
 vte_terminal_get_termprop_uint(VteTerminal* terminal,
@@ -8233,7 +8233,7 @@ vte_terminal_get_termprop_uint(VteTerminal* terminal,
  *
  * Returns: %TRUE iff the termprop is set
  *
- * Since: 0.76
+ * Since: 0.78
  */
 gboolean
 vte_terminal_get_termprop_double_by_id(VteTerminal* terminal,
@@ -8285,7 +8285,7 @@ catch (...)
  *
  * Returns: %TRUE iff the termprop is set
  *
- * Since: 0.76
+ * Since: 0.78
  */
 gboolean
 vte_terminal_get_termprop_double(VteTerminal* terminal,
@@ -8310,7 +8310,7 @@ vte_terminal_get_termprop_double(VteTerminal* terminal,
  *
  * Returns: %TRUE iff the termprop is set
  *
- * Since: 0.76
+ * Since: 0.78
  */
 gboolean
 vte_terminal_get_termprop_color_by_id(VteTerminal* terminal,
@@ -8363,7 +8363,7 @@ catch (...)
  *
  * Returns: %TRUE iff the termprop is set
  *
- * Since: 0.76
+ * Since: 0.78
  */
 gboolean
 vte_terminal_get_termprop_color(VteTerminal* terminal,
@@ -8388,7 +8388,7 @@ vte_terminal_get_termprop_color(VteTerminal* terminal,
  *
  * Returns: (transfer none) (nullable): the property's value, or %NULL
  *
- * Since: 0.76
+ * Since: 0.78
  */
 char const*
 vte_terminal_get_termprop_string_by_id(VteTerminal* terminal,
@@ -8437,7 +8437,7 @@ catch (...)
  *
  * Returns: (transfer none) (nullable): the property's value, or %NULL
  *
- * Since: 0.76
+ * Since: 0.78
  */
 char const*
 vte_terminal_get_termprop_string(VteTerminal* terminal,
@@ -8462,7 +8462,7 @@ vte_terminal_get_termprop_string(VteTerminal* terminal,
  *
  * Returns: (transfer full) (nullable): the property's value, or %NULL
  *
- * Since: 0.76
+ * Since: 0.78
  */
 char*
 vte_terminal_dup_termprop_string_by_id(VteTerminal* terminal,
@@ -8508,7 +8508,7 @@ catch (...)
  *
  * Returns: (transfer full) (nullable): the property's value, or %NULL
  *
- * Since: 0.76
+ * Since: 0.78
  */
 char*
 vte_terminal_dup_termprop_string(VteTerminal* terminal,
@@ -8533,7 +8533,7 @@ vte_terminal_dup_termprop_string(VteTerminal* terminal,
  *
  * Returns: (transfer none) (element-type guint8) (array length=size): the property's value, or %NULL
  *
- * Since: 0.76
+ * Since: 0.78
  */
 uint8_t const*
 vte_terminal_get_termprop_data_by_id(VteTerminal* terminal,
@@ -8582,7 +8582,7 @@ catch (...)
  *
  * Returns: (transfer none) (element-type guint8) (array length=size): the property's value, or %NULL
  *
- * Since: 0.76
+ * Since: 0.78
  */
 uint8_t const*
 vte_terminal_get_termprop_data(VteTerminal* terminal,
@@ -8606,7 +8606,7 @@ vte_terminal_get_termprop_data(VteTerminal* terminal,
  *
  * Returns: (transfer full): the property's value as a #GBytes, or %NULL
  *
- * Since: 0.76
+ * Since: 0.78
  */
 GBytes*
 vte_terminal_ref_termprop_data_bytes_by_id(VteTerminal* terminal,
@@ -8648,7 +8648,7 @@ catch (...)
  *
  * Returns: (transfer full): the property's value as a #GBytes, or %NULL
  *
- * Since: 0.76
+ * Since: 0.78
  */
 GBytes*
 vte_terminal_ref_termprop_data_bytes(VteTerminal* terminal,
@@ -8670,7 +8670,7 @@ vte_terminal_ref_termprop_data_bytes(VteTerminal* terminal,
  *
  * Returns: (transfer full): the property's value as a #VteUuid, or %NULL
  *
- * Since: 0.76
+ * Since: 0.78
  */
 VteUuid*
 vte_terminal_dup_termprop_uuid_by_id(VteTerminal* terminal,
@@ -8711,7 +8711,7 @@ catch (...)
  *
  * Returns: (transfer full): the property's value as a #VteUuid, or %NULL
  *
- * Since: 0.76
+ * Since: 0.78
  */
 VteUuid*
 vte_terminal_dup_termprop_uuid(VteTerminal* terminal,
@@ -8735,7 +8735,7 @@ vte_terminal_dup_termprop_uuid(VteTerminal* terminal,
  * Returns: %TRUE iff the property has a value, with @gvalue containig
  *   the property's value.
  *
- * Since: 0.76
+ * Since: 0.78
  */
 gboolean
 vte_terminal_get_termprop_value_by_id(VteTerminal* terminal,
@@ -8869,7 +8869,7 @@ catch (...)
  * Returns: %TRUE iff the property has a value, with @gvalue containig
  *   the property's value.
  *
- * Since: 0.76
+ * Since: 0.78
  */
 gboolean
 vte_terminal_get_termprop_value(VteTerminal* terminal,
@@ -8894,7 +8894,7 @@ vte_terminal_get_termprop_value(VteTerminal* terminal,
  *
  * Returns: (transfer full): a floating #GVariant, or %NULL
  *
- * Since: 0.76
+ * Since: 0.78
  */
 GVariant*
 vte_terminal_ref_termprop_variant_by_id(VteTerminal* terminal,
@@ -9009,7 +9009,7 @@ catch (...)
  *
  * Returns: (transfer full): a floating #GVariant, or %NULL
  *
- * Since: 0.76
+ * Since: 0.78
  */
 GVariant*
 vte_terminal_ref_termprop_variant(VteTerminal* terminal,
@@ -9029,7 +9029,7 @@ vte_terminal_ref_termprop_variant(VteTerminal* terminal,
  * Like vte_terminal_reset_termprop() except that it takes the termprop
  * by ID. See that function for more information.
  *
- * Since: 0.76
+ * Since: 0.78
  */
 void
 vte_terminal_reset_termprop_by_id(VteTerminal* terminal,
@@ -9058,7 +9058,7 @@ catch (...)
  *
  * Resets the termprop @prop to its default value.
  *
- * Since: 0.76
+ * Since: 0.78
  */
 void
 vte_terminal_reset_termprop(VteTerminal* terminal,

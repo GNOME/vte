@@ -48,7 +48,7 @@ guint64 vte_get_test_flags(void) _VTE_CXX_NOEXCEPT;
  * The string prefix that any termprop's name must start with to be installed
  * by vte_install_termprop().
  *
- * Since: 0.76
+ * Since: 0.78
  */
 #define VTE_TERMPROP_NAME_PREFIX "vte.ext."
 
