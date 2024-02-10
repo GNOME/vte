@@ -1542,6 +1542,25 @@ Terminal::set_current_hyperlink(vte::parser::Sequence const& seq,
         m_defaults.attr.hyperlink_idx = idx;
 }
 
+void
+Terminal::set_current_shell_integration_mode(vte::parser::Sequence const& seq,
+                                             vte::parser::StringTokeniser::const_iterator& token,
+                                             vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
+{
+        if (token != endtoken && token.size_remaining() > 0) {
+                std::string mode = *token;
+                if (mode == "A") {
+                        m_defaults.attr.set_shellintegration(ShellIntegrationMode::ePROMPT);
+                } else if (mode == "B") {
+                        m_defaults.attr.set_shellintegration(ShellIntegrationMode::eCOMMAND);
+                } else if (mode == "C") {
+                        m_defaults.attr.set_shellintegration(ShellIntegrationMode::eNORMAL);
+                } else if (mode == "D") {
+                        /* This deliberately doesn't start a different mode. Ignore for now. */
+                }
+        }
+}
+
 /*
  * Command Handlers
  * This is the unofficial documentation of all the VTE_CMD_* definitions.
@@ -6498,6 +6517,10 @@ Terminal::OSC(vte::parser::Sequence const& seq)
                 set_current_hyperlink(seq, it, cend);
                 break;
 
+        case VTE_OSC_ITERM2_SHELL_INTEGRATION:
+                set_current_shell_integration_mode(seq, it, cend);
+                break;
+
         case -1: /* default */
         case VTE_OSC_XTERM_SET_WINDOW_AND_ICON_TITLE:
         case VTE_OSC_XTERM_SET_WINDOW_TITLE: {
@@ -6579,7 +6602,6 @@ Terminal::OSC(vte::parser::Sequence const& seq)
         case VTE_OSC_XTERM_RESET_COLOR_TEK_BG:
         case VTE_OSC_XTERM_RESET_COLOR_TEK_CURSOR:
         case VTE_OSC_EMACS_51:
-        case VTE_OSC_ITERM2_133:
         case VTE_OSC_ITERM2_1337:
         case VTE_OSC_ITERM2_GROWL:
         case VTE_OSC_KONSOLE_30:
