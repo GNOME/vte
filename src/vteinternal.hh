@@ -1245,8 +1245,8 @@ public:
 
         void scroll_lines(long lines);
         void scroll_pages(long pages) { scroll_lines(pages * m_row_count); }
-        void maybe_scroll_to_top();
-        void maybe_scroll_to_bottom();
+        void scroll_to_top();
+        void scroll_to_bottom();
 
         void queue_cursor_moved();
         void queue_contents_changed();
