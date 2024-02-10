@@ -50,7 +50,6 @@
 #include "parser-glue.hh"
 #include "modes.hh"
 #include "tabstops.hh"
-#include "termprops.hh"
 #include "refptr.hh"
 #include "fwd.hh"
 
@@ -65,8 +64,6 @@
 #include <queue>
 #include <optional>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -750,10 +747,9 @@ public:
         std::vector<std::string> m_window_title_stack{};
 
         enum class PendingChanges {
-                TERMPROPS = 1u << 0,
-                TITLE = 1u << 1,
-                CWD   = 1u << 2,
-                CWF   = 1u << 3,
+                TITLE = 1u << 0,
+                CWD   = 1u << 1,
+                CWF   = 1u << 2,
         };
         unsigned m_pending_changes{0};
 
@@ -817,51 +813,6 @@ public:
 
         /* BiDi parameters outside of ECMA and DEC private modes */
         guint m_bidi_rtl : 1;
-
-        // Termprops
-        std::vector<TermpropValue> m_termprop_values{};
-        std::vector<bool> m_termprops_dirty{}; // FIMXE: make this a dynamic_bitset
-
-        auto get_termprop_info(std::string_view const& name) const
-        {
-                return vte::terminal::get_termprop_info(name);
-        }
-
-        auto get_termprop_info(int id) const
-        {
-                return vte::terminal::get_termprop_info(id);
-        }
-
-        auto get_termprop(TermpropInfo const& info) const
-        {
-                return std::addressof(m_termprop_values.at(info.id()));
-        }
-
-        auto get_termprop(TermpropInfo const& info)
-        {
-                return std::addressof(m_termprop_values.at(info.id()));
-        }
-
-        void reset_termprop(TermpropInfo const& info)
-        {
-                auto const is_valueless = info.type() == vte::terminal::TermpropType::VALUELESS;
-                auto value = get_termprop(info);
-                if (value) {
-                        *value = {};
-                        m_termprops_dirty.at(info.id()) = !is_valueless;
-                } else if (is_valueless) {
-                        m_termprops_dirty.at(info.id()) = false;
-                }
-        }
-
-        void reset_termprops()
-        {
-                for (auto const& info: vte::terminal::s_registered_termprops) {
-                        reset_termprop(info);
-                }
-
-                m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
-        }
 
 public:
 
@@ -1722,9 +1673,6 @@ public:
                              int index,
                              int index_fallback,
                              int osc) noexcept;
-        void parse_termprop(std::string_view const& str,
-                            bool& set,
-                            bool& query) noexcept;
 
         /* OSC handlers */
         void set_color(vte::parser::Sequence const& seq,
@@ -1750,9 +1698,6 @@ public:
         void set_current_hyperlink(vte::parser::Sequence const& seq,
                                    vte::parser::StringTokeniser::const_iterator& token,
                                    vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
-        void vte_extension(vte::parser::Sequence const& seq,
-                           vte::parser::StringTokeniser::const_iterator& token,
-                           vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
 
         void ringview_update();
 

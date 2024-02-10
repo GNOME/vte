@@ -165,10 +165,6 @@ systemd_sources = files(
   'systemd.hh',
 )
 
-termprop_sources = files(
-  'termprops.hh',
-)
-
 unicode_width_sources = files(
   'unicode-width.hh',
 )
@@ -192,7 +188,7 @@ vte_glue_sources = files(
   'vte-glue.hh',
 )
 
-libvte_common_sources = color_sources + config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + termprop_sources + utf8_sources + uuid_sources + vte_uuid_sources + vte_glue_sources + files(
+libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + uuid_sources + vte_uuid_sources + vte_glue_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
@@ -699,18 +695,6 @@ test_tabstops = executable(
   install: false,
 )
 
-test_termprops_sources = color_sources + config_sources + termprop_sources + uuid_sources + files(
-  'termprops-test.cc',
-)
-
-test_termprops = executable(
-  'test-termprops',
-  dependencies: [glib_dep],
-  include_directories: top_inc,
-  install: false,
-  sources: test_termprops_sources,
-)
-
 test_unicode_width_sources = config_sources + unicode_width_sources + files(
   'unicode-width-test.cc',
 )
@@ -777,7 +761,6 @@ test_units = [
   ['refptr', test_refptr],
   ['stream', test_stream],
   ['tabstops', test_tabstops],
-  ['termprops', test_termprops],
   ['unicode-width', test_unicode_width],
   ['utf8', test_utf8],
   ['uuid', test_uuid],

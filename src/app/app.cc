@@ -1453,40 +1453,6 @@ vteapp_terminal_class_init(VteappTerminalClass *klass)
         widget_class->state_flags_changed = vteapp_terminal_state_flags_changed;
         widget_class->system_setting_changed = vteapp_terminal_system_setting_changed;
 #endif
-
-        // Test termprops
-        if (options.test_mode) {
-                vte_install_termprop("vte.ext.vteapp.test.valueless",
-                                     VTE_PROPERTY_VALUELESS,
-                                     VTE_PROPERTY_FLAG_NONE);
-                vte_install_termprop("vte.ext.vteapp.test.bool",
-                                     VTE_PROPERTY_BOOL,
-                                     VTE_PROPERTY_FLAG_NONE);
-                vte_install_termprop("vte.ext.vteapp.test.int",
-                                     VTE_PROPERTY_INT,
-                                     VTE_PROPERTY_FLAG_NONE);
-                vte_install_termprop("vte.ext.vteapp.test.uint",
-                                     VTE_PROPERTY_UINT,
-                                     VTE_PROPERTY_FLAG_NONE);
-                vte_install_termprop("vte.ext.vteapp.test.rgb",
-                                     VTE_PROPERTY_RGB,
-                                     VTE_PROPERTY_FLAG_NONE);
-                vte_install_termprop("vte.ext.vteapp.test.rgba",
-                                     VTE_PROPERTY_RGBA,
-                                     VTE_PROPERTY_FLAG_NONE);
-                vte_install_termprop("vte.ext.vteapp.test.string",
-                                     VTE_PROPERTY_STRING,
-                                     VTE_PROPERTY_FLAG_NONE);
-                vte_install_termprop("vte.ext.vteapp.test.data",
-                                     VTE_PROPERTY_DATA,
-                                     VTE_PROPERTY_FLAG_NONE);
-                vte_install_termprop("vte.ext.vteapp.test.uuid",
-                                     VTE_PROPERTY_UUID,
-                                     VTE_PROPERTY_FLAG_NONE);
-
-                vte_install_termprop_alias("vte.ext.vteapp.test.alias",
-                                           "vte.ext.vteapp.test.bool");
-        }
 }
 
 static void
@@ -2485,22 +2451,6 @@ window_selection_changed_cb(VteTerminal* terminal,
 }
 
 static void
-window_termprop_changed_cb(VteTerminal* terminal,
-                           char const* prop,
-                           VteappWindow* window)
-{
-        if (auto const value = vte::take_freeable
-            (vte_terminal_ref_termprop_variant(terminal, prop))) {
-                auto str = vte::glib::take_string(g_variant_print(value.get(), true));
-                verbose_print("Termprop '%s' changed to '%s'\n",
-                              prop, str.get());
-        } else {
-                verbose_print("Termprop '%s' changed to no-value\n",
-                              prop);
-        }
-}
-
-static void
 window_input_enabled_state_cb(GAction* action,
                               GParamSpec* pspec,
                               VteappWindow* window)
@@ -2658,7 +2608,6 @@ vteapp_window_constructed(GObject *object)
         g_signal_connect(window->terminal, "resize-window", G_CALLBACK(window_resize_window_cb), window);
         g_signal_connect(window->terminal, "restore-window", G_CALLBACK(window_restore_window_cb), window);
         g_signal_connect(window->terminal, "selection-changed", G_CALLBACK(window_selection_changed_cb), window);
-        g_signal_connect(window->terminal, "termprop-changed", G_CALLBACK(window_termprop_changed_cb), window);
         g_signal_connect(window->terminal, "window-title-changed", G_CALLBACK(window_window_title_changed_cb), window);
         if (options.object_notifications)
                 g_signal_connect(window->terminal, "notify", G_CALLBACK(window_notify_cb), window);

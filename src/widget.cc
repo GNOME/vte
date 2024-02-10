@@ -1719,19 +1719,6 @@ Widget::notify_scroll_value_changed()
 #endif // VTE_GTK == 4
 }
 
-void
-Widget::notify_termprops_changed(int const* props,
-                                 int n_props) noexcept
-{
-        auto retval = gboolean{};
-        g_signal_emit(object(),
-                      signals[SIGNAL_TERMPROPS_CHANGED],
-                      0, /* detail */
-                      props,
-                      n_props,
-                      &retval);
-}
-
 #if VTE_GTK == 3
 
 std::optional<ScrollEvent>
