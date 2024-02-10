@@ -1557,6 +1557,18 @@ Terminal::set_current_shell_integration_mode(vte::parser::Sequence const& seq,
                         m_defaults.attr.set_shellintegration(ShellIntegrationMode::eNORMAL);
                 } else if (mode == "D") {
                         /* This deliberately doesn't start a different mode. Ignore for now. */
+                } else if (mode == "L") {
+                        /* Maybe insert some CR LFs, with the purpose of making sure that the
+                         * shell prompt starts on its own paragraph (i.e. just after a hard wrap).
+                         * See https://gitlab.gnome.org/GNOME/vte/-/issues/2681#note_1911689.
+                         *
+                         * (This doesn't start a new mode, so the method name is not quite accurate. Nevermind.) */
+                        while (m_screen->cursor.col > 0 ||
+                               m_screen->row_data->is_soft_wrapped(m_screen->cursor.row - 1)) {
+                                set_cursor_column(0);
+                                cursor_down_with_scrolling(true);
+                        }
+                        maybe_apply_bidi_attributes(VTE_BIDI_FLAG_ALL);
                 }
         }
 }
