@@ -8722,11 +8722,7 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
         else
                 rgb_from_index<4, 5, 4>(deco, dc);
 
-#if !WITH_SIXEL
         if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
-#else
-        {
-#endif
                 /* Paint the background. */
                 i = 0;
                 while (i < n) {
@@ -8745,25 +8741,10 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
                                 }
                         }
 
-#if WITH_SIXEL
-#if VTE_GTK == 3
-                        if (back == VTE_DEFAULT_BG) {
-                                /* Clear cells in order to properly overdraw images */
-                                m_draw.clear(xl,
-                                             y,
-                                             xr - xl, row_height,
-                                             get_color(VTE_DEFAULT_BG), m_background_alpha);
-                        }
-                        else
-#endif
-#endif
-                        if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
-                                m_draw.fill_rectangle(
-                                                      xl,
-                                                      y,
-                                                      xr - xl, row_height,
-                                                      &bg);
-                        }
+                        m_draw.fill_rectangle(xl,
+                                              y,
+                                              xr - xl, row_height,
+                                              &bg);
                 }
         }
 
@@ -9415,14 +9396,12 @@ Terminal::draw_rows(VteScreen *screen_,
                         nhilite = (nhyperlink && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
                                   (!nhyperlink && regex_match_has_current() && m_match_span.contains(row, lcol));
                         if (cell->c == 0 ||
-#if !WITH_SIXEL
                             ((cell->c == ' ' || cell->c == '\t') &&  // FIXME '\t' is newly added now, double check
                              cell->attr.has_none(VTE_ATTR_UNDERLINE_MASK |
                                                  VTE_ATTR_STRIKETHROUGH_MASK |
                                                  VTE_ATTR_OVERLINE_MASK) &&
                              !nhyperlink &&
                              !nhilite) ||
-#endif
                             cell->attr.fragment() ||
                             cell->attr.invisible()) {
                                 /* Skip empty or fragment cell, but erase on ' ' and '\t', since
