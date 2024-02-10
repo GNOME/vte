@@ -86,10 +86,6 @@
 #include "icu-converter.hh"
 #endif
 
-#if WITH_SIXEL
-#include "sixel-context.hh"
-#endif
-
 enum {
         VTE_BIDI_FLAG_IMPLICIT   = 1 << 0,
         VTE_BIDI_FLAG_RTL        = 1 << 1,
@@ -366,9 +362,6 @@ public:
                 /* ECMA48_ECMA35, not supported */
 
                 /* The following can never be primary data syntax: */
-#if WITH_SIXEL
-                DECSIXEL,
-#endif
         };
 
         DataSyntax m_primary_data_syntax{DataSyntax::ECMA48_UTF8};
@@ -425,10 +418,6 @@ public:
                 default: g_assert_not_reached(); return nullptr;
                 }
         }
-
-#if WITH_SIXEL
-        std::unique_ptr<vte::sixel::Context> m_sixel_context{};
-#endif
 
 	/* Screen data.  We support the normal screen, and an alternate
 	 * screen, which seems to be a DEC-specific feature. */
@@ -554,21 +543,6 @@ public:
         vte::glib::Timer m_mouse_autoscroll_timer{std::bind(&Terminal::mouse_autoscroll_timer_callback,
                                                             this),
                                                   "mouse-autoscroll-timer"};
-
-        /* Inline images */
-        bool m_sixel_enabled{VTE_SIXEL_ENABLED_DEFAULT};
-        bool m_images_enabled{VTE_SIXEL_ENABLED_DEFAULT};
-
-        bool set_sixel_enabled(bool enabled) noexcept
-        {
-                auto const changed = m_sixel_enabled != enabled;
-                m_sixel_enabled = m_images_enabled = enabled;
-                if (changed)
-                        invalidate_all();
-                return changed;
-        }
-
-        constexpr bool sixel_enabled() const noexcept { return m_sixel_enabled; }
 
 	/* State variables for handling match checks. */
         int m_match_regex_next_tag{0};
@@ -925,11 +899,6 @@ public:
         void insert_ascii_chars(uint8_t const *start,
                                 uint8_t const *end);
 
-        #if WITH_SIXEL
-        void insert_image(ProcessingContext& context,
-                          vte::Freeable<cairo_surface_t> image_surface) /* throws */;
-        #endif
-
         void invalidate_row(vte::grid::row_t row);
         void invalidate_rows(vte::grid::row_t row_start,
                              vte::grid::row_t row_end /* inclusive */);
@@ -954,10 +923,6 @@ public:
         #if WITH_ICU
         void process_incoming_pcterm(ProcessingContext& context,
                                      vte::base::Chunk& chunk);
-        #endif
-        #if WITH_SIXEL
-        void process_incoming_decsixel(ProcessingContext& context,
-                                       vte::base::Chunk& chunk);
         #endif
         bool process();
         inline bool is_processing() const { return m_is_processing; };
@@ -1157,7 +1122,6 @@ public:
         void im_reset();
         void im_update_cursor();
 
-        void reset_graphics_color_registers();
         void reset(bool clear_tabstops,
                    bool clear_history,
                    bool from_api = false);
@@ -1602,8 +1566,6 @@ public:
                                        vte::grid::column_t column); /* 1-based */
         inline void erase_characters(long count,
                                      bool use_basic = false);
-        void erase_image_rect(vte::grid::row_t rows,
-                              vte::grid::column_t columns);
 
         template<unsigned int redbits, unsigned int greenbits, unsigned int bluebits>
         inline bool seq_parse_sgr_color(vte::parser::Sequence const& seq,
