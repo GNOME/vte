@@ -759,6 +759,51 @@ Ring::is_soft_wrapped(row_t position)
         return record.soft_wrapped;
 }
 
+/* Returns whether the given visual row contains the beginning of a prompt, i.e.
+ * contains a prompt character which is immediately preceded by either a hard newline
+ * or a non-prompt character (possibly at the end of previous, soft wrapped row).
+ *
+ * This way we catch soft wrapped multiline prompts at their first line only,
+ * and catch prompts that do not begin at the beginning of a row.
+ *
+ * FIXME extend support for deliberately multiline (hard wrapped) prompts:
+ * https://gitlab.gnome.org/GNOME/vte/-/issues/2681#note_1904004
+ *
+ * FIXME this is very slow, it unnecessarily reads text_stream
+ * in which we're not interested at all. Implement a faster algorithm. */
+bool
+Ring::contains_prompt_beginning(row_t position)
+{
+        const VteRowData *row = index(position);
+        if (row == NULL || row->len == 0) {
+                return false;
+        }
+
+        /* First check the places where the previous character is also readily available. */
+        int col = 0;
+        while (col < row->len && row->cells[col].attr.shellintegration() == ShellIntegrationMode::ePROMPT) {
+                col++;
+        }
+        while (col < row->len && row->cells[col].attr.shellintegration() != ShellIntegrationMode::ePROMPT) {
+                col++;
+        }
+        if (col < row->len) {
+                return true;
+        }
+
+        /* Finally check the first character where we might need to look at the previous row. */
+        if (row->cells[0].attr.shellintegration() == ShellIntegrationMode::ePROMPT) {
+                row = index(position - 1);
+                if (row == NULL ||
+                    !row->attr.soft_wrapped ||
+                    (row->len >= 1 /* this is guaranteed beucase soft_wrapped */ &&
+                     row->cells[row->len - 1].attr.shellintegration() != ShellIntegrationMode::ePROMPT)) {
+                        return true;
+                }
+        }
+        return false;
+}
+
 /*
  * Returns the hyperlink idx at the given position.
  *

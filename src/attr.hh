@@ -21,6 +21,18 @@
 
 #include "debug.h"
 
+enum ShellIntegrationMode {
+        /* Command output, selected by OSC 133;C ST.
+         * This is the default mode, the one reset operations reset to,
+         * so it's safer and easier to make this number 0.
+         * Also presumably attr_stream compresses better this way. */
+        eNORMAL = 0,
+        /* Shell prompt, selected by OSC 133;A ST. */
+        ePROMPT,
+        /* The command typed by the user, selected by OSC 133;B ST. */
+        eCOMMAND,
+};
+
 #define VTE_ATTR_VALUE_MASK(bits)      ((1U << (bits)) - 1U)
 #define VTE_ATTR_MASK(shift,bits)      (VTE_ATTR_VALUE_MASK(bits) << (shift))
 
@@ -86,6 +98,13 @@
 #define VTE_ATTR_INVISIBLE_BITS        (1)
 #define VTE_ATTR_INVISIBLE_MASK        (VTE_ATTR_MASK(VTE_ATTR_INVISIBLE_SHIFT, VTE_ATTR_INVISIBLE_BITS))
 #define VTE_ATTR_INVISIBLE             (1U << VTE_ATTR_INVISIBLE_SHIFT)
+
+/* Holds an enum ShellIntegrationMode */
+#define VTE_ATTR_SHELLINTEGRATION_SHIFT        (VTE_ATTR_INVISIBLE_SHIFT + VTE_ATTR_INVISIBLE_BITS)
+#define VTE_ATTR_SHELLINTEGRATION_BITS         (2)
+#define VTE_ATTR_SHELLINTEGRATION_MASK         (VTE_ATTR_MASK(VTE_ATTR_SHELLINTEGRATION_SHIFT, VTE_ATTR_SHELLINTEGRATION_BITS))
+#define VTE_ATTR_SHELLINTEGRATION_VALUE_MASK   (VTE_ATTR_VALUE_MASK(VTE_ATTR_SHELLINTEGRATION_BITS))
+#define VTE_ATTR_SHELLINTEGRATION(v)           ((v) << VTE_ATTR_SHELLINTEGRATION_SHIFT)
 
 /* Used internally only */
 #define VTE_ATTR_BOXED_SHIFT           (31)
