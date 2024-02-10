@@ -54,8 +54,61 @@ if [[ -n "${BASH_VERSION:-}" ]]; then
 	PROMPT_COMMAND="__vte_prompt_command"
     fi
 
+    # Shell integration
+    if [[ "$PS1" != *\]133\;* ]]; then
+
+        # Enclose the primary prompt between
+        # ← OSC 133;D;retval ST (report exit status of previous command)
+        # ← OSC 133;A ST (mark beginning of prompt)
+        # → OSC 133;B ST (mark end of prompt, beginning of command line)
+        PS1='\[\e]133;D;$?\e\\\e]133;A\e\\\]'"$PS1"'\[\e]133;B\e\\\]'
+
+        # Prepend OSC 133;L ST for a conditional newline if the previous
+        # command's output didn't end in one.
+        # This is not done here by default, in order to provide the default
+        # visual behavior of shells. Uncomment if you want this feature.
+        #PS1='\[\e]133;L\e\\\]'"$PS1"
+
+        # iTerm2 doesn't touch the secondary prompt.
+        # Konsole encloses it between 133;A and 133;B.
+        # For efficient jumping between commands, we follow iTerm2 by default
+        # and don't mark PS2 as prompt. Uncomment if you want to mark it.
+        #PS2='\[\e]133;A\e\\\]'"$PS2"'\[\e]133;B\e\\\]'
+
+        # Mark the beginning of the command's output by OSC 133;C ST.
+        # '\r' ensures that the kernel's cooked mode has the right idea of
+        # the column, important for handling TAB followed by BS keypresses.
+        # Prepend to the user's PS0 to preserve whether it ends in '\r'.
+        # Note that bash doesn't support the \[ \] markers here.
+        PS0='\e]133;C\e\\\r'"$PS0"
+    fi
+
 elif [[ -n "${ZSH_VERSION:-}" ]]; then
     precmd_functions+=(__vte_osc7)
+
+    # Shell integration (see the bash counterpart for more detailed comments)
+    if [[ "$PS1" != *\]133\;* ]]; then
+
+        # Enclose the primary prompt between D;retval, A and B.
+        PS1=$'%{\e]133;D;%?\e\\\e]133;A\e\\%}'"$PS1"$'%{\e]133;B\e\\%}'
+
+        # Prepend L for conditional newline (skipped).
+        #PS1=$'%{\e]133;L\e\\%}'"$PS1"
+
+        # Secondary prompt (skipped).
+        #PS2=$'%{\e]133;A\e\\%}'"$PS2"$'%{\e]133;B\e\\%}'
+
+        # Mark the beginning of output by C.
+        # The execution order is: the single function possibly hooked up
+        # in $preexec, followed by all the functions hooked up in the
+        # $preexec_functions array. Ensure that we are the very first.
+        __vte_preexec() {
+            printf '\e]133;C\e\\\r'
+        }
+        preexec_functions=(__vte_preexec $preexec $preexec_functions)
+        unset preexec
+    fi
+
 fi
 
 return 0
