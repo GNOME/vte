@@ -2914,14 +2914,17 @@ vte_terminal_class_init(VteTerminalClass *klass)
  * will always deliver the current value, even if no change notification
  * for it has been dispatched yet.
  *
+ * Note that when setting the value of a termprop to the same value it already
+ * had, or resetting a termprop that already had no value, it is unspecified
+ * whether a change notification for that termprop is emitted.
+ *
  * The OSC sequence to change termprop values has the following syntax:
  * ```
  * OSC              = INTRODUCER, CONTROL_STRING, ST;
- * INTRODUCER       = U+009D | ( U+001B, U+005D );
- * ST               = U+009C | ( U+001B, U+005C );
+ * INTRODUCER       = ( U+001B, U+005D ) | U+009D;
+ * ST               = ( U+001B, U+005C ) | U+009C;
  * CONTROL_STRING   = SELECTOR, ";", COMMAND, { ";", STATEMENT };
- * SELECTOR         = "999";
- * COMMAND          = "set";
+ * SELECTOR         = "666";
  * STATEMENT        = SET_STATEMENT | RESET_STATEMENT | SIGNAL_STATEMENT | QUERY_STATEMENT;
  * SET_STATEMENT    = KEY, "=", VALUE;
  * QUERY_STATEMENT  = KEY, "?";
@@ -2967,10 +2970,10 @@ vte_terminal_class_init(VteTerminalClass *klass)
  * DIGIT          = "0" | ... | "9";
  * ```
  *
- * Or in words, the must consist of two or more components, each of which
+ * Or in words, the key must consist of two or more components, each of which
  * consists of a sequence of one or more identifier separated with a dash ('-'),
  * each identifier starting with a lowercase letter followed by zero or more
- * lowercase letters, followed by zero or more digits.
+ * lowercase letters 'a' ... 'z', followed by zero or more digits '0' ... '9'.
  *
  * There are multiple types of termprops supported.
  *

@@ -1626,9 +1626,9 @@ catch (...)
 }
 
 void
-Terminal::vte_extension(vte::parser::Sequence const& seq,
-                        vte::parser::StringTokeniser::const_iterator& token,
-                        vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
+Terminal::vte_termprop(vte::parser::Sequence const& seq,
+                       vte::parser::StringTokeniser::const_iterator& token,
+                       vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
 {
         // This is a new and vte-only feature, so reject BEL-terminated OSC.
         if (seq.is_st_bel()) {
@@ -1636,20 +1636,10 @@ Terminal::vte_extension(vte::parser::Sequence const& seq,
                 return;
         }
 
-        if (token == endtoken)
-                return;
-
         auto set = false, query = false;
-        auto const cmd = *token;
-        if (cmd == "set") {
-
-                while (++token != endtoken) {
-                        parse_termprop(*token, set, query);
-                }
-
-        } else if (cmd == "get") {
-                // Reserved for future extension
-                query = true;
+        while (token != endtoken) {
+                parse_termprop(*token, set, query);
+                ++token;
         }
 
         if (set) {
@@ -1669,7 +1659,7 @@ Terminal::vte_extension(vte::parser::Sequence const& seq,
                 // Reserved for future extension. Reply with an empty
                 // termprop set statement for forward compatibility.
 
-                reply(seq, VTE_REPLY_OSC, {}, "%d;set", VTE_OSC_VTE_EXTENSION);
+                reply(seq, VTE_REPLY_OSC, {}, "%d", VTE_OSC_VTE_TERMPROP);
         }
 }
 
@@ -6807,8 +6797,8 @@ Terminal::OSC(vte::parser::Sequence const& seq)
                 reset_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_ESCAPE);
                 break;
 
-        case VTE_OSC_VTE_EXTENSION:
-                vte_extension(seq, it, cend);
+        case VTE_OSC_VTE_TERMPROP:
+                vte_termprop(seq, it, cend);
                 break;
 
         case VTE_OSC_XTERM_SET_ICON_TITLE:

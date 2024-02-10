@@ -1750,9 +1750,9 @@ public:
         void set_current_hyperlink(vte::parser::Sequence const& seq,
                                    vte::parser::StringTokeniser::const_iterator& token,
                                    vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
-        void vte_extension(vte::parser::Sequence const& seq,
-                           vte::parser::StringTokeniser::const_iterator& token,
-                           vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+        void vte_termprop(vte::parser::Sequence const& seq,
+                          vte::parser::StringTokeniser::const_iterator& token,
+                          vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
 
         void ringview_update();
 
