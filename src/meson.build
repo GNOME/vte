@@ -153,21 +153,11 @@ utf8_sources = files(
   'utf8.hh',
 )
 
-uuid_sources = files(
-  'uuid.cc',
-  'uuid.hh',
-)
-
-vte_uuid_sources = files(
-  'vteuuid.cc',
-  'vteuuidinternal.hh',
-)
-
 vte_glue_sources = files(
   'vte-glue.hh',
 )
 
-libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + uuid_sources + vte_uuid_sources + vte_glue_sources + files(
+libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + vte_glue_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
@@ -649,18 +639,6 @@ test_utf8 = executable(
   install: false,
 )
 
-test_uuid_sources = config_sources + debug_sources + glib_glue_sources + uuid_sources + files(
-  'uuid-test.cc',
-)
-
-test_uuid = executable(
-  'test-uuid',
-  sources: test_uuid_sources,
-  dependencies: [glib_dep],
-  include_directories: top_inc,
-  install: false,
-)
-
 test_vtetypes_sources = config_sources + libc_glue_sources + files(
    'vtetypes.cc',
    'vtetypes.hh',
@@ -692,7 +670,6 @@ test_units = [
   ['tabstops', test_tabstops],
   ['unicode-width', test_unicode_width],
   ['utf8', test_utf8],
-  ['uuid', test_uuid],
 ]
 
 if get_option('gtk3')
