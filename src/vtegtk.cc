@@ -2270,7 +2270,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
         /**
          * VteTerminal::setup-context-menu:
          * @terminal: the object which received the signal
-         * @context: (nullable): the context
+         * @context: (nullable) (type Vte.EventContext): the context
          *
          * Emitted with non-%NULL context before @terminal shows a context menu.
          * The handler may set either a menu model using
