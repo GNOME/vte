@@ -23,13 +23,6 @@ a11y_sources = files(
   'vteaccess.h',
 )
 
-color_sources = files(
-  'color.hh',
-  'color-names.hh',
-  'color-parser.cc',
-  'color-parser.hh',
-)
-
 debug_sources = files(
   'debug.cc',
   'debug.h',
@@ -537,19 +530,6 @@ xticker = executable(
 
 # Unit tests
 
-test_colors_sources = config_sources + debug_sources + glib_glue_sources + color_sources + files(
-  'color-test.cc',
-)
-
-test_colors = executable(
-  'test-colors',
-  cpp_args: ['-DVTE_GTK=0'],
-  dependencies: [glib_dep],
-  include_directories: top_inc,
-  install: false,
-  sources: test_colors_sources,
-)
-
 test_modes_sources = config_sources + modes_sources + files(
   'modes-test.cc',
 )
@@ -703,7 +683,6 @@ test_env = [
 
 # apparently there is no way to get a name back from an executable(), so it this ugly way
 test_units = [
-  ['colors', test_colors],
   ['modes', test_modes],
   ['parser', test_parser],
   ['pastify', test_pastify],
