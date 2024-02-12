@@ -9573,7 +9573,7 @@ Terminal::cursor_rect()
                 auto const attr = cell && cell->c ? cell->attr.attr : 0;
                 int l, r;
                 m_draw.get_char_edges(cell->c, cell->attr.columns(), attr, l /* unused */, r);
-                cursor_width = std::max(cursor_width, long(r));
+                cursor_width = cursor_width >= r ? cursor_width : r;
         }
 
         return {int(x), int(y), int(cursor_width), int(height)};
