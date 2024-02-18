@@ -4993,15 +4993,76 @@ Terminal::beep()
                 m_real_widget->beep();
 }
 
+void
+Terminal::map_erase_binding(EraseMode mode,
+                            EraseMode auto_mode,
+                            unsigned modifiers,
+                            char*& normal,
+                            size_t& normal_length,
+                            bool& suppress_alt_esc,
+                            bool& add_modifiers)
+{
+        switch (mode) {
+                using enum EraseMode;
+        case eASCII_BACKSPACE:
+                normal = g_strdup("\010");
+                normal_length = 1;
+                suppress_alt_esc = false;
+                break;
+        case eASCII_DELETE:
+                normal = g_strdup("\177");
+                normal_length = 1;
+                suppress_alt_esc = false;
+                break;
+        case eDELETE_SEQUENCE:
+                normal = g_strdup("\e[3~");
+                normal_length = 4;
+                add_modifiers = true;
+                /* FIXMEchpe: why? this overrides the FALSE set above? */
+                suppress_alt_esc = true;
+                break;
+        case EraseMode::eTTY: {
+                struct termios tio;
+                if (pty() &&
+                    tcgetattr(pty()->fd(), &tio) != -1) {
+                        normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
+                        normal_length = 1;
+                }
+                suppress_alt_esc = false;
+                break;
+        }
+        case eAUTO:
+                assert(auto_mode != eAUTO);
+                map_erase_binding(auto_mode,
+                                  auto_mode,
+                                  modifiers,
+                                  normal, normal_length,
+                                  suppress_alt_esc,
+                                  add_modifiers);
+                break;
+        default:
+                __builtin_unreachable();
+                break;
+        }
+
+        /* Toggle ^H vs ^? if Ctrl is pressed */
+        if (normal_length == 1 &&
+            (modifiers & GDK_CONTROL_MASK)) {
+                if (normal[0] == '\010')
+                        normal[0] = '\177';
+                else if (normal[0] == '\177')
+                        normal[0] = '\010';
+        }
+}
+
 bool
 Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 {
         auto handled = false;
 	char *normal = NULL;
 	gsize normal_length = 0;
-	struct termios tio;
-	gboolean scrolled = FALSE, steal = FALSE, modifier = FALSE,
-		 suppress_alt_esc = FALSE, add_modifiers = FALSE;
+	gboolean scrolled = FALSE, steal = FALSE, modifier = FALSE;
+        auto suppress_alt_esc = false, add_modifiers = false;
 	guint keyval = 0;
 	gunichar keychar = 0;
 	char keybuf[VTE_UTF8_BPC];
@@ -5138,93 +5199,25 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 		/* Map the key to a sequence name if we can. */
 		switch (event.keyval()) {
 		case GDK_KEY_BackSpace:
-			switch (m_backspace_binding) {
-			case EraseMode::eASCII_BACKSPACE:
-				normal = g_strdup("");
-				normal_length = 1;
-				suppress_alt_esc = FALSE;
-				break;
-			case EraseMode::eASCII_DELETE:
-				normal = g_strdup("");
-				normal_length = 1;
-				suppress_alt_esc = FALSE;
-				break;
-			case EraseMode::eDELETE_SEQUENCE:
-                                normal = g_strdup("\e[3~");
-                                normal_length = 4;
-                                add_modifiers = TRUE;
-				suppress_alt_esc = TRUE;
-				break;
-			case EraseMode::eTTY:
-				if (pty() &&
-				    tcgetattr(pty()->fd(), &tio) != -1)
-				{
-					normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
-					normal_length = 1;
-				}
-				suppress_alt_esc = FALSE;
-				break;
-			case EraseMode::eAUTO:
-			default:
-#ifndef _POSIX_VDISABLE
-#define _POSIX_VDISABLE '\0'
-#endif
-				if (pty() &&
-				    tcgetattr(pty()->fd(), &tio) != -1 &&
-				    tio.c_cc[VERASE] != _POSIX_VDISABLE)
-				{
-					normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
-					normal_length = 1;
-				}
-				else
-				{
-					normal = g_strdup("");
-					normal_length = 1;
-					suppress_alt_esc = FALSE;
-				}
-				suppress_alt_esc = FALSE;
-				break;
-			}
-                        /* Toggle ^H vs ^? if Ctrl is pressed */
-                        if (normal_length == 1 && m_modifiers & GDK_CONTROL_MASK) {
-                                if (normal[0] == '\010')
-                                        normal[0] = '\177';
-                                else if (normal[0] == '\177')
-                                        normal[0] = '\010';
-                        }
-			handled = TRUE;
+                        map_erase_binding(m_backspace_binding,
+                                          EraseMode::eTTY,
+                                          m_modifiers,
+                                          normal,
+                                          normal_length,
+                                          suppress_alt_esc,
+                                          add_modifiers);
+			handled = true;
 			break;
 		case GDK_KEY_KP_Delete:
 		case GDK_KEY_Delete:
-			switch (m_delete_binding) {
-			case EraseMode::eASCII_BACKSPACE:
-				normal = g_strdup("\010");
-				normal_length = 1;
-				break;
-			case EraseMode::eASCII_DELETE:
-				normal = g_strdup("\177");
-				normal_length = 1;
-				break;
-			case EraseMode::eTTY:
-				if (pty() &&
-				    tcgetattr(pty()->fd(), &tio) != -1)
-				{
-					normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
-					normal_length = 1;
-				}
-				suppress_alt_esc = FALSE;
-				break;
-			case EraseMode::eDELETE_SEQUENCE:
-			case EraseMode::eAUTO:
-			default:
-                                normal = g_strdup("\e[3~");
-                                normal_length = 4;
-                                add_modifiers = TRUE;
-				break;
-			}
-			handled = TRUE;
-                        /* FIXMEchpe: why? this overrides the FALSE set above? */
-			suppress_alt_esc = TRUE;
+                        map_erase_binding(m_delete_binding,
+                                          EraseMode::eDELETE_SEQUENCE,
+                                          m_modifiers,
+                                          normal,
+                                          normal_length,
+                                          suppress_alt_esc,
+                                          add_modifiers);
+                        handled = true;
 			break;
 		case GDK_KEY_KP_Insert:
 		case GDK_KEY_Insert:

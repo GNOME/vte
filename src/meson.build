@@ -254,6 +254,8 @@ libvte_common_sources = color_sources + config_sources + debug_sources + glib_gl
   'vteutils.h',
   'widget.cc',
   'widget.hh',
+  'xtermcap.cc',
+  'xtermcap.hh',
 )
 
 libvte_gtk3_drawing_sources = files(

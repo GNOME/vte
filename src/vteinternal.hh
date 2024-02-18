@@ -1573,8 +1573,15 @@ public:
         bool set_cursor_shape(CursorShape shape);
         auto cursor_shape() const noexcept { return m_cursor_shape; }
         bool set_cursor_style(CursorStyle style);
-        bool set_delete_binding(EraseMode binding);
+        bool set_delete_binding(EraseMode bbinding);
         auto delete_binding() const noexcept { return m_delete_binding; }
+        void map_erase_binding(EraseMode mode,
+                               EraseMode auto_mode,
+                               unsigned modifiers,
+                               char*& normal,
+                               size_t& normal_length,
+                               bool& suppress_alt_esc,
+                               bool& add_modifiers);
         bool set_enable_bidi(bool setting);
         bool set_enable_shaping(bool setting);
         bool set_encoding(char const* codeset,
