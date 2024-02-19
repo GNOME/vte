@@ -301,6 +301,7 @@ Ring::freeze_row(row_t position,
 	memset(&record, 0, sizeof(record));
 	record.text_start_offset = _vte_stream_head(m_text_stream);
 	record.attr_start_offset = _vte_stream_head(m_attr_stream);
+        record.width = row->len;
 	record.is_ascii = 1;
 
 	g_string_truncate (buffer, 0);
@@ -1237,6 +1238,7 @@ Ring::rewrap(column_t columns,
 	old_row_index = m_start + 1;
 	while (paragraph_start_text_offset < _vte_stream_head(m_text_stream)) {
 		/* Find the boundaries of the next paragraph */
+                gsize paragraph_width = 0;
 		gboolean prev_record_was_soft_wrapped = FALSE;
 		gboolean paragraph_is_ascii = TRUE;
                 guint8 paragraph_bidi_flags = old_record.bidi_flags;
@@ -1249,6 +1251,7 @@ Ring::rewrap(column_t columns,
                                  old_row_index - 1,
                                  paragraph_start_text_offset);
 		while (old_row_index <= m_end) {
+                        paragraph_width += old_record.width;
 			prev_record_was_soft_wrapped = old_record.soft_wrapped;
 			paragraph_is_ascii = paragraph_is_ascii && old_record.is_ascii;
 			if (G_LIKELY (old_row_index < m_end)) {
@@ -1272,7 +1275,6 @@ Ring::rewrap(column_t columns,
                                  paragraph_end_text_offset,
 				prev_record_was_soft_wrapped ? "  soft_wrapped" : "",
 				paragraph_len, paragraph_is_ascii);
-
 		/* Wrap the paragraph */
 		if (attr_change.text_end_offset <= text_offset) {
 			/* Attr change at paragraph boundary, advance to next attr. */
@@ -1303,7 +1305,22 @@ Ring::rewrap(column_t columns,
 			}
 			runlength = MIN(paragraph_len, attr_change.text_end_offset - text_offset);
 
-			if (G_UNLIKELY (attr_change.attr.columns() == 0)) {
+                        if (paragraph_width <= (gsize) columns) {
+                                /* Quick shortcut code path if the entire paragraph fits in one row. */
+                                text_offset += runlength;
+                                paragraph_len -= runlength;
+                                /* The setting of "col" here is hacky. This very code here is potentially executed
+                                   multiple times within a single paragraph, if it has attribute changes. The code above
+                                   that reads the next attribute record has to iterate through those changes. Yet, we
+                                   don't want to waste time tracking those attribute changes and finding their
+                                   corresponding text offsets, we don't even want to read the text, as we won't need
+                                   that. We rely on the fact that "paragraph_width" and "columns" are constants
+                                   thoughout the wrapping of a particular paragraph, hence if this branch is hit once
+                                   then it is hit every time; also "col" is unused then in this loop and only needs to
+                                   have the correct value after we leave the loop. So each time simply set "col"
+                                   straight away to its final value. */
+                                col = paragraph_width;
+                        } else if (G_UNLIKELY (attr_change.attr.columns() == 0)) {
 				/* Combining characters all fit in the current row */
 				text_offset += runlength;
 				paragraph_len -= runlength;
@@ -1311,6 +1328,7 @@ Ring::rewrap(column_t columns,
 				while (runlength) {
 					if (col >= columns - attr_change.attr.columns() + 1) {
 						/* Wrap now, write the soft wrapped row's record */
+                                                new_record.width = col;
 						new_record.soft_wrapped = 1;
 						_vte_stream_append(new_row_stream, (char const* ) &new_record, sizeof (new_record));
 						_vte_debug_print(VTE_DEBUG_RING,
@@ -1330,7 +1348,6 @@ Ring::rewrap(column_t columns,
 						new_record.text_start_offset = text_offset;
 						new_record.attr_start_offset = attr_offset;
 						col = 0;
-
 					}
 					if (paragraph_is_ascii) {
 						/* Shortcut for quickly wrapping ASCII (excluding TAB) text.
@@ -1360,6 +1377,7 @@ Ring::rewrap(column_t columns,
 
 		/* Write the record of the paragraph's last row. */
 		/* Hard wrapped, except maybe at the end of the very last paragraph */
+                new_record.width = col;
 		new_record.soft_wrapped = prev_record_was_soft_wrapped;
 		_vte_stream_append(new_row_stream, (char const* ) &new_record, sizeof (new_record));
 		_vte_debug_print(VTE_DEBUG_RING,
