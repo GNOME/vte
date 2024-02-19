@@ -141,9 +141,12 @@ public:
         CursorStyle m_saved_cursor_style;
         VteVisualPosition m_saved_cursor;
         VteScreen const* m_saved_screen{nullptr};
+        Terminal *m_terminal;
 
-        ProcessingContext(Terminal const& terminal) noexcept
+        ProcessingContext(Terminal& terminal) noexcept
         {
+                m_terminal = &terminal;
+
                 auto screen = m_saved_screen = terminal.m_screen;
 
                 // FIXMEchpe make this a method on VteScreen
@@ -174,35 +177,35 @@ public:
         ProcessingContext& operator=(ProcessingContext&&) = delete;
 
         [[gnu::always_inline]]
-        inline void pre_GRAPHIC(Terminal const& terminal) noexcept
+        inline void pre_GRAPHIC() noexcept
         {
                 m_bbox_top = std::min(m_bbox_top,
-                                      terminal.m_screen->cursor.row);
+                                      m_terminal->m_screen->cursor.row);
         }
 
         [[gnu::always_inline]]
-        inline void post_GRAPHIC(Terminal& terminal) noexcept
+        inline void post_GRAPHIC() noexcept
         {
                 /* Add the cells over which we have moved to the region
                  * which we need to refresh for the user. */
                 m_bbox_bottom = std::max(m_bbox_bottom,
-                                         terminal.m_screen->cursor.row);
+                                         m_terminal->m_screen->cursor.row);
 
                 m_invalidated_text = true;
                 m_modified = true;
         }
 
         [[gnu::always_inline]]
-        inline void post_CMD(Terminal& terminal) noexcept
+        inline void post_CMD() noexcept
         {
                 m_modified = true;
 
-                // FIXME terminal.m_screen may be != m_saved_screen, check for that!
+                // FIXME m_terminal->m_screen may be != m_saved_screen, check for that!
 
-                auto const* screen = terminal.m_screen;
-                auto const new_in_scroll_region = terminal.m_scrolling_region.is_restricted() &&
-                        (screen->cursor.row >= (screen->insert_delta + terminal.m_scrolling_region.top())) &&
-                        (screen->cursor.row <= (screen->insert_delta + terminal.m_scrolling_region.bottom()));
+                auto const* screen = m_terminal->m_screen;
+                auto const new_in_scroll_region = m_terminal->m_scrolling_region.is_restricted() &&
+                        (screen->cursor.row >= (screen->insert_delta + m_terminal->m_scrolling_region.top())) &&
+                        (screen->cursor.row <= (screen->insert_delta + m_terminal->m_scrolling_region.bottom()));
 
                 /* if we have moved greatly during the sequence handler, or moved
                  * into a scroll_region from outside it, restart the bbox.
@@ -211,7 +214,7 @@ public:
                     ((new_in_scroll_region && !m_in_scroll_region) ||
                      (screen->cursor.row > m_bbox_bottom + VTE_CELL_BBOX_SLACK ||
                       screen->cursor.row < m_bbox_top - VTE_CELL_BBOX_SLACK))) {
-                        terminal.invalidate_rows_and_context(m_bbox_top, m_bbox_bottom);
+                        m_terminal->invalidate_rows_and_context(m_bbox_top, m_bbox_bottom);
                         m_invalidated_text = false;
                         m_bbox_bottom = -G_MAXINT;
                         m_bbox_top = G_MAXINT;
@@ -3557,9 +3560,9 @@ Terminal::insert_image(ProcessingContext& context,
         /* Erase characters under the image. Since this inserts content, we need
          * to update the processing context's bbox.
          */
-        context.pre_GRAPHIC(*this);
+        context.pre_GRAPHIC();
         erase_image_rect(height, width);
-        context.post_GRAPHIC(*this);
+        context.post_GRAPHIC();
 }
 
 #endif /* WITH_SIXEL */
@@ -4084,7 +4087,7 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                         switch (rv) {
                         case VTE_SEQ_GRAPHIC: [[likely]] {
 
-                                context.pre_GRAPHIC(*this);
+                                context.pre_GRAPHIC();
 
                                 // does insert_char(c, false)
                                 GRAPHIC(seq);
@@ -4109,7 +4112,7 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                                                          g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
                                 }
 
-                                context.post_GRAPHIC(*this);
+                                context.post_GRAPHIC();
                                 break;
                         }
 
@@ -4123,7 +4126,7 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                                 case VTE_CMD_##cmd: cmd(seq); break;
 #define _VTE_CMD_HANDLER_R(cmd) \
                                 case VTE_CMD_##cmd: if (cmd(seq)) { \
-                                        context.post_CMD(*this); \
+                                        context.post_CMD(); \
                                         goto switched_data_syntax; \
                                         } \
                                         break;
@@ -4140,7 +4143,7 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
 
                                 m_last_graphic_character = 0;
 
-                                context.post_CMD(*this);
+                                context.post_CMD();
                                 break;
                         }
                         }
@@ -4217,7 +4220,7 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
                         switch (rv) {
                         case VTE_SEQ_GRAPHIC: {
 
-                                context.pre_GRAPHIC(*this);
+                                context.pre_GRAPHIC();
 
                                 // does insert_char(c, false)
                                 GRAPHIC(seq);
@@ -4226,7 +4229,7 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
                                                  m_last_graphic_character,
                                                  g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
 
-                                context.post_GRAPHIC(*this);
+                                context.post_GRAPHIC();
                                 break;
                         }
 
@@ -4241,7 +4244,7 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
 #define _VTE_CMD_HANDLER_R(cmd) \
                                 case VTE_CMD_##cmd: \
                                         if (cmd(seq)) { \
-                                                context.post_CMD(*this); \
+                                                context.post_CMD(); \
                                                 goto switched_data_syntax; \
                                         } \
                                         break;
@@ -4258,7 +4261,7 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
 
                                 m_last_graphic_character = 0;
 
-                                context.post_CMD(*this);
+                                context.post_CMD();
                                 break;
                         }
                         }
