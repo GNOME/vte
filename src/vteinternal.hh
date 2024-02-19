@@ -896,8 +896,8 @@ public:
 
         void insert_char(gunichar c,
                          bool invalidate_now);
-        void insert_ascii_chars(uint8_t const *start,
-                                uint8_t const *end);
+        void insert_single_width_chars(gunichar const *p,
+                                       int len);
 
         void invalidate_row(vte::grid::row_t row);
         void invalidate_rows(vte::grid::row_t row_start,

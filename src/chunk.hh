@@ -194,6 +194,9 @@ public:
         // Set the chunk as chained
         inline void set_chained() noexcept { m_flags |= (uint8_t)Flags::eCHAINED; }
 
+        // Get the maximum chunk size
+        static inline constexpr unsigned max_size() noexcept { return k_chunk_size; }
+
 private:
 
         /* Note that this is using the standard deleter, not Recycler */
