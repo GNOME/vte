@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this library.  If not, see <https://www.gnu.org/licenses/>.
 
+subdir('terminfo')
 subdir('vte')
 
 src_inc = include_directories('.')
@@ -326,6 +327,7 @@ incs = [
 libvte_common_cppflags = [
   '-DG_LOG_DOMAIN="VTE"',
   '-DLOCALEDIR="@0@"'.format(vte_prefix / vte_localedir),
+  '-DTERMINFODIR="@0@"'.format(vte_prefix / vte_terminfodir),
   '-DVTE_COMPILATION',
   '-UPARSER_INCLUDE_NOP',
 ]
