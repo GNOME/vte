@@ -3200,7 +3200,7 @@ Terminal::save_cursor(VteScreen *screen__)
 
 /* Insert a single character into the stored data array.
  *
- * Note that much of this method is duplicated below in insert_ascii_chars().
+ * Note that much of this method is duplicated below in insert_single_width_chars().
  * Make sure to keep the two in sync! */
 void
 Terminal::insert_char(gunichar c,
@@ -3431,15 +3431,15 @@ not_inserted:
 			(long)m_screen->insert_delta);
 }
 
-/* Inserts each 7-bit char of the string.
- * The passed string MUST consist of printable ASCII 0x20..0x7E bytes only.
+/* Inserts each character of the string.
+ * The passed string MUST consist of single-width printable characters only.
  * It performs the equivalent of calling insert_char(..., false) on each of them,
  * but is usually much faster.
  *
  * Note that much of this method is duplicated above in insert_char().
  * Make sure to keep the two in sync! */
 void
-Terminal::insert_ascii_chars(uint8_t const *start, uint8_t const *end)
+Terminal::insert_single_width_chars(gunichar const *p, int len)
 {
         if (m_scrolling_region.is_restricted() ||
             (*m_character_replacement == VTE_CHARACTER_REPLACEMENT_LINE_DRAWING) ||
@@ -3447,8 +3447,8 @@ Terminal::insert_ascii_chars(uint8_t const *start, uint8_t const *end)
             m_modes_ecma.IRM()) {
                 /* There is some special unusual circumstance.
                  * Resort to inserting the characters one by one. */
-                for (auto p = start; p < end; p++) {
-                        insert_char(*p, false);
+                while (len--) {
+                        insert_char(*p++, false);
                 }
                 return;
         }
@@ -3461,7 +3461,7 @@ Terminal::insert_ascii_chars(uint8_t const *start, uint8_t const *end)
          * fill up runs within a single row as quickly as we can.
          * Furthermore, don't clean up CJK fragments at each character.
          * All these combined result in significantly faster operation. */
-        for (auto p = start; p < end; ) {
+        while (len) {
                 VteRowData *row;
                 long col;
 
@@ -3486,15 +3486,18 @@ Terminal::insert_ascii_chars(uint8_t const *start, uint8_t const *end)
                 }
 
                 /* The number of cells we can populate in this row. */
-                int run = MIN(end - p, m_column_count - col);
+                int run = MIN(len, m_column_count - col);
                 vte_assert_cmpint(run, >=, 1);
 
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Inserting ASCII string \"%.*s\" (colors %" G_GUINT64_FORMAT ") (%ld+%d, %ld), delta = %ld; ",
-                                 run, p,
-                                 m_color_defaults.attr.colors(),
-                                 col, run, (long)m_screen->cursor.row,
-                                 (long)m_screen->insert_delta);
+                _VTE_DEBUG_IF(VTE_DEBUG_PARSER) {
+                        gchar *utf8 = g_ucs4_to_utf8(p, run, NULL, NULL, NULL);
+                        _vte_debug_print(VTE_DEBUG_PARSER,
+                                         "Inserting string of %d single-width characters \"%s\" (colors %" G_GUINT64_FORMAT ") (%ld+%d, %ld), delta = %ld; ",
+                                         run, utf8, m_color_defaults.attr.colors(),
+                                         col, run, (long)m_screen->cursor.row,
+                                         (long)m_screen->insert_delta);
+                        g_free(utf8);
+                }
 
                 /* Make sure we have enough rows to hold this data. */
                 row = ensure_cursor();
@@ -3504,6 +3507,7 @@ Terminal::insert_ascii_chars(uint8_t const *start, uint8_t const *end)
                 _vte_row_data_fill (row, &basic_cell, col);
                 _vte_row_data_expand (row, col + run);
 
+                len -= run;
                 while (run--) {
                         VteCell *pcell = _vte_row_data_get_writable (row, col);
                         pcell->c = *p;
@@ -4039,6 +4043,11 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
         auto const iend = chunk.end_reading();
         auto ip = chunk.begin_reading();
 
+        /* Chunk size (k_chunk_size) is around 8kB, so single_width_chars is at most 32kB, fine on the stack. */
+        static_assert(vte::base::Chunk::max_size() <= 8 * 1024);
+        gunichar *single_width_chars = g_newa(gunichar, iend - ip);
+        int single_width_chars_count;
+
         while (ip < iend) [[likely]] {
 
                 switch (m_utf8_decoder.decode(*(ip++))) {
@@ -4096,16 +4105,55 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                                                  m_last_graphic_character,
                                                  g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
 
-                                // It's very common to get batches of printable ascii
+                                // It's very common to get batches of printable single-width
                                 // characters. So plan for that and avoid round-tripping
-                                // through the UTF-8 decoder as well as the Parser. It
+                                // through the main UTF-8 decoder as well as the Parser. It
                                 // also allows for a single pre_GRAPHIC()/post_GRAPHIC().
-                                auto ip_prev = ip;
-                                while (ip < iend && *ip >= 0x20 && *ip < 0x7f) [[likely]] {
+                                single_width_chars_count = 0;
+                                /* Super quickly process initial ASCII segment. */
+                                while (ip < iend && *ip >= 0x20 && *ip < 0x7F) [[likely]] {
+                                        single_width_chars[single_width_chars_count++] = *ip;
                                         ip++;
                                 }
-                                if (ip > ip_prev) {
-                                        insert_ascii_chars(ip_prev, ip);
+                                if (ip < iend || *ip >= 0x80) {
+                                        /* Continue with UTF-8 (possibly including further ASCII) non-control chars. */
+                                        /* This is just a little bit slower than the ASCII loop above. */
+                                        vte::base::UTF8Decoder decoder;
+                                        auto ip_lookahead = ip;
+                                        while (ip_lookahead < iend) [[likely]] {
+                                                auto state = decoder.decode(*ip_lookahead++);
+                                                if (state == vte::base::UTF8Decoder::ACCEPT) [[likely]] {
+                                                        gunichar c = decoder.codepoint();
+                                                        if ((c >= 0x20 && c < 0x7F) ||
+                                                            (c >= 0xA0 && _vte_unichar_width(c, context.m_terminal->m_utf8_ambiguous_width) == 1)) [[likely]] {
+                                                                /* Single width char, append to the array. */
+                                                                single_width_chars[single_width_chars_count++] = c;
+                                                                ip = ip_lookahead;
+                                                                continue;
+                                                        } else if (c >= 0xA0) {
+                                                                /* Zero or double width char, flush the array of single width ones and then process this. */
+                                                                if (single_width_chars_count > 0) {
+                                                                        insert_single_width_chars(single_width_chars, single_width_chars_count);
+                                                                        single_width_chars_count = 0;
+                                                                }
+                                                                insert_char(c, false);
+                                                                ip = ip_lookahead;
+                                                                continue;
+                                                        } else {
+                                                                /* Control char. */
+                                                                break;
+                                                        }
+                                                } else if (state == vte::base::UTF8Decoder::REJECT ||
+                                                           state == vte::base::UTF8Decoder::REJECT_REWIND) [[unlikely]] {
+                                                        /* Encoding error. */
+                                                        break;
+                                                }
+                                                /* else: More bytes needed, continue. */
+                                        }
+                                }
+                                /* Flush the array of single width chars. */
+                                if (single_width_chars_count > 0) [[likely]] {
+                                        insert_single_width_chars(single_width_chars, single_width_chars_count);
                                         _vte_debug_print(VTE_DEBUG_PARSER,
                                                          "Last graphic is now U+%04X %lc\n",
                                                          m_last_graphic_character,
