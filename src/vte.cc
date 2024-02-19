@@ -11063,7 +11063,6 @@ Terminal::search_rows_iter(pcre2_match_context_8 *match_context,
                                      vte::grid::row_t end_row,
                                      bool backward)
 {
-	const VteRowData *row;
 	long iter_start_row, iter_end_row;
 
 	if (backward) {
@@ -11073,8 +11072,7 @@ Terminal::search_rows_iter(pcre2_match_context_8 *match_context,
 
 			do {
 				iter_start_row--;
-				row = find_row_data(iter_start_row - 1);
-			} while (row && row->attr.soft_wrapped);
+			} while (m_screen->row_data->is_soft_wrapped(iter_start_row - 1));
 
 			if (search_rows(match_context, match_data,
                                         iter_start_row, iter_end_row, backward))
@@ -11086,9 +11084,8 @@ Terminal::search_rows_iter(pcre2_match_context_8 *match_context,
 			iter_start_row = iter_end_row;
 
 			do {
-				row = find_row_data(iter_end_row);
 				iter_end_row++;
-			} while (row && row->attr.soft_wrapped);
+			} while (m_screen->row_data->is_soft_wrapped(iter_end_row - 1));
 
 			if (search_rows(match_context, match_data,
                                         iter_start_row, iter_end_row, backward))
