@@ -11073,7 +11073,7 @@ Terminal::search_rows_iter(pcre2_match_context_8 *match_context,
 
 			do {
 				iter_start_row--;
-				row = find_row_data(iter_start_row);
+				row = find_row_data(iter_start_row - 1);
 			} while (row && row->attr.soft_wrapped);
 
 			if (search_rows(match_context, match_data,
