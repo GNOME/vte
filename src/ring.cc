@@ -773,12 +773,15 @@ Ring::discard_one_row()
 	if (G_UNLIKELY(m_start == m_writable)) {
 		reset_streams(m_writable);
 	} else if (m_start < m_writable) {
-		RowRecord record;
-		_vte_stream_advance_tail(m_row_stream, m_start * sizeof (record));
-		if (G_LIKELY(read_row_record(&record, m_start))) {
-			_vte_stream_advance_tail(m_text_stream, record.text_start_offset);
-			_vte_stream_advance_tail(m_attr_stream, record.attr_start_offset);
-		}
+                /* Advance the tail sometimes. Not always, in order to slightly improve performance. */
+                if (m_start % 256 == 0) {
+                        RowRecord record;
+                        _vte_stream_advance_tail(m_row_stream, m_start * sizeof (record));
+                        if (G_LIKELY(read_row_record(&record, m_start))) {
+                                _vte_stream_advance_tail(m_text_stream, record.text_start_offset);
+                                _vte_stream_advance_tail(m_attr_stream, record.attr_start_offset);
+                        }
+                }
 	} else {
 		m_writable = m_start;
 	}
