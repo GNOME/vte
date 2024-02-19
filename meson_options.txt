@@ -30,9 +30,10 @@ option(
 )
 
 option(
-  'debugg', # for some reason, 'debug' is "reserved"
+  'dbg', # for some reason, 'debug' is "reserved"
   type: 'boolean',
-  deprecated: true,
+  value: false,
+  description: 'Enable extra debugging functionality',
 )
 
 option(
