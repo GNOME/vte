@@ -6032,14 +6032,12 @@ Terminal::maybe_send_mouse_button(vte::grid::coords const& unconfined_rowcol,
 {
 	switch (event.type()) {
         case vte::platform::EventBase::Type::eMOUSE_PRESS:
-                if (event.press_count() != 1 ||
-                    (m_mouse_tracking_mode < MouseTrackingMode::eSEND_XY_ON_CLICK)) {
+                if (m_mouse_tracking_mode < MouseTrackingMode::eSEND_XY_ON_CLICK) {
 			return false;
 		}
 		break;
         case vte::platform::EventBase::Type::eMOUSE_RELEASE:
-                if (event.press_count() != 1 ||
-                    (m_mouse_tracking_mode < MouseTrackingMode::eSEND_XY_ON_BUTTON)) {
+                if (m_mouse_tracking_mode < MouseTrackingMode::eSEND_XY_ON_BUTTON) {
 			return false;
 		}
 		break;
@@ -7297,6 +7295,13 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 		default:
 			break;
 		}
+#if VTE_GTK == 4
+                /* If we haven't done anything yet, try sending the mouse
+                 * event to the app. */
+                if (handled == FALSE) {
+                        handled = maybe_send_mouse_button(rowcol, event);
+                }
+#endif
 		break;
         case 3: /* triple click */
                 switch (event.button()) {
@@ -7312,6 +7317,13 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 		default:
 			break;
 		}
+#if VTE_GTK == 4
+                /* If we haven't done anything yet, try sending the mouse
+                 * event to the app. */
+                if (handled == FALSE) {
+                        handled = maybe_send_mouse_button(rowcol, event);
+                }
+#endif
 	default:
 		break;
 	}
