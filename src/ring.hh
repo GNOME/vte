@@ -132,9 +132,10 @@ private:
         typedef struct _RowRecord {
                 size_t text_start_offset;  /* offset where text of this row begins */
                 size_t attr_start_offset;  /* offset of the first character's attributes */
-                int soft_wrapped: 1;      /* end of line is not '\n' */
-                int is_ascii: 1;          /* for rewrapping speedup: guarantees that line contains 32..126 bytes only. Can be 0 even when ascii only. */
-                guint8 bidi_flags: 4;
+                uint32_t width: 16;        /* for rewrapping speedup: the number of character cells (columns) */
+                uint32_t is_ascii: 1;      /* for rewrapping speedup: guarantees that line contains 32..126 bytes only. Can be 0 even when ascii only. */
+                uint32_t soft_wrapped: 1;  /* end of line is not '\n' */
+                uint32_t bidi_flags: 4;
         } RowRecord;
 
         static_assert(std::is_standard_layout_v<RowRecord> && std::is_trivial_v<RowRecord>, "Ring::RowRecord is not POD");
