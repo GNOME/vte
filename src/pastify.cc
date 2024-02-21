@@ -59,7 +59,7 @@ pastify_string(std::string_view str,
 
         auto next_char = [&str](size_t pos) constexpr noexcept -> unsigned char
         {
-                return pos + 1 < str.size() ? str[pos + 1] : 0;
+                return (pos + 1) < str.size() ? str[pos + 1] : 0;
         };
 
         while (str.size() != 0) {
