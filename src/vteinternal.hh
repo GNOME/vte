@@ -783,7 +783,7 @@ public:
         bool m_enable_shaping{true};
 
         /* FrameClock driven updates */
-        guint m_tick_callback;
+        gpointer m_scheduler;
 
         /* BiDi parameters outside of ECMA and DEC private modes */
         guint m_bidi_rtl : 1;

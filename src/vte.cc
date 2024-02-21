@@ -50,6 +50,7 @@
 #include "caps.hh"
 #include "widget.hh"
 #include "cairo-glue.hh"
+#include "scheduler.h"
 
 #if VTE_GTK == 4
 #include "graphene-glue.hh"
@@ -121,9 +122,7 @@ namespace terminal {
 
 static void stop_processing(vte::terminal::Terminal* that);
 static void add_process_timeout(vte::terminal::Terminal* that);
-static gboolean process_timeout (GtkWidget *widget,
-                                 GdkFrameClock *frame_clock,
-                                 gpointer data) noexcept;
+static void process_timeout (GtkWidget *widget, gpointer data) noexcept;
 
 #if VTE_GTK == 3
 static vte::Freeable<cairo_region_t> vte_cairo_get_clip_region(cairo_t* cr);
@@ -10746,18 +10745,18 @@ stop_processing(vte::terminal::Terminal* that)
 {
 	that->reset_update_rects();
 
-        if (that->m_tick_callback != 0) {
-                gtk_widget_remove_tick_callback (that->m_widget, that->m_tick_callback);
-                that->m_tick_callback = 0;
+        if (that->m_scheduler != nullptr) {
+                _vte_scheduler_remove_callback (that->m_widget, that->m_scheduler);
+                that->m_scheduler = nullptr;
         }
 }
 
 static void
 add_process_timeout(vte::terminal::Terminal* that)
 {
-        if (that->m_tick_callback == 0)
-                that->m_tick_callback = gtk_widget_add_tick_callback (
-                        that->m_widget, process_timeout, that, nullptr);
+        if (that->m_scheduler == nullptr)
+                that->m_scheduler = _vte_scheduler_add_callback (
+                        that->m_widget, process_timeout, that);
 }
 
 void
@@ -10909,9 +10908,8 @@ Terminal::process()
         return is_active;
 }
 
-static gboolean
+static void
 process_timeout (GtkWidget *widget,
-                 GdkFrameClock *frame_clock,
                  gpointer data) noexcept
 try
 {
@@ -10927,15 +10925,11 @@ try
         if (!is_active) {
                 stop_processing(that);
                 vte::base::Chunk::prune();
-                return G_SOURCE_REMOVE;
         }
-
-        return G_SOURCE_CONTINUE;
 }
 catch (...)
 {
         vte::log_exception();
-        return G_SOURCE_REMOVE;
 }
 
 bool

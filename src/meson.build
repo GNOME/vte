@@ -189,6 +189,8 @@ libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk
   'ring.hh',
   'ringview.cc',
   'ringview.hh',
+  'scheduler.cc',
+  'scheduler.h',
   'spawn.cc',
   'spawn.hh',
   'unicode-width.hh',
