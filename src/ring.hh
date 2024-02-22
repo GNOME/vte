@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <type_traits>
+
 #include <gio/gio.h>
 #include <vte/vte.h>
 
@@ -43,6 +45,25 @@ typedef struct _VteVisualPosition {
 namespace vte {
 
 namespace base {
+
+template<std::size_t n>
+struct high_bits {
+        using bits_type = uint32_t;
+
+        bits_type v;
+
+        inline constexpr bits_type get() const noexcept { return v; }
+        inline constexpr void set(bits_type v_) noexcept { v = v_; }
+};
+
+// specialise as empty for n=4
+template<>
+struct high_bits<4> {
+        using bits_type = uint32_t;
+
+        inline constexpr bits_type get() const noexcept { return 0; }
+        inline constexpr void set(bits_type v_) noexcept { }
+}; // empty
 
 /*
  * Ring:
@@ -130,8 +151,14 @@ private:
         } CellAttrChange;
 
         typedef struct _RowRecord {
-                uint32_t text_start_offset_h;  /* offset where text of this row begins, high bits */
-                uint32_t attr_start_offset_h;  /* offset of the first character's attributes, high bits */
+
+                using hibits = high_bits<sizeof(size_t)>;
+                static_assert(((sizeof(size_t) > 4) && !std::is_empty_v<hibits>) ||
+                              ((sizeof(size_t) == 4) && std::is_empty_v<hibits>),
+                              "hibits must be empty iff sizeof(size_t) == 4");
+
+                [[no_unique_address]] hibits text_start_offset_h;  /* offset where text of this row begins, high bits */
+                [[no_unique_address]] hibits attr_start_offset_h;  /* offset of the first character's attributes, high bits */
                 uint32_t text_start_offset_l;  /* low bits of the above; see https://gitlab.gnome.org/GNOME/vte/-/issues/2659 for */
                 uint32_t attr_start_offset_l;  /* how grouping the likely zero bytes together makes the row stream compress better */
                 uint32_t width: 16;        /* for rewrapping speedup: the number of character cells (columns) */
@@ -139,13 +166,59 @@ private:
                 uint32_t soft_wrapped: 1;  /* end of line is not '\n' */
                 uint32_t bidi_flags: 4;
 
-                uint64_t text_start_offset() const { return ((uint64_t)text_start_offset_h) << 32 | (uint64_t)text_start_offset_l; }
-                uint64_t attr_start_offset() const { return ((uint64_t)attr_start_offset_h) << 32 | (uint64_t)attr_start_offset_l; }
-                void set_text_start_offset(uint64_t val) { text_start_offset_h = val >> 32; text_start_offset_l = val & 0xffffffff; }
-                void set_attr_start_offset(uint64_t val) { attr_start_offset_h = val >> 32; attr_start_offset_l = val & 0xffffffff; }
+                template<std::enable_if_t<std::is_empty_v<hibits>, bool> = true>
+                inline constexpr size_t text_start_offset() const noexcept
+                {
+                        return (size_t)text_start_offset_l;
+                }
+
+                template<std::enable_if_t<!std::is_empty_v<hibits>, bool> = true>
+                inline constexpr size_t text_start_offset() const noexcept
+                {
+                        return ((size_t)text_start_offset_h.get()) << 32 | (size_t)text_start_offset_l;
+                }
+
+                template<std::enable_if_t<std::is_empty_v<hibits>, bool> = true>
+                inline constexpr size_t attr_start_offset() const noexcept
+                {
+                        return (size_t)attr_start_offset_l;
+                }
+
+                template<std::enable_if_t<!std::is_empty_v<hibits>, bool> = true>
+                inline constexpr size_t attr_start_offset() const noexcept
+                {
+                        return ((size_t)attr_start_offset_h.get()) << 32 | (size_t)attr_start_offset_l;
+                }
+
+                template<std::enable_if_t<std::is_empty_v<hibits>, bool> = true>
+                inline void set_text_start_offset(size_t val) noexcept
+                {
+                        text_start_offset_l = val & 0xffffffffu;
+                }
+
+                template<std::enable_if_t<!std::is_empty_v<hibits>, bool> = true>
+                inline void set_text_start_offset(size_t val) noexcept
+                {
+                        text_start_offset_h.set(val >> 32);
+                        text_start_offset_l = val & 0xffffffffu;
+                }
+
+                template<std::enable_if_t<std::is_empty_v<hibits>, bool> = true>
+                inline void set_attr_start_offset(size_t val) noexcept
+                {
+                        attr_start_offset_l = val & 0xffffffffu;
+                }
+
+                template<std::enable_if_t<!std::is_empty_v<hibits>, bool> = true>
+                inline void set_attr_start_offset(size_t val) noexcept
+                {
+                        attr_start_offset_h.set(val >> 32);
+                        attr_start_offset_l = val & 0xffffffffu;
+                }
         } RowRecord;
 
         static_assert(std::is_standard_layout_v<RowRecord> && std::is_trivial_v<RowRecord>, "Ring::RowRecord is not POD");
+        static_assert(sizeof(RowRecord) <= 2*sizeof(size_t) + sizeof(void*), "RowRecord too large");
 
         /* Represents a cell position, see ../doc/rewrap.txt */
         typedef struct _CellTextOffset {
