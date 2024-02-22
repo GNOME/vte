@@ -434,6 +434,18 @@ foreach func: check_functions
   endif
 endforeach
 
+# Check for sizes
+
+config_h.set(
+  'SIZEOF_SIZE_T',
+  cxx.sizeof(
+    'size_t',
+    prefix: [
+      '#include <stddef.h>'
+    ],
+  ),
+)
+
 # Compiler
 
 # Asserts must not be disabled

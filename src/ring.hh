@@ -130,8 +130,11 @@ private:
         } CellAttrChange;
 
         typedef struct _RowRecord {
+
+#if SIZEOF_SIZE_T > 4
                 uint32_t text_start_offset_h;  /* offset where text of this row begins, high bits */
                 uint32_t attr_start_offset_h;  /* offset of the first character's attributes, high bits */
+#endif
                 uint32_t text_start_offset_l;  /* low bits of the above; see https://gitlab.gnome.org/GNOME/vte/-/issues/2659 for */
                 uint32_t attr_start_offset_l;  /* how grouping the likely zero bytes together makes the row stream compress better */
                 uint32_t width: 16;        /* for rewrapping speedup: the number of character cells (columns) */
@@ -139,13 +142,47 @@ private:
                 uint32_t soft_wrapped: 1;  /* end of line is not '\n' */
                 uint32_t bidi_flags: 4;
 
-                uint64_t text_start_offset() const { return ((uint64_t)text_start_offset_h) << 32 | (uint64_t)text_start_offset_l; }
-                uint64_t attr_start_offset() const { return ((uint64_t)attr_start_offset_h) << 32 | (uint64_t)attr_start_offset_l; }
-                void set_text_start_offset(uint64_t val) { text_start_offset_h = val >> 32; text_start_offset_l = val & 0xffffffff; }
-                void set_attr_start_offset(uint64_t val) { attr_start_offset_h = val >> 32; attr_start_offset_l = val & 0xffffffff; }
+                inline constexpr size_t text_start_offset() const noexcept
+                {
+#if SIZEOF_SIZE_T > 4
+                        return ((size_t)text_start_offset_h) << 32 | (size_t)text_start_offset_l;
+#else
+                        return (size_t)text_start_offset_l;
+#endif
+                }
+
+                inline constexpr size_t attr_start_offset() const noexcept
+                {
+#if SIZEOF_SIZE_T > 4
+                        return ((size_t)attr_start_offset_h) << 32 | (size_t)attr_start_offset_l;
+#else
+                        return (size_t)attr_start_offset_l;
+#endif
+                }
+
+                inline void set_text_start_offset(size_t val) noexcept
+                {
+#if SIZEOF_SIZE_T > 4
+                        text_start_offset_h =val >> 32;
+                        text_start_offset_l = val & 0xffffffffu;
+#else
+                        text_start_offset_l = uint32_t(val);
+#endif
+                }
+
+                inline void set_attr_start_offset(size_t val) noexcept
+                {
+#if SIZEOF_SIZE_T > 4
+                        attr_start_offset_h = val >> 32;
+                        attr_start_offset_l = val & 0xffffffffu;
+#else
+                        attr_start_offset_l = uint32_t(val);
+#endif
+                }
         } RowRecord;
 
         static_assert(std::is_standard_layout_v<RowRecord> && std::is_trivial_v<RowRecord>, "Ring::RowRecord is not POD");
+        static_assert(sizeof(RowRecord) <= 2*sizeof(size_t) + sizeof(void*), "RowRecord too large");
 
         /* Represents a cell position, see ../doc/rewrap.txt */
         typedef struct _CellTextOffset {
