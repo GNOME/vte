@@ -2658,7 +2658,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          */
         pspecs[PROP_SCROLL_ON_INSERT] =
                 g_param_spec_boolean("scroll-on-insert", nullptr, nullptr,
-                                     true,
+                                     false,
                                      GParamFlags(G_PARAM_READWRITE |
                                                  G_PARAM_STATIC_STRINGS |
                                                  G_PARAM_EXPLICIT_NOTIFY));
