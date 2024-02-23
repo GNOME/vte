@@ -483,7 +483,7 @@ public:
 
 	/* Scrolling options. */
         bool m_fallback_scrolling{true};
-        bool m_scroll_on_insert{true};
+        bool m_scroll_on_insert{false};
         bool m_scroll_on_output{false};
         bool m_scroll_on_keystroke{true};
         vte::grid::row_t m_scrollback_lines{0};
