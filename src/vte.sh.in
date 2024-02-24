@@ -80,7 +80,7 @@ if [[ -n "${BASH_VERSION:-}" ]]; then
         # the column, important for handling TAB followed by BS keypresses.
         # Prepend to the user's PS0 to preserve whether it ends in '\r'.
         # Note that bash doesn't support the \[ \] markers here.
-        PS0='\e]133;C\e\\\r'"$PS0"
+        PS0='\e]133;C\e\\\r'"${PS0:-}"
     fi
 
 elif [[ -n "${ZSH_VERSION:-}" ]]; then
