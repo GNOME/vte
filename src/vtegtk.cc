@@ -7077,6 +7077,9 @@ catch (...)
  *
  * A negative value means "infinite scrollback".
  *
+ * Using a large scrollback buffer (roughly 1M+ lines) may lead to performance
+ * degradation or exhaustion of system resources, and is therefore not recommended.
+ *
  * Note that this setting only affects the normal screen buffer.
  * No scrollback is allowed on the alternate screen buffer.
  */
