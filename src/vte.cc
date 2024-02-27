@@ -8647,15 +8647,6 @@ Terminal::determine_colors(VteCellAttr const* attr,
                 }
 	}
 
-	/* Invisible? */
-        /* FIXME: This is dead code, this is not where we actually handle invisibile.
-         * Instead, draw_cells() is not called from draw_rows().
-         * That is required for the foreground to be transparent if so is the background. */
-        if (attr->invisible()) {
-                fore = back;
-                deco = VTE_DEFAULT_FG;
-	}
-
 	*pfore = fore;
 	*pback = back;
         *pdeco = deco;
