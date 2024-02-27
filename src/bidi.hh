@@ -83,8 +83,26 @@ public:
         BidiRow& operator= (BidiRow const& o) = delete;
         BidiRow& operator= (BidiRow&& o) = delete;
 
-        vte::grid::column_t log2vis(vte::grid::column_t col) const;
-        vte::grid::column_t vis2log(vte::grid::column_t col) const;
+        // Converts from logical to visual column. Offscreen columns are mirrored
+        // for RTL lines, e.g. (assuming 80 columns) -1 <=> 80, -2 <=> 81 etc.
+        inline vte::grid::column_t log2vis(vte::grid::column_t col) const {
+                if (col >= 0 && col < m_width) {
+                        return m_log2vis[col];
+                } else {
+                        return m_base_rtl ? m_width - 1 - col : col;
+                }
+        }
+
+        // Converts from visual to logical column. Offscreen columns are mirrored
+        // for RTL lines, e.g. (assuming 80 columns) -1 <=> 80, -2 <=> 81 etc.
+        inline vte::grid::column_t vis2log(vte::grid::column_t col) const {
+                if (col >= 0 && col < m_width) {
+                        return m_vis2log[col];
+                } else {
+                        return m_base_rtl ? m_width - 1 - col : col;
+                }
+        }
+
         bool log_is_rtl(vte::grid::column_t col) const;
         bool vis_is_rtl(vte::grid::column_t col) const;
         vteunistr vis_get_shaped_char(vte::grid::column_t col, vteunistr s) const;

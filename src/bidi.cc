@@ -96,30 +96,6 @@ BidiRow::set_width(vte::grid::column_t width)
         m_width = width;
 }
 
-/* Converts from logical to visual column. Offscreen columns are mirrored
- * for RTL lines, e.g. (assuming 80 columns) -1 <=> 80, -2 <=> 81 etc. */
-vte::grid::column_t
-BidiRow::log2vis(vte::grid::column_t col) const
-{
-        if (col >= 0 && col < m_width) {
-                return m_log2vis[col];
-        } else {
-                return m_base_rtl ? m_width - 1 - col : col;
-        }
-}
-
-/* Converts from visual to logical column. Offscreen columns are mirrored
- * for RTL lines, e.g. (assuming 80 columns) -1 <=> 80, -2 <=> 81 etc. */
-vte::grid::column_t
-BidiRow::vis2log(vte::grid::column_t col) const
-{
-        if (col >= 0 && col < m_width) {
-                return m_vis2log[col];
-        } else {
-                return m_base_rtl ? m_width - 1 - col : col;
-        }
-}
-
 /* Whether the cell at the given visual position has RTL directionality.
  * For offscreen columns the line's base direction is returned. */
 bool
