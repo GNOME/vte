@@ -8666,7 +8666,7 @@ Terminal::determine_colors(VteCellAttr const* attr,
         vte_color_triple_get(attr->colors(), &fore, &back, &deco);
 
 	/* Reverse-mode switches default fore and back colors */
-        if (G_UNLIKELY (m_modes_private.DEC_REVERSE_IMAGE())) {
+        if (m_modes_private.DEC_REVERSE_IMAGE()) [[unlikely]] {
 		if (fore == VTE_DEFAULT_FG)
 			fore = VTE_DEFAULT_BG;
 		if (back == VTE_DEFAULT_BG)
@@ -8674,7 +8674,7 @@ Terminal::determine_colors(VteCellAttr const* attr,
 	}
 
 	/* Handle bold by using set bold color or brightening */
-        if (attr->bold()) {
+        if (attr->bold()) [[unlikely]] {
                 if (fore == VTE_DEFAULT_FG && get_color(VTE_BOLD_FG) != NULL) {
 			fore = VTE_BOLD_FG;
                 } else if (m_bold_is_bright &&
@@ -8687,18 +8687,18 @@ Terminal::determine_colors(VteCellAttr const* attr,
         /* Handle dim colors.  Only apply to palette colors, dimming direct RGB wouldn't make sense.
          * Apply to the foreground color only, but do this before handling reverse/highlight so that
          * those can be used to dim the background instead. */
-        if (attr->dim() && !(fore & VTE_RGB_COLOR_MASK(8, 8, 8))) {
+        if (attr->dim() && !(fore & VTE_RGB_COLOR_MASK(8, 8, 8))) [[unlikely]] {
 	        fore |= VTE_DIM_COLOR;
         }
 
 	/* Reverse cell? */
-	if (attr->reverse()) {
+	if (attr->reverse()) [[unlikely]] {
                 using std::swap;
                 swap(fore, back);
 	}
 
 	/* Selection: use hightlight back/fore, or inverse */
-	if (is_selected) {
+	if (is_selected) [[unlikely]] {
 		/* XXX what if hightlight back is same color as current back? */
 		bool do_swap = true;
 		if (get_color(VTE_HIGHLIGHT_BG) != NULL) {
@@ -8716,7 +8716,7 @@ Terminal::determine_colors(VteCellAttr const* attr,
 	}
 
 	/* Cursor: use cursor back, or inverse */
-	if (is_cursor) {
+	if (is_cursor) [[unlikely]] {
 		/* XXX what if cursor back is same color as current back? */
                 bool do_swap = true;
                 if (get_color(VTE_CURSOR_BG) != NULL) {
