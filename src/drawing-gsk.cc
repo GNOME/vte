@@ -195,8 +195,9 @@ DrawingGsk::draw_text_internal(TextRequest* requests,
 
                 switch (uinfo->coverage()) {
                 default:
-                case FontInfo::UnistrInfo::Coverage::UNKNOWN:
                         g_assert_not_reached ();
+                        break;
+                case FontInfo::UnistrInfo::Coverage::UNKNOWN:
                         break;
                 case FontInfo::UnistrInfo::Coverage::USE_PANGO_GLYPH_STRING:
                         if (node_font != ufi->using_pango_glyph_string.font) {
