@@ -5906,7 +5906,7 @@ Terminal::modify_selection (vte::view::coords const& pos)
 
 /* Check if a cell is selected or not. BiDi: the coordinate is logical. */
 bool
-Terminal::cell_is_selected_log(vte::grid::column_t lcol,
+Terminal::_cell_is_selected_log(vte::grid::column_t lcol,
                                vte::grid::row_t row) const
 {
         // Callers need to update the ringview. However, don't assert, just

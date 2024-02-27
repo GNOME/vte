@@ -1202,10 +1202,26 @@ public:
         void resolve_selection();
         void selection_maybe_swap_endpoints(vte::view::coords const& pos);
         void modify_selection(vte::view::coords const& pos);
-        bool cell_is_selected_log(vte::grid::column_t lcol,
-                                  vte::grid::row_t) const;
+        bool _cell_is_selected_log(vte::grid::column_t lcol,
+                                   vte::grid::row_t) const;
         bool cell_is_selected_vis(vte::grid::column_t vcol,
                                   vte::grid::row_t) const;
+
+        inline bool cell_is_selected_log(vte::grid::column_t lcol,
+                                         vte::grid::row_t row) const {
+                // Callers need to update the ringview. However, don't assert, just
+                // return out-of-view coords. FIXME: may want to throw instead
+                if (!m_ringview.is_updated())
+                        [[unlikely]] return false;
+
+                // In normal modes, resolve_selection() made sure to generate
+                // such boundaries for m_selection_resolved.
+                if (!m_selection_block_mode)
+                        [[likely]] return m_selection_resolved.contains ({row, lcol});
+
+                return _cell_is_selected_log(lcol, row);
+        }
+
 
         void reset_default_attributes(bool reset_osc);
 
