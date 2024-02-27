@@ -80,7 +80,14 @@ public:
 
         VteRowData const* get_row(vte::grid::row_t row) const;
 
-        BidiRow const* get_bidirow(vte::grid::row_t row) const;
+        inline BidiRow const* get_bidirow(vte::grid::row_t row) const {
+                vte_assert_cmpint (row, >=, m_start);
+                vte_assert_cmpint (row, <, m_start + m_len);
+                vte_assert_false (m_invalid);
+                vte_assert_false (m_paused);
+
+                return m_bidirows[row - m_start];
+        }
 
 private:
         Ring *m_ring{nullptr};
