@@ -293,16 +293,6 @@ RingView::update()
         m_invalid = false;
 }
 
-BidiRow const* RingView::get_bidirow(vte::grid::row_t row) const
-{
-        vte_assert_cmpint (row, >=, m_start);
-        vte_assert_cmpint (row, <, m_start + m_len);
-        vte_assert_false (m_invalid);
-        vte_assert_false (m_paused);
-
-        return m_bidirows[row - m_start];
-}
-
 /* For internal use by BidiRunner. Get where the BiDi mapping for the given row
  * needs to be stored, of nullptr if it's a context row. */
 BidiRow* RingView::get_bidirow_writable(vte::grid::row_t row) const
