@@ -10006,7 +10006,13 @@ Terminal::draw(cairo_region_t const* region) noexcept
 
         /* Clip vertically, for the sake of smooth scrolling. We want the top and bottom paddings to be unused.
          * Don't clip horizontally so that antialiasing can legally overflow to the right padding. */
-        auto const vert_clip = vte::view::Rectangle{-m_border.left, 0,
+        auto const vert_clip = vte::view::Rectangle{
+#if VTE_GTK == 3
+                                                    -m_border.left,
+#elif VTE_GTK == 4
+                                                    -m_style_border.left - m_border.left,
+#endif
+                                                    0,
 #if VTE_GTK == 3
                                                     allocated_width,
 #elif VTE_GTK == 4
@@ -10079,8 +10085,12 @@ Terminal::draw(cairo_region_t const* region) noexcept
         /* Re-clip, allowing VTE_LINE_WIDTH more pixel rows for the outline cursor. */
         /* TODOegmont: It's really ugly to do it here. */
         extra_area_for_cursor = (decscusr_cursor_shape() == CursorShape::eBLOCK && !m_has_focus) ? VTE_LINE_WIDTH : 0;
-
-        auto const reclip = vte::view::Rectangle{-m_border.left,
+        auto const reclip = vte::view::Rectangle{
+#if VTE_GTK == 3
+                                                 -m_border.left,
+#elif VTE_GTK == 4
+                                                 -m_style_border.left - m_border.left,
+#endif
                                                  -extra_area_for_cursor,
 #if VTE_GTK == 3
                                                  allocated_width,
