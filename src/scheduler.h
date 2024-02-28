@@ -23,6 +23,7 @@ typedef void (*VteSchedulerCallback) (GtkWidget *widget,
                                       gpointer   user_data);
 
 gpointer _vte_scheduler_add_callback    (GtkWidget            *widget,
+                                         gint64                last_scheduled,
                                          VteSchedulerCallback  callback,
                                          gpointer              user_data);
 void     _vte_scheduler_remove_callback (GtkWidget            *widget,

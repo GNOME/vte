@@ -10898,7 +10898,7 @@ add_process_timeout(vte::terminal::Terminal* that)
 {
         if (that->m_scheduler == nullptr)
                 that->m_scheduler = _vte_scheduler_add_callback (
-                        that->m_widget, process_timeout, that);
+                        that->m_widget, that->m_last_scheduled, process_timeout, that);
 }
 
 void
@@ -11071,6 +11071,8 @@ process_timeout (GtkWidget *widget,
 try
 {
         auto that = reinterpret_cast<vte::terminal::Terminal*>(data);
+
+        that->m_last_scheduled = g_get_monotonic_time ();
 
         that->m_is_processing = true;
         auto is_active = that->process();

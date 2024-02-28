@@ -814,6 +814,7 @@ public:
 
         /* FrameClock driven updates */
         gpointer m_scheduler;
+        gint64 m_last_scheduled;
 
         /* BiDi parameters outside of ECMA and DEC private modes */
         guint m_bidi_rtl : 1;

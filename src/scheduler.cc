@@ -120,15 +120,47 @@ scheduler_tick_callback (GtkWidget     *widget,
         return G_SOURCE_CONTINUE;
 }
 
+static gint64
+get_widget_refresh_interval (GtkWidget *widget)
+{
+        gint64 refresh_rate = 60000;
+        GdkDisplay *display;
+        GdkMonitor *monitor;
+
+#if VTE_GTK == 3
+        GdkWindow *window;
+        GtkWidget *root;
+
+        if ((root = gtk_widget_get_toplevel (widget)) &&
+            (window = gtk_widget_get_window (root)) &&
+            (display = gdk_window_get_display (window)) &&
+            (monitor = gdk_display_get_monitor_at_window (display, window)))
+                refresh_rate = gdk_monitor_get_refresh_rate (monitor);
+#elif VTE_GTK == 4
+        GdkSurface *surface;
+        GtkRoot *root;
+
+        if ((root = gtk_widget_get_root (widget)) &&
+            (surface = gtk_native_get_surface (GTK_NATIVE (root))) &&
+            (display = gdk_surface_get_display (surface)) &&
+            (monitor = gdk_display_get_monitor_at_surface (display, surface)))
+                refresh_rate = gdk_monitor_get_refresh_rate (monitor);
+#endif
+
+        return G_USEC_PER_SEC / (double)refresh_rate * 1000.0;
+}
+
 gpointer
 _vte_scheduler_add_callback (GtkWidget            *widget,
+                             gint64                last_scheduled,
                              VteSchedulerCallback  callback,
                              gpointer              user_data)
 {
+        gint64 now = g_get_monotonic_time ();
         Scheduled *state = g_new0 (Scheduled, 1);
 
         state->link.data = state;
-        state->ready_time = g_get_monotonic_time () + NEXT_UPDATE_USEC;
+        state->ready_time = now + NEXT_UPDATE_USEC;
         state->callback = callback;
         state->user_data = user_data;
         state->widget = widget;
@@ -138,6 +170,14 @@ _vte_scheduler_add_callback (GtkWidget            *widget,
 
         if (scheduled_source == nullptr)
                 arm_fallback_scheduler ();
+
+        /* If our last scheduled time was more than a couple frames,
+         * schedule things immediately to reduce interactive latency.
+         */
+        if (last_scheduled < (now - 2 * get_widget_refresh_interval (widget))) {
+                state->ready_time = now;
+                g_source_set_ready_time (scheduled_source, now);
+        }
 
         return (gpointer)state;
 }
