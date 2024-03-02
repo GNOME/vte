@@ -265,8 +265,7 @@ private:
         enum class Alignment : uint8_t {
                 START  = 0u,
                 CENTRE = 1u,
-                /* BASELINE = 2u, */
-                END    = 3u,
+                END    = 2u,
         };
 
 protected:
