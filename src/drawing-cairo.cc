@@ -188,7 +188,6 @@ DrawingCairo::draw_text_internal(TextRequest* requests,
                 switch (uinfo->coverage()) {
                 default:
                 case FontInfo::UnistrInfo::Coverage::UNKNOWN:
-                        g_assert_not_reached ();
                         break;
                 case FontInfo::UnistrInfo::Coverage::USE_PANGO_LAYOUT_LINE:
                         cairo_move_to(m_cr, x, y);
