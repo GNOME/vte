@@ -35,6 +35,7 @@
 #include <vte/vte.h>
 
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 #include "std-glue.hh"
@@ -49,45 +50,59 @@
 
 /* options */
 
+static void G_GNUC_PRINTF(2, 3)
+verbose_fprintf(FILE* fp,
+                char const* format,
+                ...);
+
+#define verbose_print(...) verbose_fprintf(stdout, __VA_ARGS__)
+#define verbose_printerr(...) verbose_fprintf(stderr, __VA_ARGS__)
+
+#define CONFIG_GROUP "VteApp Configuration"
+
 class Options {
 public:
         gboolean allow_window_ops{false};
         gboolean audible_bell{false};
         gboolean backdrop{false};
+        gboolean bidi{true};
         gboolean bold_is_bright{false};
+        gboolean bold{true};
+        gboolean builtin_dingus{true};
         gboolean console{false};
+        gboolean context_menu{true};
         gboolean debug{false};
+        gboolean decorations{true};
+        gboolean fallback_scrolling{true};
         gboolean feed_stdin{false};
+        gboolean geometry_hints{true};
+        gboolean hyperlink{true};
         gboolean icon_title{false};
         gboolean keep{false};
-        gboolean no_bidi{false};
-        gboolean no_bold{false};
-        gboolean no_builtin_dingus{false};
-        gboolean no_context_menu{false};
-        gboolean no_decorations{false};
-        gboolean no_fallback_scrolling{false};
-        gboolean no_geometry_hints{false};
-        gboolean no_hyperlink{false};
-        gboolean no_kinetic_scrolling{false};
-        gboolean no_pty{false};
-        gboolean no_rewrap{false};
-        gboolean no_scrollbar{false};
-        gboolean no_shaping{false};
-        gboolean no_shell{false};
-        gboolean no_systemd_scope{false};
-        gboolean no_xfill{false};
-        gboolean no_yfill{false};
+        gboolean kinetic_scrolling{true};
         gboolean object_notifications{false};
         gboolean overlay_scrollbar{false};
+        gboolean pty{true};
         gboolean require_systemd_scope{false};
         gboolean reverse{false};
+        gboolean rewrap{true};
+        gboolean scroll_on_insert{false};
+        gboolean scroll_on_keystroke{true};
+        gboolean scroll_on_output{false};
         gboolean scroll_unit_is_pixels{false};
+        gboolean scrollbar{true};
+        gboolean shaping{true};
+        gboolean shell{true};
+        gboolean sixel{true};
+        gboolean systemd_scope{true};
         gboolean test_mode{false};
         gboolean track_clipboard_targets{false};
         gboolean use_scrolled_window{false};
         gboolean use_theme_colors{false};
         gboolean version{false};
         gboolean whole_window_transparent{false};
+        gboolean xfill{true};
+        gboolean yfill{true};
         bool bg_color_set{false};
         bool fg_color_set{false};
         bool cursor_bg_color_set{false};
@@ -128,8 +143,8 @@ public:
         vte::glib::RefPtr<GtkCssProvider> css{};
 
 #if VTE_GTK == 3
-        gboolean no_argb_visual{false};
-        gboolean no_double_buffer{false};
+        gboolean argb_visual{true};
+        gboolean double_buffer{true};
 #endif /* VTE_GTK == 3 */
 
         ~Options() {
@@ -295,12 +310,14 @@ private:
                 if (!gdk_rgba_parse(&color, str)) {
                         g_set_error(error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
                                     "Failed to parse \"%s\" as color", str);
-                        *value_set = false;
+                        if (value_set)
+                                *value_set = false;
                         return false;
                 }
 
                 *value = color;
-                *value_set = true;
+                if (value_set)
+                        *value_set = true;
                 return true;
         }
 
@@ -399,12 +416,59 @@ private:
                 return true;
         }
 
+#if VTE_GTK == 4
+        static void
+        parse_css_error_cb(GtkCssProvider* provider,
+                           void* section,
+                           GError* error,
+                           GError** ret_error) noexcept
+        {
+                if (error)
+                        *ret_error = g_error_copy(error);
+        }
+#endif /* VTE_GTK == 4 */
+
+        bool
+        parse_css(char const* value,
+                  GError** error)
+        {
+                auto provider = vte::glib::take_ref(gtk_css_provider_new());
+#if VTE_GTK == 3
+                if (!gtk_css_provider_load_from_path(provider.get(), value, error))
+                    return false;
+
+                g_object_set_data_full(G_OBJECT(provider.get()), "VTEAPP_PATH",
+                                       g_strdup(value), GDestroyNotify(g_free));
+
+#elif VTE_GTK == 4
+                GError* err = nullptr;
+                auto const id = g_signal_connect(provider.get(), "parsing-error",
+                                                 G_CALLBACK(parse_css_error_cb), &err);
+
+                gtk_css_provider_load_from_path(provider.get(), value);
+                g_signal_handler_disconnect(provider.get(), id);
+                if (err) {
+                        g_propagate_prefixed_error(error, err,
+                                                   "Error parsing CSS file \"%s\": ",
+                                                   value);
+                        return false;
+                }
+#endif /* VTE_GTK */
+
+                css = std::move(provider);
+                return true;
+        }
+
         static gboolean
         parse_background_image(char const* option, char const* value, void* data, GError** error)
         {
                 Options* that = static_cast<Options*>(data);
                 g_clear_object(&that->background_pixbuf);
                 that->background_pixbuf = gdk_pixbuf_new_from_file(value, error);
+                if (that->background_pixbuf)
+                        g_object_set_data_full(G_OBJECT(that->background_pixbuf), "VTEAPP_PATH",
+                                               g_strdup(value), GDestroyNotify(g_free));
+
                 return that->background_pixbuf != nullptr;
         }
 
@@ -456,45 +520,11 @@ private:
                 return that->parse_color(value, &that->bg_color, &set, error);
         }
 
-#if VTE_GTK == 4
-        static void
-        parse_css_error_cb(GtkCssProvider* provider,
-                           void* section,
-                           GError* error,
-                           GError** ret_error) noexcept
-        {
-                if (error)
-                        *ret_error = g_error_copy(error);
-        }
-#endif /* VTE_GTK == 4 */
-
         static gboolean
         parse_css_file(char const* option, char const* value, void* data, GError** error)
         {
                 Options* that = static_cast<Options*>(data);
-
-                auto css = vte::glib::take_ref(gtk_css_provider_new());
-#if VTE_GTK == 3
-                if (!gtk_css_provider_load_from_path(css.get(), value, error))
-                    return false;
-
-#elif VTE_GTK == 4
-                GError* err = nullptr;
-                auto const id = g_signal_connect(css.get(), "parsing-error",
-                                                 G_CALLBACK(parse_css_error_cb), &err);
-
-                gtk_css_provider_load_from_path(css.get(), value);
-                g_signal_handler_disconnect(css.get(), id);
-                if (err) {
-                        g_propagate_prefixed_error(error, err,
-                                                   "Error parsing CSS file \"%s\": ",
-                                                   value);
-                        return false;
-                }
-#endif /* VTE_GTK */
-
-                that->css = std::move(css);
-                return true;
+                return that->parse_css(value, error);
         }
 
         static gboolean
@@ -581,6 +611,429 @@ private:
                 return rv;
         }
 
+        char const*
+        default_config_path() {
+                auto const dh = g_get_user_config_dir();
+                auto ini_path = vte::glib::take_string(g_build_filename(dh, "vteapp.ini", nullptr));
+                return g_intern_string(ini_path.get());
+        }
+
+        bool
+        load_config(GKeyFile* keyfile,
+                    char const* path,
+                    GError** error)
+        {
+                if (!g_key_file_load_from_file(keyfile,
+                                               path ? path : default_config_path(),
+                                               GKeyFileFlags(G_KEY_FILE_KEEP_COMMENTS |
+                                                             G_KEY_FILE_KEEP_TRANSLATIONS),
+                                               error))
+                        return false;
+
+                // Load the config from the keyfile. Don't error out on invalid
+                // data, just ignore it.
+
+                auto load_bool_option = [&](char const* key,
+                                            gboolean* ptr) noexcept -> void
+                {
+                        auto err = vte::glib::Error{};
+                        auto const v = g_key_file_get_boolean(keyfile, CONFIG_GROUP, key, err);
+                        if (!err.error())
+                                *ptr = v != false;
+                };
+
+                load_bool_option("AllowWindowOps", &allow_window_ops);
+                load_bool_option("AudibleBell", &audible_bell);
+                load_bool_option("Backdrop", &backdrop);
+                load_bool_option("BboldIsBright", &bold_is_bright);
+                load_bool_option("BiDi", &bidi);
+                load_bool_option("Bold", &bold);
+                load_bool_option("BuiltinDingus", &builtin_dingus);
+                load_bool_option("ContextMenu", &context_menu);
+                load_bool_option("Debug", &debug);
+                load_bool_option("Decorations", &decorations);
+                load_bool_option("FallbackScrolling", &fallback_scrolling);
+                load_bool_option("GeometryHints", &geometry_hints);
+                load_bool_option("Hyperlink", &hyperlink);
+                load_bool_option("Keep", &keep);
+                load_bool_option("KineticScrolling", &kinetic_scrolling);
+                load_bool_option("ObjectNotifications", &object_notifications);
+                load_bool_option("OverlayScrollbar", &overlay_scrollbar);
+                load_bool_option("Pty", &pty);
+                load_bool_option("RequireSystemdScope", &require_systemd_scope);
+                load_bool_option("Reverse", &reverse);
+                load_bool_option("Rewrap", &rewrap);
+                load_bool_option("ScrollUnitIsPixels", &scroll_unit_is_pixels);
+                load_bool_option("Scrollbar", &scrollbar);
+                load_bool_option("ScrolledWindow", &use_scrolled_window);
+                load_bool_option("Shaping", &shaping);
+                load_bool_option("Shell", &shell);
+                load_bool_option("Sixel", &sixel);
+                load_bool_option("SystemdScope", &systemd_scope);
+                load_bool_option("TestMode", &test_mode);
+                load_bool_option("TrackClipboardTargets", &track_clipboard_targets);
+                load_bool_option("UseThemeColors", &use_theme_colors);
+                load_bool_option("WholeWindowTransparent", &whole_window_transparent);
+                load_bool_option("XFill", &xfill);
+                load_bool_option("YFill", &yfill);
+#if VTE_GTK == 3
+                load_bool_option("ArgbVisual", &argb_visual);
+                load_bool_option("DoubleBuffer", &double_buffer);
+#endif /* VTE_GTK == 3 */
+
+                auto load_color_option = [&](char const* key,
+                                             GdkRGBA* ptr,
+                                             bool* setptr) noexcept -> void
+                {
+                        auto str = vte::glib::take_string
+                                (g_key_file_get_string(keyfile, CONFIG_GROUP, key, nullptr));
+                        if (!str)
+                                return;
+
+                        parse_color(str.get(), ptr, setptr, nullptr);
+                };
+
+                load_color_option("BackgroundColor", &bg_color, &bg_color_set);
+                load_color_option("CursorBackgroundColor", &cursor_bg_color, &cursor_bg_color_set);
+                load_color_option("CursorForegroundColor", &cursor_fg_color, &cursor_fg_color_set);
+                load_color_option("ForegroundColor", &fg_color, &fg_color_set);
+                load_color_option("HighlightBackgroundColor", &hl_bg_color, &hl_bg_color_set);
+                load_color_option("HighlightForegroundColor", &hl_fg_color, &hl_fg_color_set);
+
+                auto load_double_option = [&](char const* key,
+                                              double* ptr) noexcept -> void
+                {
+                        auto err = vte::glib::Error{};
+                        auto const v = g_key_file_get_double(keyfile, CONFIG_GROUP, key, err);
+                        if (!err.error() &&
+                            std::isfinite(v))
+                                *ptr = v;
+                };
+
+                load_double_option("CellHeightScale", &cell_height_scale);
+                load_double_option("CellWidthScale", &cell_width_scale);
+
+                auto load_enum_option = [&](char const* key,
+                                            GType enum_type,
+                                            auto* ptr) noexcept -> void
+                {
+                        auto str = vte::glib::take_string
+                                (g_key_file_get_string(keyfile, CONFIG_GROUP, key, nullptr));
+                        if (!str)
+                                return;
+
+                        auto v = 0;
+                        if (parse_enum(enum_type, str.get(), v, nullptr))
+                                *ptr = (typeof *ptr)v;
+                };
+
+                load_enum_option("BackgroundExtend", CAIRO_GOBJECT_TYPE_EXTEND, &background_extend);
+                load_enum_option("TextBlink", VTE_TYPE_TEXT_BLINK_MODE, &text_blink_mode);
+                load_enum_option("CursorBlink", VTE_TYPE_CURSOR_BLINK_MODE, &cursor_blink_mode);
+                load_enum_option("CursorShape", VTE_TYPE_CURSOR_SHAPE, &cursor_shape);
+                load_enum_option("XAlign", VTE_TYPE_ALIGN, &xalign);
+                load_enum_option("YAlign", VTE_TYPE_ALIGN, &yalign);
+
+                auto load_int_option = [&](char const* key,
+                                           int* ptr) noexcept -> void
+                {
+                        auto err = vte::glib::Error{};
+                        auto v = g_key_file_get_integer(keyfile, CONFIG_GROUP, key, err);
+                        if (!err.error())
+                                *ptr = v;
+                };
+
+                load_int_option("ExtraMargin", &extra_margin);
+                load_int_option("ScrollbackLines", &scrollback_lines);
+                load_int_option("Transparent", &transparency_percent); // 0..100
+                load_int_option("Verbosity", &verbosity);
+
+                auto load_string_option = [&](char const* key,
+                                              char** ptr,
+                                              bool raw = false) noexcept -> void
+                {
+                        auto str = vte::glib::take_string
+                                (g_key_file_get_string(keyfile, CONFIG_GROUP, key, nullptr));
+
+                        // FIXME: decode to allow non-UTF-8 if @raw
+                        if (*ptr)
+                                g_free(*ptr);
+                        *ptr = str.release();
+                };
+
+                load_string_option("Encoding", &encoding);
+                load_string_option("Font", &font_string);
+                load_string_option("Geometry", &geometry);
+                load_string_option("Title", &title);
+                load_string_option("WordCharExceptions", &word_char_exceptions);
+                load_string_option("WorkingDirectory", &working_directory, true);
+
+                auto load_strv_option = [&](char const* key,
+                                            char*** ptr,
+                                            bool raw = false) noexcept -> void
+                {
+                        auto len = gsize{0};
+                        auto strv = vte::glib::take_strv
+                                (g_key_file_get_string_list(keyfile, CONFIG_GROUP, key, &len, nullptr));
+                        // FIXME: decode to allow non-UTF-8 if @raw
+                        if (*ptr)
+                                g_strfreev(*ptr);
+                        *ptr = strv.release();
+                };
+
+                load_strv_option("Dingu", &dingus, false);
+                load_strv_option("Env", &environment, true);
+
+                // load bgimage option
+                {
+                        auto str = vte::glib::take_string
+                                (g_key_file_get_string(keyfile, CONFIG_GROUP, "BackgroundImage", nullptr));
+                        if (str) {
+                                g_clear_object(&background_pixbuf);
+                                background_pixbuf = gdk_pixbuf_new_from_file(str.get(), nullptr);
+                                if (background_pixbuf)
+                                        g_object_set_data_full(G_OBJECT(background_pixbuf), "VTEAPP_PATH",
+                                                               g_strdup(str.get()), GDestroyNotify(g_free));
+
+                        }
+                }
+
+                // load CJK width option
+                {
+                        auto str = vte::glib::take_string
+                                (g_key_file_get_string(keyfile, CONFIG_GROUP, "CJKWidth", nullptr));
+                        if (str) {
+                                auto v = 1;
+                                if (parse_width_enum(str.get(), v, nullptr))
+                                        cjk_ambiguous_width = v;
+                        }
+                };
+
+                // load css option
+                {
+                        auto str = vte::glib::take_string
+                                (g_key_file_get_string(keyfile, CONFIG_GROUP, "CssFile", nullptr));
+                        if (str)
+                                parse_css(str.get(), nullptr);
+                };
+
+                // Note that the following command line options don't
+                // have a config file equivalent:
+                // --fd, --feed-stdin, --output-file, --version
+
+                return true;
+        }
+
+        bool
+        save_config(GKeyFile* keyfile,
+                    char const* save_path,
+                    GError** error)
+        {
+                // Store the config into the keyfile.
+
+                auto const defopt = Options{}; // for default values
+
+                auto save_bool_option = [&](char const* key,
+                                            bool v,
+                                            bool dv) noexcept -> void
+                {
+                        if (v == dv)
+                                return;
+
+                        g_key_file_set_boolean(keyfile, CONFIG_GROUP, key, v);
+                };
+
+                save_bool_option("AllowWindowOps" , allow_window_ops, defopt.allow_window_ops);
+                save_bool_option("AudibleBell" , audible_bell, defopt.audible_bell);
+                save_bool_option("Backdrop" , backdrop, defopt.backdrop);
+                save_bool_option("BboldIsBright" , bold_is_bright, defopt.bold_is_bright);
+                save_bool_option("BiDi" , bidi, defopt.bidi);
+                save_bool_option("Bold" , bold, defopt.bold);
+                save_bool_option("BuiltinDingus" , builtin_dingus, defopt.builtin_dingus);
+                save_bool_option("ContextMenu" , context_menu, defopt.context_menu);
+                save_bool_option("Debug" , debug, defopt.debug);
+                save_bool_option("Decorations" , decorations, defopt.decorations);
+                save_bool_option("FallbackScrolling" , fallback_scrolling, defopt.fallback_scrolling);
+                save_bool_option("GeometryHints" , geometry_hints, defopt.geometry_hints);
+                save_bool_option("Hyperlink" , hyperlink, defopt.hyperlink);
+                save_bool_option("Keep" , keep, defopt.keep);
+                save_bool_option("KineticScrolling" , kinetic_scrolling, defopt.kinetic_scrolling);
+                save_bool_option("ObjectNotifications" , object_notifications, defopt.object_notifications);
+                save_bool_option("OverlayScrollbar" , overlay_scrollbar, defopt.overlay_scrollbar);
+                save_bool_option("Pty" , pty, defopt.pty);
+                save_bool_option("RequireSystemdScope" , require_systemd_scope, defopt.require_systemd_scope);
+                save_bool_option("Reverse" , reverse, defopt.reverse);
+                save_bool_option("Rewrap" , rewrap, defopt.rewrap);
+                save_bool_option("ScrollUnitIsPixels" , scroll_unit_is_pixels, defopt.scroll_unit_is_pixels);
+                save_bool_option("Scrollbar" , scrollbar, defopt.scrollbar);
+                save_bool_option("ScrolledWindow" , use_scrolled_window, defopt.use_scrolled_window);
+                save_bool_option("Shaping" , shaping, defopt.shaping);
+                save_bool_option("Shell" , shell, defopt.shell);
+                save_bool_option("Sixel" , sixel, defopt.sixel);
+                save_bool_option("SystemdScope" , systemd_scope, defopt.systemd_scope);
+                save_bool_option("TestMode" , test_mode, defopt.test_mode);
+                save_bool_option("TrackClipboardTargets" , track_clipboard_targets, defopt.track_clipboard_targets);
+                save_bool_option("UseThemeColors" , use_theme_colors, defopt.use_theme_colors);
+                save_bool_option("WholeWindowTransparent" , whole_window_transparent, defopt.whole_window_transparent);
+                save_bool_option("XFill" , xfill, defopt.xfill);
+                save_bool_option("YFill" , yfill, defopt.yfill);
+#if VTE_GTK == 3
+                save_bool_option("ArgbVisual" , argb_visual, defopt.argb_visual);
+                save_bool_option("DoubleBuffer" , double_buffer, defopt.double_buffer);
+#endif /* VTE_GTK == 3 */
+
+                auto save_color_option = [&](char const* key,
+                                             GdkRGBA const& color,
+                                             bool set) noexcept -> void
+                {
+                        if (!set)
+                                return;
+
+                        auto str = vte::glib::take_string(gdk_rgba_to_string(&color));
+                        g_key_file_set_string(keyfile, CONFIG_GROUP, key, str.get());
+                };
+
+                save_color_option("BackgroundColor", bg_color, bg_color_set);
+                save_color_option("CursorBackgroundColor", cursor_bg_color, cursor_bg_color_set);
+                save_color_option("CursorForegroundColor", cursor_fg_color, cursor_fg_color_set);
+                save_color_option("ForegroundColor", fg_color, fg_color_set);
+                save_color_option("HighlightBackgroundColor", hl_bg_color, hl_bg_color_set);
+                save_color_option("HighlightForegroundColor", hl_fg_color, hl_fg_color_set);
+
+                auto save_double_option = [&](char const* key,
+                                              double v,
+                                              double dv) noexcept -> void
+                {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+                        if (v == dv)
+                                return;
+#pragma GCC diagnostic pop
+
+                        g_key_file_set_double(keyfile, CONFIG_GROUP, key, v);
+                };
+
+                save_double_option("CellHeightScale" , cell_height_scale, defopt.cell_height_scale);
+                save_double_option("CellWidthScale" , cell_width_scale, defopt.cell_width_scale);
+
+                auto save_enum_option = [&](char const* key,
+                                            GType enum_type,
+                                            auto v,
+                                            auto dv) noexcept -> void
+                {
+                        if (v == dv)
+                                return;
+
+                        auto enum_klass = reinterpret_cast<GEnumClass*>(g_type_class_ref(enum_type));
+                        if (auto const ev = g_enum_get_value(enum_klass, int(v))) {
+                                g_key_file_set_string(keyfile, CONFIG_GROUP, key, ev->value_nick);
+                        }
+                        g_type_class_unref(enum_klass);
+                };
+
+                save_enum_option("BackgroundExtend" , CAIRO_GOBJECT_TYPE_EXTEND, background_extend, defopt.background_extend);
+                save_enum_option("TextBlink" , VTE_TYPE_TEXT_BLINK_MODE, text_blink_mode, defopt.text_blink_mode);
+                save_enum_option("CursorBlink" , VTE_TYPE_CURSOR_BLINK_MODE, cursor_blink_mode, defopt.cursor_blink_mode);
+                save_enum_option("CursorShape" , VTE_TYPE_CURSOR_SHAPE, cursor_shape, defopt.cursor_shape);
+                save_enum_option("XAlign" , VTE_TYPE_ALIGN, xalign, defopt.xalign);
+                save_enum_option("YAlign" , VTE_TYPE_ALIGN, yalign, defopt.yalign);
+
+                auto save_int_option = [&](char const* key,
+                                           int v,
+                                           int dv) noexcept -> void
+                {
+                        if (v == dv)
+                                return;
+
+                        g_key_file_set_integer(keyfile, CONFIG_GROUP, key, v);
+                };
+
+                save_int_option("ExtraMargin" , extra_margin, defopt.extra_margin);
+                save_int_option("ScrollbackLines" , scrollback_lines, defopt.scrollback_lines);
+                save_int_option("Transparent" , transparency_percent, defopt.transparency_percent); // 0..100
+                save_int_option("Verbosity" , verbosity, defopt.verbosity);
+
+                auto save_string_option = [&](char const* key,
+                                              char const* v,
+                                              char const* dv,
+                                              bool raw = false) noexcept -> void
+                {
+                        if (!v || g_strcmp0(v, dv) == 0)
+                                return;
+
+                        // FIXME: encode to allow non-UTF-8 if @raw
+                        if (raw && !g_utf8_validate(v, -1, nullptr))
+                                return;
+
+                        g_key_file_set_string(keyfile, CONFIG_GROUP, key, v);
+                };
+
+                save_string_option("Encoding" , encoding, defopt.encoding);
+                save_string_option("Font" , font_string, defopt.font_string);
+                save_string_option("Geometry" , geometry, defopt.geometry);
+                save_string_option("Title" , title, defopt.title);
+                save_string_option("WordCharExceptions" , word_char_exceptions, defopt.word_char_exceptions);
+                save_string_option("WorkingDirectory" , working_directory, defopt.working_directory, true);
+
+                auto save_strv_option = [&](char const* key,
+                                            char const* const* v,
+                                            char const* const* dv,
+                                            bool raw = false) noexcept -> void
+                {
+                        if (!v || (v && dv && g_strv_equal(v, dv)))
+                                return;
+
+                        // FIXME: encode to allow non-UTF-8 if @raw
+                        if (raw) {
+                                for (auto i = 0; v[i]; ++i) {
+                                        if (!g_utf8_validate(v[i], -1, nullptr))
+                                                return;
+                                }
+                        }
+
+                        g_key_file_set_string_list(keyfile, CONFIG_GROUP, key,
+                                                   v, g_strv_length((char**)v));
+                };
+
+                save_strv_option("Dingu" , dingus, defopt.dingus, false);
+                save_strv_option("Env" , environment, defopt.environment, true);
+
+                // save bgimage option
+                {
+                        if (background_pixbuf) {
+                                auto const path = (char const*)g_object_get_data(G_OBJECT(background_pixbuf), "VTEAPP_PATH");
+                                if (path) {
+                                        // FIXME: encode to allow non-UTF-8
+                                        g_key_file_set_string(keyfile, CONFIG_GROUP, "BackgroundImage", path);
+                                }
+                        }
+                }
+
+                // save CJK width option
+                {
+                        if (cjk_ambiguous_width != defopt.cjk_ambiguous_width) {
+                                g_key_file_set_string(keyfile, CONFIG_GROUP, "CJKWidth",
+                                                      cjk_ambiguous_width == 2 ? "wide" : "narrow");
+                        }
+                };
+
+                // save css option
+                {
+                        if (css) {
+                                auto const path = (char const*)g_object_get_data(G_OBJECT(css.get()), "VTEAPP_PATH");
+                                if (path) {
+                                        // FIXME: encode to allow non-UTF-8
+                                        g_key_file_set_string(keyfile, CONFIG_GROUP, "CssFile", path);
+                                }
+                        }
+                };
+
+                // Now save to keyfile
+                return g_key_file_save_to_file(keyfile,
+                                               save_path ? save_path : default_config_path(),
+                                               error);
+        }
+
 public:
 
         double get_alpha() const
@@ -628,14 +1081,184 @@ public:
                         char* argv[],
                         GError** error)
         {
+                auto entries = std::vector<GOptionEntry>{};
+
+                auto add_bool_option = [&](char const* option,
+                                           char const short_option,
+                                           char const* negated_option,
+                                           char const negated_short_option,
+                                           int flags,
+                                           gboolean* arg_data,
+                                           char const* desc,
+                                           char const* negated_desc) constexpr noexcept -> void
+                {
+                        entries.emplace_back(option,
+                                             short_option,
+                                             // hide this option if it's the default anyway
+                                             flags | (*arg_data ? G_OPTION_FLAG_HIDDEN : 0),
+                                             G_OPTION_ARG_NONE,
+                                             arg_data,
+                                             desc,
+                                             nullptr);
+                        entries.emplace_back(negated_option,
+                                             negated_short_option,
+                                             // hide this option if it's the default anyway
+                                             flags | (*arg_data ? 0 : G_OPTION_FLAG_HIDDEN) | G_OPTION_FLAG_REVERSE,
+                                             G_OPTION_ARG_NONE,
+                                             arg_data,
+                                             negated_desc,
+                                             nullptr);
+                };
+
+                add_bool_option("allow-window-ops", 0, "no-allow-window-ops", 0,
+                                0, &allow_window_ops,
+                                "Allow window operations (resize, move, raise/lower, (de)iconify)",
+                                "Disallow window operations (resize, move, raise/lower, (de)iconify)");
+                add_bool_option("audible-bell", 'a', "no-audible-bell", 0,
+                                0, &audible_bell,
+                                "Enable audible terminal bell",
+                                "Disable audible terminal bell");
+                add_bool_option("backdrop", 0, "no-backdrop", 0,
+                                0, &backdrop,
+                                "Enable dimming when toplevel unfocused",
+                                "Disable dimming when toplevel unfocused");
+                add_bool_option("bold-is-bright", 'B', "no-bold-is-bright", 0,
+                                0, &bold_is_bright,
+                                "Bold to also brightens colors",
+                                "Bold does not also brightens colors");
+                add_bool_option("debug", 'd', "no-debug", 0,
+                                0, &debug,
+                                "Enable various debugging checks",
+                                "Disable various debugging checks");
+                add_bool_option("keep", 'k', "no-keep", 0,
+                                0, &keep,
+                                "Live on after the command exits",
+                                "Exit after the command exits");
+                add_bool_option("bidi", 0, "no-bidi", 0,
+                                0, &bidi,
+                                "Enable BiDi",
+                                "Disable BiDi");
+                add_bool_option("bold", 0, "no-bold", 0,
+                                0, &bold,
+                                "Enable bold",
+                                "Disable bold");
+                add_bool_option("builtin-dingus", 0, "no-builtin-dingus", 0,
+                                0, &builtin_dingus,
+                                "Highlight URLs inside the terminal",
+                                "Don't highlight URLs inside the terminal");
+                add_bool_option("context-menu", 0, "no-context-menu", 0,
+                                0, &context_menu,
+                                "Enable context menu",
+                                "Disable context menu");
+                add_bool_option("decorations", 0, "no-decorations", 0,
+                                0, &decorations,
+                                "Enable window decorations",
+                                "Disable window decorations");
+                add_bool_option("fallback-scrolling", 0, "no-fallback-scrolling", 0,
+                                0, &fallback_scrolling,
+                                "Enable fallback scrolling",
+                                "Disable fallback scrolling");
+                add_bool_option("geometry-hints", 0, "no-geometry-hints", 'G',
+                                0,&geometry_hints,
+                                "Allow the terminal to be resized to any dimension, not constrained to fit to an integer multiple of characters",
+                                "Disallow the terminal to be resized to any dimension, not constrained to fit to an integer multiple of characters");
+                add_bool_option("hyperlink", 0, "no-hyperlink", 'H',
+                                0, &hyperlink,
+                                "Enable hyperlinks",
+                                "Disable hyperlinks");
+                add_bool_option("kinetic-scrolling", 0, "no-kinetic-scrolling", 0,
+                                0, &kinetic_scrolling,
+                                "Enable kinetic scrolling",
+                                "Disable kinetic scrolling");
+                add_bool_option("pty", 0, "no-pty", 0,
+                                0, &pty,
+                                "Enable PTY creation with --no-shell",
+                                "Disable PTY creation with --no-shell");
+                add_bool_option("rewrap", 0, "no-rewrap", 'R',
+                                0, &rewrap,
+                                "Enable rewrapping on resize",
+                                "Disable rewrapping on resize");
+                add_bool_option("scrollbar", 0, "no-scrollbar", 0,
+                                0, &scrollbar,
+                                "Enable scrollbar",
+                                "Disable scrollbar");
+                add_bool_option("shaping", 0, "no-shaping", 0,
+                                0, &shaping,
+                                "Enable Arabic shaping",
+                                "Disable Arabic shaping");
+                add_bool_option("shell", 0, "no-shell", 'S',
+                                0, &shell,
+                                "Enable spawning a shell inside the terminal",
+                                "Disable spawning a shell inside the terminal");
+                add_bool_option("sixel", 0, "no-sixel", 0,
+                                0, &sixel,
+                                "Enable SIXEL images",
+                                "Disable SIXEL images");
+                add_bool_option("systemd-scope", 0, "no-systemd-scope", 0,
+                                0, &systemd_scope,
+                                "Enable using systemd user scope",
+                                "Disble using systemd user scope");
+                add_bool_option("overlay-scrollbar", 'N', "no-overlay-scrollbar", 0,
+                                0, &overlay_scrollbar,
+                                "Use overlay scrollbar",
+                                "Use regular scrollbar");
+                add_bool_option("reverse", 0, "no-reverse", 0,
+                                0, &reverse,
+                                "Reverse foreground/background colors",
+                                "Don't reverse foreground/background colors");
+                add_bool_option("require-systemd-scope", 0, "no-require-systemd-scope", 0,
+                                0, &require_systemd_scope,
+                                "Require use of a systemd user scope",
+                                "Don't require use of a systemd user scope");
+                add_bool_option("scroll-unit-is-pixels", 0, "no-scroll-unit-is-pixels", 0,
+                                0, &scroll_unit_is_pixels,
+                                "Use pixels as scroll unit",
+                                "Use lines as scroll unit");
+                add_bool_option("track-clipboard-targets", 0, "no-track-clipboard-targets", 0,
+                                G_OPTION_FLAG_HIDDEN, &track_clipboard_targets,
+                                "Track clipboard targets",
+                                "Don't track clipboard targets");
+                add_bool_option("whole-window-transparent", 0, "no-whole-window-transparent", 0,
+                                0, &whole_window_transparent,
+                                "Make the whole window transparent",
+                                "Don't make the whole window transparent");
+                add_bool_option("scrolled-window", 0, "no-scrolled-window", 0,
+                                G_OPTION_FLAG_HIDDEN, &use_scrolled_window,
+                                "Use a GtkScrolledWindow",
+                                "Don't use a GtkScrolledWindow");
+                add_bool_option("use-theme-colors", 0, "no-use-theme-colors", 0,
+                                0, &use_theme_colors,
+                                "Use foreground and background colors from the gtk+ theme",
+                                "Don't use foreground and background colors from the gtk+ theme");
+
+                add_bool_option("xfill", 0, "no-xfill", 0,
+                                0, &xfill,
+                                "Fill horizontally",
+                                "Don't fill horizontally");
+                add_bool_option("yfill", 0, "no-yfill", 0,
+                                0, &yfill,
+                                "Fill vertically",
+                                "Don't fill vertically");
+                add_bool_option("object-notifications", 'N', "no-object-notifications", 0,
+                                0, &object_notifications,
+                                "Print VteTerminal object notifications",
+                                "Don't print VteTerminal object notifications");
+
+#if VTE_GTK == 3
+                add_bool_option("argb-visual", 0, "no-argb-visual", 0,
+                                0, &argb_visual,
+                                "Use an ARGB visual",
+                                "Don't use an ARGB visual");
+                add_bool_option("double-buffer", 0, "no-double-buffer", '2',
+                                0, &double_buffer,
+                                "Enable double-buffering",
+                                "Disable double-buffering");
+#endif /* VTE_GTK == 3 */
+
+                entries.push_back({}); // terminate
+
                 char* dummy_string = nullptr;
-                GOptionEntry const entries[] = {
-                        { "allow-window-ops", 0, 0, G_OPTION_ARG_NONE, &allow_window_ops,
-                          "Allow window operations (resize, move, raise/lower, (de)iconify)", nullptr },
-                        { "audible-bell", 'a', 0, G_OPTION_ARG_NONE, &audible_bell,
-                          "Use audible terminal bell", nullptr },
-                        { "backdrop", 0, 0,G_OPTION_ARG_NONE, &backdrop,
-                          "Dim when toplevel unfocused", nullptr },
+                GOptionEntry const more_entries[] = {
                         { "background-color", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_bg_color,
                           "Set default background color", "COLOR" },
                         { "background-image", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_background_image,
@@ -644,8 +1267,6 @@ public:
                           "Set background image extend", "EXTEND" },
                         { "blink", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_text_blink,
                           "Text blink mode (never|focused|unfocused|always)", "MODE" },
-                        { "bold-is-bright", 'B', 0, G_OPTION_ARG_NONE, &bold_is_bright,
-                          "Bold also brightens colors", nullptr },
                         { "cell-height-scale", 0, 0, G_OPTION_ARG_DOUBLE, &cell_height_scale,
                           "Add extra line spacing", "1.0..2.0" },
                         { "cell-width-scale", 0, 0, G_OPTION_ARG_DOUBLE, &cell_width_scale,
@@ -664,8 +1285,6 @@ public:
                           "Load CSS from FILE", "FILE" },
                         { "dingu", 'D', 0, G_OPTION_ARG_STRING_ARRAY, &dingus,
                           "Add regex highlight", nullptr },
-                        { "debug", 'd', 0,G_OPTION_ARG_NONE, &debug,
-                          "Enable various debugging checks", nullptr },
                         { "encoding", 0, 0, G_OPTION_ARG_STRING, &encoding,
                           "Specify the terminal encoding to use", "ENCODING" },
                         { "env", 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &environment,
@@ -688,68 +1307,29 @@ public:
                           "Enable distinct highlight foreground color for selection", "COLOR" },
                         { "icon-title", 'i', 0, G_OPTION_ARG_NONE, &icon_title,
                           "Enable the setting of the icon title", nullptr },
-                        { "keep", 'k', 0, G_OPTION_ARG_NONE, &keep,
-                          "Live on after the command exits", nullptr },
-                        { "no-bidi", 0, 0, G_OPTION_ARG_NONE, &no_bidi,
-                          "Disable BiDi", nullptr },
-                        { "no-bold", 0, 0, G_OPTION_ARG_NONE, &no_bold,
-                          "Disable bold", nullptr },
-                        { "no-builtin-dingus", 0, 0, G_OPTION_ARG_NONE, &no_builtin_dingus,
-                          "Highlight URLs inside the terminal", nullptr },
-                        { "no-context-menu", 0, 0, G_OPTION_ARG_NONE, &no_context_menu,
-                          "Disable context menu", nullptr },
-                        { "no-decorations", 0, 0, G_OPTION_ARG_NONE, &no_decorations,
-                          "Disable window decorations", nullptr },
-                        { "no-fallback-scrolling", 0, 0, G_OPTION_ARG_NONE, &no_fallback_scrolling,
-                          "Disable fallback scrolling", nullptr },
-                        { "no-geometry-hints", 'G', 0, G_OPTION_ARG_NONE, &no_geometry_hints,
-                          "Allow the terminal to be resized to any dimension, not constrained to fit to an integer multiple of characters", nullptr },
-                        { "no-hyperlink", 'H', 0, G_OPTION_ARG_NONE, &no_hyperlink,
-                          "Disable hyperlinks", nullptr },
-                        { "no-kinetic-scrolling", 'k', 0, G_OPTION_ARG_NONE, &no_kinetic_scrolling,
-                          "Disable kinetic scrolling", nullptr },
-                        { "no-pty", 0, 0, G_OPTION_ARG_NONE, &no_pty,
-                          "Disable PTY creation with --no-shell", nullptr },
-                        { "no-rewrap", 'R', 0, G_OPTION_ARG_NONE, &no_rewrap,
-                          "Disable rewrapping on resize", nullptr },
-                        { "no-scrollbar", 0, 0, G_OPTION_ARG_NONE, &no_scrollbar,
-                          "Disable scrollbar", nullptr },
-                        { "no-shaping", 0, 0, G_OPTION_ARG_NONE, &no_shaping,
-                          "Disable Arabic shaping", nullptr },
-                        { "no-shell", 'S', 0, G_OPTION_ARG_NONE, &no_shell,
-                          "Disable spawning a shell inside the terminal", nullptr },
-                        { "no-systemd-scope", 0, 0, G_OPTION_ARG_NONE, &no_systemd_scope,
-                          "Don't use systemd user scope", nullptr },
-                        { "object-notifications", 'N', 0, G_OPTION_ARG_NONE, &object_notifications,
-                          "Print VteTerminal object notifications", nullptr },
                         { "output-file", 0, 0, G_OPTION_ARG_FILENAME, &output_filename,
                           "Save terminal contents to file at exit", nullptr },
-                        { "overlay-scrollbar", 'N', 0, G_OPTION_ARG_NONE, &overlay_scrollbar,
-                          "Print VteTerminal object notifications", nullptr },
-                        { "reverse", 0, 0, G_OPTION_ARG_NONE, &reverse,
-                          "Reverse foreground/background colors", nullptr },
-                        { "require-systemd-scope", 0, 0, G_OPTION_ARG_NONE, &require_systemd_scope,
-                          "Require use of a systemd user scope", nullptr },
-                        { "scroll-unit-is-pixels", 0, 0, G_OPTION_ARG_NONE, &scroll_unit_is_pixels,
-                          "Use pixels as scroll unit", nullptr },
                         { "scrollback-lines", 'n', 0, G_OPTION_ARG_INT, &scrollback_lines,
                           "Specify the number of scrollback-lines (-1 for infinite)", nullptr },
                         { "title", 0, 0, G_OPTION_ARG_STRING, &title, "Set the initial title of the window", "TITLE" },
                         { "transparent", 'T', 0, G_OPTION_ARG_INT, &transparency_percent,
                           "Enable the use of a transparent background", "0..100" },
-                        { "track-clipboard-targets", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &track_clipboard_targets,
-                          "Track clipboard targets", nullptr },
                         { "verbose", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK,
                           (void*)parse_verbosity,
                           "Enable verbose debug output", nullptr },
                         { "version", 0, 0, G_OPTION_ARG_NONE, &version,
                           "Show version", nullptr },
-                        { "whole-window-transparent", 0, 0, G_OPTION_ARG_NONE, &whole_window_transparent,
-                          "Make the whole window transparent", NULL },
                         { "word-char-exceptions", 0, 0, G_OPTION_ARG_STRING, &word_char_exceptions,
                           "Specify the word char exceptions", "CHARS" },
                         { "working-directory", 'w', 0, G_OPTION_ARG_FILENAME, &working_directory,
                           "Specify the initial working directory of the terminal", nullptr },
+                        { "xalign", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_xalign,
+                          "Horizontal alignment (start|end|center)", "ALIGN" },
+                        { "yalign", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_yalign,
+                          "Vertical alignment (fill|start|end|center)", "ALIGN" },
+
+                        { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
+                          "Enable test mode", nullptr },
 
                         /* Options for compatibility with the old vteapp test application */
                         { "border-width", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_INT, &extra_margin,
@@ -762,37 +1342,36 @@ public:
                           nullptr, nullptr },
                         { "scrollbar-policy", 'P', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_STRING,
                           &dummy_string, nullptr, nullptr },
-                        { "scrolled-window", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE,
-                          &use_scrolled_window,
-                          "Use a GtkScrolledWindow", nullptr },
-                        { "shell", 'S', G_OPTION_FLAG_REVERSE | G_OPTION_FLAG_HIDDEN,
-                          G_OPTION_ARG_NONE, &no_shell, nullptr, nullptr },
-#if VTE_DEBUG
-                        { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
-                          "Enable test mode", nullptr },
-#endif
-                        { "use-theme-colors", 0, 0, G_OPTION_ARG_NONE, &use_theme_colors,
-                          "Use foreground and background colors from the gtk+ theme", nullptr },
 
-                        { "xalign", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_xalign,
-                          "Horizontal alignment (start|end|center)", "ALIGN" },
-                        { "yalign", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_yalign,
-                          "Vertical alignment (fill|start|end|center)", "ALIGN" },
-                        { "no-xfill", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &no_xfill,
-                          "No horizontal fillment", nullptr },
-                        { "no-yfill", 0, 0, G_OPTION_ARG_NONE, &no_yfill,
-                          "No vertical fillment", nullptr },
-
-
-#if VTE_GTK == 3
-                        { "no-argb-visual", 0, 0, G_OPTION_ARG_NONE, &no_argb_visual,
-                          "Don't use an ARGB visual", nullptr },
-                        { "double-buffer", '2', G_OPTION_FLAG_REVERSE | G_OPTION_FLAG_HIDDEN,
-                          G_OPTION_ARG_NONE, &no_double_buffer, nullptr, nullptr },
-                        { "no-double-buffer", '2', 0, G_OPTION_ARG_NONE, &no_double_buffer,
-                          "Disable double-buffering", nullptr },
-#endif /* VTE_GTK == 3 */
                         { nullptr }
+                };
+
+                gboolean no_load_config = false;
+                char* load_config_path = nullptr;
+                char* save_config_path = nullptr;
+                GOptionEntry const config_entries[] = {
+                        { "load-config",
+                          0,
+                          0,
+                          G_OPTION_ARG_FILENAME,
+                          &load_config_path,
+                          "Load configuration from file",
+                          "FILE" },
+                        { "save-config",
+                          0,
+                          0,
+                          G_OPTION_ARG_FILENAME,
+                          &save_config_path,
+                          "Save configuration to file",
+                          "FILE" },
+                        { "no-load-config",
+                          0,
+                          0,
+                          G_OPTION_ARG_NONE,
+                          &no_load_config,
+                          "Don't load default configuration",
+                          nullptr },
+                        { nullptr },
                 };
 
                 /* Look for '--' */
@@ -812,26 +1391,77 @@ public:
                         for (j = 0; i < argc; i++, j++)
                                 exec_argv[j] = g_strdup(argv[i]);
                         exec_argv[j] = nullptr;
+
+                        argc = i;
                         break;
                 }
 
-                auto context = vte::take_freeable
-                        (g_option_context_new("[-- COMMAND …] — VTE test application"));
-                g_option_context_set_help_enabled(context.get(), true);
-                g_option_context_set_translation_domain(context.get(), GETTEXT_PACKAGE);
+                auto config_ini = vte::take_freeable(g_key_file_new());
 
-                auto group = g_option_group_new(nullptr, nullptr, nullptr, this, nullptr);
-                g_option_group_set_translation_domain(group, GETTEXT_PACKAGE);
-                g_option_group_add_entries(group, entries);
-                g_option_context_set_main_group(context.get(), group);
+                do {
+                        // First, parse the --no-load-config and --load-config
+                        // options
+                        auto context = vte::take_freeable(g_option_context_new(nullptr));
+                        g_option_context_set_help_enabled(context.get(), false);
+                        g_option_context_set_ignore_unknown_options(context.get(), true);
+                        g_option_context_set_translation_domain(context.get(), GETTEXT_PACKAGE);
+
+                        auto err = vte::glib::Error{};
+                        auto group = g_option_group_new(nullptr, nullptr, nullptr, this, nullptr);
+                        g_option_group_set_translation_domain(group, GETTEXT_PACKAGE);
+                        g_option_group_add_entries(group, config_entries);
+                        g_option_context_set_main_group(context.get(), group);
+
+                        // This will remove parsed options from @argv and
+                        // leave unrecognised options to be parsed again below.
+                        if (!g_option_context_parse(context.get(), &argc, &argv, err))
+                                break;
+
+                        if (!no_load_config) {
+                                // Allow default load to fail
+                                if (!load_config(config_ini.get(), nullptr, err) &&
+                                    !err.matches(G_FILE_ERROR, G_FILE_ERROR_NOENT)) {
+                                        verbose_printerr("Failed to load default configuration: %s\n", err.message());
+                                }
+                        }
+
+                        if (load_config_path && !load_config(config_ini.get(), load_config_path, error)) {
+                                    g_free(load_config_path);
+                                    g_free(save_config_path);
+                                    break; // don't bail out
+                        }
+                } while (false);
+
+                {
+                        // Now parse all options. (We add the above-handled options too,
+                        // so that --help can output them; but since they are already
+                        // removed from argv they won't be processed again.
+                        auto context = vte::take_freeable
+                                (g_option_context_new("[-- COMMAND …] — VTE test application"));
+                        g_option_context_set_help_enabled(context.get(), true);
+                        g_option_context_set_translation_domain(context.get(), GETTEXT_PACKAGE);
+
+                        auto group = g_option_group_new(nullptr, nullptr, nullptr, this, nullptr);
+                        g_option_group_set_translation_domain(group, GETTEXT_PACKAGE);
+                        g_option_group_add_entries(group, entries.data());
+                        g_option_group_add_entries(group, more_entries);
+                        g_option_context_set_main_group(context.get(), group);
 
 #if VTE_GTK == 3
-                g_option_context_add_group(context.get(), gtk_get_option_group(true));
+                        g_option_context_add_group(context.get(), gtk_get_option_group(true));
 #endif
 
-                bool rv = g_option_context_parse(context.get(), &argc, &argv, error);
+                        if (!g_option_context_parse(context.get(), &argc, &argv, error))
+                                return false;
+                }
 
                 g_free(dummy_string);
+
+                // Now save the combined config, if requested
+                if (save_config_path &&
+                    !save_config(config_ini.get(), save_config_path, error)) {
+                    return false;
+                }
 
                 if (reverse) {
                         using std::swap;
@@ -839,18 +1469,18 @@ public:
                 }
 
                 if (use_scrolled_window) {
-                        no_geometry_hints = true;
+                        geometry_hints = false;
                 }
 
 #if VTE_GTK == 4
-                if (rv && !gtk_init_check()) {
+                if (!gtk_init_check()) {
                         g_set_error_literal(error, G_OPTION_ERROR, G_OPTION_ERROR_FAILED,
                                             "Failed to initialise gtk+");
-                        rv = false;
+                        return false;
                 }
 #endif /* VTE_GTK == 4 */
 
-                return rv;
+                return true;
         }
 }; // class Options
 
@@ -871,9 +1501,6 @@ verbose_fprintf(FILE* fp,
         g_vfprintf(fp, format, args);
         va_end(args);
 }
-
-#define verbose_print(...) verbose_fprintf(stdout, __VA_ARGS__)
-#define verbose_printerr(...) verbose_fprintf(stderr, __VA_ARGS__)
 
 /* regex */
 
@@ -1558,7 +2185,7 @@ vteapp_window_add_dingus(VteappWindow* window,
 static void
 vteapp_window_update_geometry(VteappWindow* window)
 {
-        if (options.no_geometry_hints)
+        if (!options.geometry_hints)
                 return;
 
 #if VTE_GTK == 3
@@ -1600,7 +2227,7 @@ vteapp_window_update_geometry(VteappWindow* window)
                  * since only then we know the CSD size. Only set the geometry when
                  * anything has changed.
                  */
-                if (!options.no_geometry_hints &&
+                if (options.geometry_hints &&
                     (cell_height != window->cached_cell_height ||
                      cell_width != window->cached_cell_width ||
                      chrome_width != window->cached_chrome_width ||
@@ -1654,7 +2281,7 @@ static void
 vteapp_window_resize(VteappWindow* window)
 {
         /* Can't do this when not using geometry hints */
-        if (options.no_geometry_hints)
+        if (!options.geometry_hints)
                 return;
 
         /* Don't do this for fullscreened, maximised, or tiled windows. */
@@ -1714,7 +2341,7 @@ vteapp_window_parse_geometry(VteappWindow* window)
 
                 if (!rv)
                         verbose_printerr("Failed to parse geometry spec \"%s\"\n", options.geometry);
-                else if (!options.no_geometry_hints) {
+                else if (options.geometry_hints) {
                         /* After parse_geometry(), we can get the default size in
                          * width/height increments, i.e. in grid size.
                          */
@@ -1738,7 +2365,7 @@ vteapp_window_parse_geometry(VteappWindow* window)
                 /* In GTK+ 3.0, the default size of a window comes from its minimum
                  * size not its natural size, so we need to set the right default size
                  * explicitly */
-                if (!options.no_geometry_hints) {
+                if (options.geometry_hints) {
                         /* Grid based */
                         gtk_window_set_default_geometry(GTK_WINDOW(window),
                                                         vte_terminal_get_column_count(window->terminal),
@@ -1801,7 +2428,7 @@ vteapp_window_launch_argv(VteappWindow* window,
 {
         auto const spawn_flags = GSpawnFlags(G_SPAWN_SEARCH_PATH_FROM_ENVP |
                                              VTE_SPAWN_NO_PARENT_ENVV |
-                                             (options.no_systemd_scope ? VTE_SPAWN_NO_SYSTEMD_SCOPE : 0) |
+                                             (options.systemd_scope ? 0 : VTE_SPAWN_NO_SYSTEMD_SCOPE) |
                                              (options.require_systemd_scope ? VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE : 0));
         auto fds = options.fds();
         auto map_fds = options.map_fds();
@@ -1929,9 +2556,9 @@ vteapp_window_launch(VteappWindow* window)
                 rv = vteapp_window_launch_argv(window, options.exec_argv, error);
         else if (options.command != nullptr)
                 rv = vteapp_window_launch_commandline(window, options.command, error);
-        else if (!options.no_shell)
+        else if (options.shell)
                 rv = vteapp_window_launch_shell(window, error);
-        else if (!options.no_pty)
+        else if (options.pty)
                 rv = vteapp_window_fork(window, error);
         else
                 rv = vteapp_window_tick(window, error);
@@ -2080,7 +2707,7 @@ window_setup_context_menu_cb(VteTerminal* terminal,
                              VteEventContext const* context,
                              VteappWindow* window)
 {
-        if (options.no_context_menu)
+        if (!options.context_menu)
                 return;
 
         // context == nullptr when the menu is dismissed after being shown
@@ -2492,7 +3119,7 @@ vteapp_window_constructed(GObject *object)
         gtk_window_set_title(GTK_WINDOW(window),
                              options.title && options.title[0] ? options.title : "Terminal");
 
-        if (options.no_decorations)
+        if (!options.decorations)
                 gtk_window_set_decorated(GTK_WINDOW(window), false);
 
         /* Create terminal and connect scrollbar */
@@ -2509,7 +3136,7 @@ vteapp_window_constructed(GObject *object)
                 gtk_widget_set_margin_bottom(GTK_WIDGET(window->terminal), margin);
         }
 
-        if (!options.no_scrollbar && !options.use_scrolled_window) {
+        if (options.scrollbar && !options.use_scrolled_window) {
                 auto vadj = gtk_scrollable_get_vadjustment(GTK_SCROLLABLE(window->terminal));
 #if VTE_GTK == 3
                 gtk_range_set_adjustment(GTK_RANGE(window->scrollbar), vadj);
@@ -2518,7 +3145,7 @@ vteapp_window_constructed(GObject *object)
 #endif
         }
 
-        if (options.no_scrollbar || options.use_scrolled_window) {
+        if (!options.scrollbar || options.use_scrolled_window) {
 #if VTE_GTK == 3
                 gtk_widget_destroy(GTK_WIDGET(window->scrollbar));
 #elif VTE_GTK == 4
@@ -2572,7 +3199,7 @@ vteapp_window_constructed(GObject *object)
         /* Set ARGB visual */
         if (options.transparency_percent >= 0) {
 #if VTE_GTK == 3
-                if (!options.no_argb_visual) {
+                if (options.argb_visual) {
                         auto screen = gtk_widget_get_screen(GTK_WIDGET(window));
                         auto visual = gdk_screen_get_rgba_visual(screen);
                         if (visual != nullptr)
@@ -2609,7 +3236,7 @@ vteapp_window_constructed(GObject *object)
 
         /* Settings */
 #if VTE_GTK == 3
-        if (options.no_double_buffer) {
+        if (!options.double_buffer) {
                 G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
                 gtk_widget_set_double_buffered(GTK_WIDGET(window->terminal), false);
                 G_GNUC_END_IGNORE_DEPRECATIONS;
@@ -2625,23 +3252,24 @@ vteapp_window_constructed(GObject *object)
         if (options.word_char_exceptions != nullptr)
                 vte_terminal_set_word_char_exceptions(window->terminal, options.word_char_exceptions);
 
-        vte_terminal_set_allow_hyperlink(window->terminal, !options.no_hyperlink);
+        vte_terminal_set_allow_hyperlink(window->terminal, options.hyperlink);
         vte_terminal_set_audible_bell(window->terminal, options.audible_bell);
-        vte_terminal_set_allow_bold(window->terminal, !options.no_bold);
+        vte_terminal_set_allow_bold(window->terminal, options.bold);
         vte_terminal_set_bold_is_bright(window->terminal, options.bold_is_bright);
         vte_terminal_set_cell_height_scale(window->terminal, options.cell_height_scale);
         vte_terminal_set_cell_width_scale(window->terminal, options.cell_width_scale);
         vte_terminal_set_cjk_ambiguous_width(window->terminal, options.cjk_ambiguous_width);
         vte_terminal_set_cursor_blink_mode(window->terminal, options.cursor_blink_mode);
         vte_terminal_set_cursor_shape(window->terminal, options.cursor_shape);
-        vte_terminal_set_enable_bidi(window->terminal, !options.no_bidi);
-        vte_terminal_set_enable_shaping(window->terminal, !options.no_shaping);
-        vte_terminal_set_enable_fallback_scrolling(window->terminal, !options.no_fallback_scrolling);
+        vte_terminal_set_enable_bidi(window->terminal, options.bidi);
+        vte_terminal_set_enable_shaping(window->terminal, options.shaping);
+        vte_terminal_set_enable_sixel(window->terminal, options.sixel);
+        vte_terminal_set_enable_fallback_scrolling(window->terminal, options.fallback_scrolling);
         vte_terminal_set_mouse_autohide(window->terminal, true);
-        vte_terminal_set_rewrap_on_resize(window->terminal, !options.no_rewrap);
-        vte_terminal_set_scroll_on_insert(window->terminal, true);
-        vte_terminal_set_scroll_on_output(window->terminal, false);
-        vte_terminal_set_scroll_on_keystroke(window->terminal, true);
+        vte_terminal_set_rewrap_on_resize(window->terminal, options.rewrap);
+        vte_terminal_set_scroll_on_insert(window->terminal, options.scroll_on_insert);
+        vte_terminal_set_scroll_on_output(window->terminal, options.scroll_on_output);
+        vte_terminal_set_scroll_on_keystroke(window->terminal, options.scroll_on_keystroke);
         vte_terminal_set_scroll_unit_is_pixels(window->terminal, options.scroll_unit_is_pixels);
         vte_terminal_set_scrollback_lines(window->terminal, options.scrollback_lines);
         vte_terminal_set_text_blink_mode(window->terminal, options.text_blink_mode);
@@ -2649,10 +3277,8 @@ vteapp_window_constructed(GObject *object)
                 vte_terminal_set_xalign(window->terminal, options.xalign);
         if (options.yalign != VteAlign(-1))
                 vte_terminal_set_yalign(window->terminal, options.yalign);
-        if (options.no_xfill)
-                vte_terminal_set_xfill(window->terminal, false);
-        if (options.no_yfill)
-                vte_terminal_set_yfill(window->terminal, false);
+        vte_terminal_set_xfill(window->terminal, options.xfill);
+        vte_terminal_set_yfill(window->terminal, options.yfill);
 
         /* Style */
         if (options.font_string != nullptr) {
@@ -2676,7 +3302,7 @@ vteapp_window_constructed(GObject *object)
                 gtk_widget_set_opacity (GTK_WIDGET (window), options.get_alpha());
 
         /* Dingus */
-        if (!options.no_builtin_dingus)
+        if (options.builtin_dingus)
                 vteapp_window_add_dingus(window, builtin_dingus);
         if (options.dingus != nullptr)
                 vteapp_window_add_dingus(window, options.dingus);
@@ -2691,10 +3317,10 @@ vteapp_window_constructed(GObject *object)
                 gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), GTK_WIDGET(window->terminal));
 #endif /* VTE_GTK */
                 gtk_scrolled_window_set_kinetic_scrolling(GTK_SCROLLED_WINDOW(sw),
-                                                          !options.no_kinetic_scrolling);
+                                                          options.kinetic_scrolling);
 
                 auto vpolicy = GTK_POLICY_ALWAYS;
-                if (options.no_scrollbar)
+                if (!options.scrollbar)
                         vpolicy = GTK_POLICY_EXTERNAL;
                 else if (options.overlay_scrollbar)
                         vpolicy = GTK_POLICY_AUTOMATIC;

@@ -280,6 +280,7 @@ namespace vte {
 
 VTE_DECLARE_FREEABLE(GArray, g_array_unref);
 VTE_DECLARE_FREEABLE(GBytes, g_bytes_unref);
+VTE_DECLARE_FREEABLE(GKeyFile, g_key_file_unref);
 VTE_DECLARE_FREEABLE(GOptionContext, g_option_context_free);
 VTE_DECLARE_FREEABLE(GString, g_autoptr_cleanup_gstring_free);
 VTE_DECLARE_FREEABLE(GVariant, g_variant_unref);
