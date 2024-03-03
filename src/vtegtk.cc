@@ -161,7 +161,7 @@ private:
         std::shared_ptr<vte::platform::Widget> m_widget;
 };
 
-#if defined(WITH_A11Y) && VTE_GTK == 4
+#if WITH_A11Y && VTE_GTK == 4
 # define VTE_IMPLEMENT_ACCESSIBLE \
   G_IMPLEMENT_INTERFACE(GTK_TYPE_ACCESSIBLE_TEXT, \
                         _vte_accessible_text_iface_init)
@@ -947,7 +947,7 @@ try
         gtk_widget_set_has_window(&terminal->widget, FALSE);
 #endif
 
-#if defined(WITH_A11Y) && VTE_GTK == 4
+#if WITH_A11Y && VTE_GTK == 4
         _vte_accessible_text_init (GTK_ACCESSIBLE_TEXT (terminal));
 #endif
 
