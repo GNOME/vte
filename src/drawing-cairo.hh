@@ -78,11 +78,10 @@ public:
                                           int height,
                                           vte::color::rgb const* color) const override;
 
-protected:
-        void draw_text_internal(TextRequest* requests,
-                                gsize n_requests,
-                                uint32_t attr,
-                                vte::color::rgb const* color) override;
+        void draw_text(TextRequest* requests,
+                       gsize n_requests,
+                       uint32_t attr,
+                       vte::color::rgb const* color) override;
 
 private:
         cairo_t *m_cr{nullptr}; // unowned

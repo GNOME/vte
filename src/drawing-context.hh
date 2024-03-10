@@ -238,10 +238,10 @@ public:
                             uint32_t attr,
                             int& left,
                             int& right);
-        void draw_text(TextRequest* requests,
-                       gsize n_requests,
-                       uint32_t attr,
-                       vte::color::rgb const* color);
+        virtual void draw_text(TextRequest* requests,
+                               gsize n_requests,
+                               uint32_t attr,
+                               vte::color::rgb const* color) = 0;
         bool draw_char(TextRequest* request,
                        uint32_t attr,
                        vte::color::rgb const* color);
@@ -261,10 +261,6 @@ public:
         inline void set_scale_factor(int scale_factor) { m_scale_factor = scale_factor; }
 
 protected:
-        virtual void draw_text_internal(TextRequest* requests,
-                                        gsize n_requests,
-                                        uint32_t attr,
-                                        vte::color::rgb const* color) = 0;
 
         // std::array<vte::base::RefPtr<FontInfo>, 4> m_fonts{};
         FontInfo* m_fonts[4]{nullptr, nullptr, nullptr, nullptr};

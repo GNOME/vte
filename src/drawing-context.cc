@@ -186,30 +186,6 @@ DrawingContext::get_char_edges(vteunistr c,
         right = l + w;
 }
 
-void
-DrawingContext::draw_text(TextRequest* requests,
-                          gsize n_requests,
-                          uint32_t attr,
-                          vte::color::rgb const* color)
-{
-	if (_vte_debug_on (VTE_DEBUG_DRAW)) {
-		GString *string = g_string_new ("");
-		gchar *str;
-		gsize n;
-		for (n = 0; n < n_requests; n++) {
-			g_string_append_unichar (string, requests[n].c);
-		}
-		str = g_string_free (string, FALSE);
-		g_printerr ("draw_text (\"%s\", len=%" G_GSIZE_FORMAT ", color=(%d,%d,%d), %s - %s)\n",
-				str, n_requests, color->red, color->green, color->blue,
-				(attr & VTE_ATTR_BOLD)   ? "bold"   : "normal",
-				(attr & VTE_ATTR_ITALIC) ? "italic" : "regular");
-		g_free (str);
-	}
-
-	draw_text_internal(requests, n_requests, attr, color);
-}
-
 /* The following two functions are unused since commit 154abade902850afb44115cccf8fcac51fc082f0,
  * but let's keep them for now since they may become used again.
  */

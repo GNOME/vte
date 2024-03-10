@@ -137,11 +137,26 @@ DrawingCairo::fill_rectangle(int x,
 }
 
 void
-DrawingCairo::draw_text_internal(TextRequest* requests,
-                                 gsize n_requests,
-                                 uint32_t attr,
-                                 vte::color::rgb const* color)
+DrawingCairo::draw_text(TextRequest* requests,
+                        gsize n_requests,
+                        uint32_t attr,
+                        vte::color::rgb const* color)
 {
+        if (_vte_debug_on (VTE_DEBUG_DRAW)) {
+                GString *string = g_string_new ("");
+                gchar *str;
+                gsize n;
+                for (n = 0; n < n_requests; n++) {
+                        g_string_append_unichar (string, requests[n].c);
+                }
+                str = g_string_free (string, FALSE);
+                g_printerr ("draw_text (\"%s\", len=%" G_GSIZE_FORMAT ", color=(%d,%d,%d), %s - %s)\n",
+                            str, n_requests, color->red, color->green, color->blue,
+                            (attr & VTE_ATTR_BOLD)   ? "bold"   : "normal",
+                            (attr & VTE_ATTR_ITALIC) ? "italic" : "regular");
+                g_free (str);
+        }
+
         gsize i;
         cairo_scaled_font_t *last_scaled_font = nullptr;
         int n_cr_glyphs = 0;
