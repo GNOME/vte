@@ -57,14 +57,16 @@ public:
         {
         }
 
-        constexpr Rectangle(cairo_rectangle_int_t const *rect) {
-                Rectangle(rect->x, rect->y, rect->width, rect->height);
+        constexpr Rectangle(cairo_rectangle_int_t const *rect) :
+                Rectangle(rect->x, rect->y, rect->width, rect->height)
+        {
         }
 
 #if VTE_GTK == 4
-        constexpr Rectangle(graphene_rect_t const *rect) {
+        constexpr Rectangle(graphene_rect_t const *rect) :
                 Rectangle(rect->origin.x, rect->origin.y,
-                          rect->size.width, rect->size.height);
+                          rect->size.width, rect->size.height)
+        {
         }
 #endif
 
