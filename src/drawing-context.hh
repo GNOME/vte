@@ -242,11 +242,6 @@ public:
                                gsize n_requests,
                                uint32_t attr,
                                vte::color::rgb const* color) = 0;
-        bool draw_char(TextRequest* request,
-                       uint32_t attr,
-                       vte::color::rgb const* color);
-        bool has_char(vteunistr c,
-                      uint32_t attr);
         void draw_line(int x,
                        int y,
                        int xp,

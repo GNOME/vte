@@ -186,43 +186,6 @@ DrawingContext::get_char_edges(vteunistr c,
         right = l + w;
 }
 
-/* The following two functions are unused since commit 154abade902850afb44115cccf8fcac51fc082f0,
- * but let's keep them for now since they may become used again.
- */
-bool
-DrawingContext::has_char(vteunistr c,
-                         uint32_t attr)
-{
-	_vte_debug_print (VTE_DEBUG_DRAW, "draw_has_char ('0x%04X', %s - %s)\n", c,
-				(attr & VTE_ATTR_BOLD)   ? "bold"   : "normal",
-				(attr & VTE_ATTR_ITALIC) ? "italic" : "regular");
-
-        auto const style = attr_to_style(attr);
-	g_return_val_if_fail(m_fonts[style], false);
-
-	auto uinfo = m_fonts[style]->get_unistr_info(c);
-	return !uinfo->has_unknown_chars;
-}
-
-bool
-DrawingContext::draw_char(TextRequest* request,
-                          uint32_t attr,
-                          vte::color::rgb const* color)
-{
-	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_char ('%c', color=(%d,%d,%d), %s, %s)\n",
-			request->c,
-			color->red, color->green, color->blue,
-			(attr & VTE_ATTR_BOLD)   ? "bold"   : "normal",
-			(attr & VTE_ATTR_ITALIC) ? "italic" : "regular");
-
-	auto const have_char = has_char(request->c, attr);
-	if (have_char)
-		draw_text(request, 1, attr, color);
-
-	return have_char;
-}
-
 void
 DrawingContext::draw_line(int x,
                           int y,
