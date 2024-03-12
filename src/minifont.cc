@@ -29,6 +29,7 @@
 #include "drawing-context.hh"
 #include "minifont.hh"
 
+#if VTE_GTK == 4
 #define MINIFONT_CACHE_MAX_SIZE 128
 
 typedef struct _CachedMinifont
@@ -170,6 +171,7 @@ cached_minifont_draw(const CachedMinifont *mf,
         context.draw_surface_with_color_mask(mf->texture, x, y, width, height, fg);
 #endif
 }
+#endif
 
 static cairo_surface_t *
 create_surface(int width,
@@ -391,8 +393,11 @@ Minifont::draw_graphic(DrawingContext const& context,
                        int font_height,
                        int scale_factor)
 {
-        int width, height, x_off, y_off;
-
+        int width = context.cell_width() * columns;
+        int height = context.cell_height();
+#if VTE_GTK == 4
+        int x_off = 0, y_off = 0;
+#endif
 
         // The glyphs we can draw can be separated into two classes.
         //
@@ -408,11 +413,6 @@ Minifont::draw_graphic(DrawingContext const& context,
         // up front before every trying to lookup a CachedMinifont.
         // While GHashTable is fast, it's much slower than doing the
         // least amount of work up-front for the fast path.
-
-        width = context.cell_width() * columns;
-        height = context.cell_height();
-        x_off = 0;
-        y_off = 0;
 
         switch (c) {
 
@@ -648,24 +648,30 @@ Minifont::draw_graphic(DrawingContext const& context,
         case 0x1fb96:
         case 0x1fb98:
         case 0x1fb99:
+#if VTE_GTK == 4
                 x_off = x & 0x3;
                 y_off = y & 0x3;
+#endif
                 [[fallthrough]];
         default:
         {
+#if VTE_GTK == 4
                 const CachedMinifont *cached = cached_minifont_lookup(c, width, height, scale_factor, x_off, y_off);
 
                 if G_LIKELY (cached != nullptr) {
                         cached_minifont_draw(cached, context, x, y, width, height, fg);
                         return;
                 }
+#endif
         }
         }
 
         int xcenter, xright, ycenter, ybottom;
         int upper_half, left_half;
         int light_line_width, heavy_line_width;
+#if VTE_GTK == 4
         const vteunistr real_c = c;
+#endif
         double adjust;
 
         upper_half = height / 2;
@@ -686,8 +692,12 @@ Minifont::draw_graphic(DrawingContext const& context,
         xright = x + width;
         ybottom = y + height;
 
+#if VTE_GTK == 3
+        auto cr = context.begin_cairo(x, y, width, height);
+#elif VTE_GTK == 4
         auto xpad = 0, ypad = 0;
         auto cr = begin_cairo(x, y, width, height, xpad, ypad, scale_factor);
+#endif
 
         switch (c) {
 
@@ -950,10 +960,12 @@ Minifont::draw_graphic(DrawingContext const& context,
                 // These characters draw outside their cell, so we need to
                 // enlarge the drawing surface.
                 auto const dx = (light_line_width + 1) / 2;
+#if VTE_GTK == 4
                 xpad = dx;
                 ypad = 0;
                 cairo_destroy(cr);
                 cr = begin_cairo(x, y, width, height, xpad, ypad, scale_factor);
+#endif
                 cairo_rectangle(cr, x - dx, y, width + 2 * dx, height);
                 cairo_clip(cr);
                 cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
@@ -1338,6 +1350,9 @@ Minifont::draw_graphic(DrawingContext const& context,
                 g_assert_not_reached();
         }
 
+#if VTE_GTK == 3
+        context.end_cairo(cr);
+#elif VTE_GTK == 4
         auto mf = g_new0 (CachedMinifont, 1);
         mf->link.data = mf;
         mf->c = real_c;
@@ -1358,6 +1373,7 @@ Minifont::draw_graphic(DrawingContext const& context,
         cairo_destroy(cr);
 
         cached_minifont_draw(mf, context, x, y, width, height, fg);
+#endif
 }
 
 } // namespace vte::view
