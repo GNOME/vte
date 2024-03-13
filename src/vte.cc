@@ -7430,6 +7430,8 @@ Terminal::widget_mouse_release(vte::platform::MouseEvent const& event)
         case vte::platform::EventBase::Type::eMOUSE_RELEASE:
                 switch (event.button()) {
                 case vte::platform::MouseEvent::Button::eLEFT:
+                        if (!m_selecting)
+                                m_real_widget->im_activate_osk();
                         if ((m_mouse_handled_buttons & 1) != 0)
                                 handled = maybe_end_selection();
 			break;
