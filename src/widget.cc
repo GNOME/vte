@@ -1400,6 +1400,14 @@ Widget::im_set_cursor_location(cairo_rectangle_int_t const* rect) noexcept
         gtk_im_context_set_cursor_location(m_im_context.get(), rect);
 }
 
+void
+Widget::im_activate_osk() noexcept
+{
+#if VTE_GTK == 4 && GTK_CHECK_VERSION(4, 14, 0)
+        gtk_im_context_activate_osk(m_im_context.get(), nullptr);
+#endif
+}
+
 #if VTE_GTK == 3
 
 unsigned

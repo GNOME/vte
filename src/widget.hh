@@ -722,6 +722,7 @@ protected:
 
         void im_focus_in() noexcept;
         void im_focus_out() noexcept;
+        void im_activate_osk() noexcept;
 
         void im_reset() noexcept
         {
