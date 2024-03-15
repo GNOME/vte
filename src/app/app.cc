@@ -3574,7 +3574,7 @@ vteapp_window_new(GApplication* app)
 {
         return reinterpret_cast<VteappWindow*>(g_object_new(VTEAPP_TYPE_WINDOW,
                                                             "application", app,
-#if VTE_GTK == 4 && GTK_CHECK_VERSION(4, 2, 0)
+#if VTE_GTK == 4
                                                             "handle-menubar-accel", false,
 #endif
                                                             nullptr));
