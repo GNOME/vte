@@ -3640,6 +3640,59 @@ app_clipboard_changed_cb(GdkClipboard* clipboard,
 
 #endif /* VTE_GTK */
 
+static gboolean
+app_load_css_from_resource(GApplication *application,
+                           GtkCssProvider *provider,
+                           bool theme)
+{
+        auto const base_path = g_application_get_resource_base_path(application);
+
+        char* uri = nullptr;
+        if (theme) {
+                char *str = nullptr;
+                g_object_get(gtk_settings_get_default(), "gtk-theme-name", &str, nullptr);
+                auto theme_name = g_ascii_strdown (str, -1);
+                uri = g_strdup_printf("resource://%s/css/%s/app.css", base_path, theme_name);
+                g_free(theme_name);
+                g_free(str);
+        } else {
+                uri = g_strdup_printf("resource://%s/css/app.css", base_path);
+        }
+
+        auto file = vte::glib::take_ref(g_file_new_for_uri(uri));
+        g_free(uri);
+
+        if (!g_file_query_exists(file.get(), nullptr /* cancellable */))
+                return false;
+
+#if VTE_GTK == 3
+        gtk_css_provider_load_from_file(provider, file.get(), nullptr);
+#elif VTE_GTK == 4
+        gtk_css_provider_load_from_file(provider, file.get());
+#endif
+
+        return true;
+}
+
+static void
+app_load_css(GApplication *application,
+             bool theme)
+{
+        auto provider = vte::glib::take_ref(gtk_css_provider_new());
+        if (!app_load_css_from_resource(application, provider.get(), theme))
+                return;
+
+#if VTE_GTK == 3
+        gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
+                                                  GTK_STYLE_PROVIDER(provider.get()),
+                                                  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+#elif VTE_GTK == 4
+        gtk_style_context_add_provider_for_display(gdk_display_get_default(),
+                                                   GTK_STYLE_PROVIDER(provider.get()),
+                                                   GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+#endif
+}
+
 G_DEFINE_TYPE(VteappApplication, vteapp_application, GTK_TYPE_APPLICATION)
 
 static void
@@ -3707,6 +3760,10 @@ vteapp_application_dispose(GObject* object)
 static void
 vteapp_application_startup(GApplication* application)
 {
+        // Load built-in CSS
+        app_load_css(application, true);
+        app_load_css(application, false);
+
         /* Create actions */
         GActionEntry const entries[] = {
                 { "new",   app_action_new_cb,   nullptr, nullptr, nullptr },

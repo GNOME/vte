@@ -17,6 +17,7 @@
 -->
 <gresources>
   <gresource prefix="/org/gnome/vte/app">
+    <file alias="css/app.css" compressed="true">app-gtk4.css</file>
     <file alias="ui/search-popover.ui" compressed="true" preprocess="xml-stripblanks">search-popover-gtk4.ui</file>
     <file alias="ui/window.ui" compressed="true" preprocess="xml-stripblanks">window-gtk4.ui</file>
     <file alias="gtk/menus.ui" compressed="true" preprocess="xml-stripblanks">appmenu-gtk4.ui</file>
