@@ -1241,7 +1241,7 @@ public:
                                 "Make the whole window transparent",
                                 "Don't make the whole window transparent");
                 add_bool_option("scrolled-window", 0, "no-scrolled-window", 0,
-                                G_OPTION_FLAG_HIDDEN, &use_scrolled_window,
+                                0, &use_scrolled_window,
                                 "Use a GtkScrolledWindow",
                                 "Don't use a GtkScrolledWindow");
                 add_bool_option("use-theme-colors", 0, "no-use-theme-colors", 0,
