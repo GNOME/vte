@@ -1807,8 +1807,11 @@ Terminal::regex_match_check_at(double x,
                 ringview_update();
 
         long col, row;
-        if (!rowcol_at(x, y, &col, &row))
+        if (!rowcol_at(x, y, &col, &row)) {
+                if (tag)
+                        *tag = -1;
                 return nullptr;
+        }
 
         /* FIXME Shouldn't rely on a deprecated, not sub-row aware method. */
         // FIXMEchpe fix this scroll_delta substraction!
