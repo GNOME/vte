@@ -434,7 +434,8 @@ Terminal::update_mouse_protocol() noexcept
         else
                 m_mouse_tracking_mode = MouseTrackingMode::eNONE;
 
-        m_mouse_smooth_scroll_delta = 0.0;
+        m_mouse_smooth_scroll_x_delta = 0.0;
+        m_mouse_smooth_scroll_y_delta = 0.0;
 
         /* Mouse pointer might change */
         apply_mouse_cursor();

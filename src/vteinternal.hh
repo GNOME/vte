@@ -544,14 +544,15 @@ public:
         time_t m_last_keypress_time;
 
         MouseTrackingMode m_mouse_tracking_mode{MouseTrackingMode::eNONE};
-        guint m_mouse_pressed_buttons;      /* bits 0, 1, 2 resp. for buttons 1, 2, 3 */
+        guint m_mouse_pressed_buttons;      /* bits 0..14 resp. for buttons 1..15 */
         guint m_mouse_handled_buttons;      /* similar bitmap for buttons we handled ourselves */
         /* The last known position the mouse pointer from an event. We don't store
          * this in grid coordinates because we want also to check if they were outside
          * the viewable area, and also want to catch in-cell movements if they make the pointer visible.
          */
         vte::view::coords m_mouse_last_position{-1, -1};
-        double m_mouse_smooth_scroll_delta{0.0};
+        double m_mouse_smooth_scroll_x_delta{0.0};
+        double m_mouse_smooth_scroll_y_delta{0.0};
         bool mouse_autoscroll_timer_callback();
         vte::glib::Timer m_mouse_autoscroll_timer{std::bind(&Terminal::mouse_autoscroll_timer_callback,
                                                             this),

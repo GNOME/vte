@@ -6048,7 +6048,7 @@ Terminal::feed_mouse_event(vte::grid::coords const& rowcol /* confined */,
                                      bool is_drag,
                                      bool is_release)
 {
-	unsigned char cb = 0;
+        unsigned char cb;
 
         /* Don't send events on scrollback contents: bug 755187. */
         if (grid_coords_in_scrollback(rowcol))
@@ -6063,21 +6063,31 @@ Terminal::feed_mouse_event(vte::grid::coords const& rowcol /* confined */,
         case 0:                 /* No button, just dragging. */
                 cb = 3;
                 break;
-	case 1:			/* Left. */
-		cb = 0;
-		break;
-	case 2:			/* Middle. */
-		cb = 1;
-		break;
-	case 3:			/* Right. */
-		cb = 2;
-		break;
-	case 4:
-		cb = 64;	/* Scroll up. */
-		break;
-	case 5:
-		cb = 65;	/* Scroll down. */
-		break;
+        case 1:                 /* Left. */
+        case 2:                 /* Middle. */
+        case 3:                 /* Right. */
+                cb = button - 1;
+                break;
+        case 4:                 /* Scroll up. */
+        case 5:                 /* Scroll down. */
+        case 6:                 /* Scroll left. */
+        case 7:                 /* Scroll right. */
+                cb = button - 4 + 64;
+                break;
+        case 8:                 /* Back. */
+        case 9:                 /* Forward. */
+        case 10:                /* ? */
+        case 11:                /* ? */
+                cb = button - 8 + 128;
+                break;
+        case 12:                /* ? */
+        case 13:                /* ? */
+        case 14:                /* ? */
+        case 15:                /* ? */
+                cb = button - 12 + 192;
+                break;
+        default:
+                return false;
 	}
 
 	/* With the exception of the 1006 mode, button release is also encoded here. */
@@ -6110,7 +6120,7 @@ Terminal::feed_mouse_event(vte::grid::coords const& rowcol /* confined */,
                 send(is_release ? VTE_REPLY_XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_RELEASE
                                 : VTE_REPLY_XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_PRESS,
                      {cb, (int)cx, (int)cy});
-	} else if (cx <= 223 && cy <= 223) {
+        } else if (cb <= 223 && cx <= 223 && cy <= 223) {
 		/* legacy mode */
                 char buf[8];
                 size_t len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", 32 + cb, 32 + (guchar)cx, 32 + (guchar)cy);
@@ -6222,16 +6232,8 @@ Terminal::maybe_send_mouse_drag(vte::grid::coords const& unconfined_rowcol,
 		return false;
 	}
 
-        /* As per xterm, report the leftmost pressed button - if any. */
-        int button;
-        if (m_mouse_pressed_buttons & 1)
-                button = 1;
-        else if (m_mouse_pressed_buttons & 2)
-                button = 2;
-        else if (m_mouse_pressed_buttons & 4)
-                button = 3;
-        else
-                button = 0;
+        /* As per xterm, report the lowest pressed button - if any. */
+        int button = ffs(m_mouse_pressed_buttons);
 
         return feed_mouse_event(rowcol,
                                 button,
@@ -7389,7 +7391,7 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 		default:
 			break;
 		}
-                if (event.button_value() >= 1 && event.button_value() <= 3) {
+                if (event.button_value() >= 1 && event.button_value() <= 15) {
                         if (handled)
                                 m_mouse_handled_buttons |= (1 << (event.button_value() - 1));
                         else
@@ -7473,7 +7475,7 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
         }
 
 	/* Save the pointer state for later use. */
-        if (event.button_value() >= 1 && event.button_value() <= 3)
+        if (event.button_value() >= 1 && event.button_value() <= 15)
                 m_mouse_pressed_buttons |= (1 << (event.button_value() - 1));
 
 	m_mouse_last_position = pos;
@@ -7530,7 +7532,7 @@ Terminal::widget_mouse_release(vte::platform::MouseEvent const& event)
 	}
 
 	/* Save the pointer state for later use. */
-        if (event.button_value() >= 1 && event.button_value() <= 3)
+        if (event.button_value() >= 1 && event.button_value() <= 15)
                 m_mouse_pressed_buttons &= ~(1 << (event.button_value() - 1));
 
 	m_mouse_last_position = pos;
@@ -10162,39 +10164,55 @@ bool
 Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
 {
 	gdouble v;
-	gint cnt, i;
+        gint cnt_x, cnt_y, i;
 	int button;
 
         m_modifiers = event.modifiers();
-        m_mouse_smooth_scroll_delta += event.dy();
+        m_mouse_smooth_scroll_x_delta += event.dx();
+        m_mouse_smooth_scroll_y_delta += event.dy();
 
-	/* If we're running a mouse-aware application, map the scroll event
-	 * to a button press on buttons four and five. */
+        /* If we're running a mouse-aware application, map the scroll event to button presses on buttons 4-7. */
 	if (m_mouse_tracking_mode != MouseTrackingMode::eNONE) {
-		cnt = m_mouse_smooth_scroll_delta;
-		if (cnt == 0)
+                cnt_x = m_mouse_smooth_scroll_x_delta;
+                cnt_y = m_mouse_smooth_scroll_y_delta;
+                if (cnt_x == 0 && cnt_y == 0)
 			return true;
 
                 /* Need to ensure the ringview is updated. */
                 ringview_update();
 
-		m_mouse_smooth_scroll_delta -= cnt;
+                m_mouse_smooth_scroll_x_delta -= cnt_x;
+                m_mouse_smooth_scroll_y_delta -= cnt_y;
 		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Scroll application by %d lines, smooth scroll delta set back to %f\n",
-				cnt, m_mouse_smooth_scroll_delta);
+                                 "Scroll application by %d lines, %d columns, smooth scroll delta set back to y=%f, x=%f\n",
+                                 cnt_y, cnt_x, m_mouse_smooth_scroll_y_delta, m_mouse_smooth_scroll_x_delta);
 
-		button = cnt > 0 ? 5 : 4;
-		if (cnt < 0)
-			cnt = -cnt;
-		for (i = 0; i < cnt; i++) {
-			/* Encode the parameters and send them to the app. */
+                button = cnt_y > 0 ? 5 : 4;
+                if (cnt_y < 0)
+                        cnt_y = -cnt_y;
+                for (i = 0; i < cnt_y; i++) {
+                        /* Encode the parameters and send them to the app. */
                         feed_mouse_event(confined_grid_coords_from_view_coords(m_mouse_last_position),
                                          button,
                                          false /* not drag */,
                                          false /* not release */);
-		}
+                }
+
+                button = cnt_x > 0 ? 7 : 6;
+                if (cnt_x < 0)
+                        cnt_x = -cnt_x;
+                for (i = 0; i < cnt_x; i++) {
+                        /* Encode the parameters and send them to the app. */
+                        feed_mouse_event(confined_grid_coords_from_view_coords(m_mouse_last_position),
+                                         button,
+                                         false /* not drag */,
+                                         false /* not release */);
+                }
 		return true;
 	}
+
+        /* The modes below only care about vertical scrolling. Don't accumulate horizontal noise. */
+        m_mouse_smooth_scroll_x_delta = 0;
 
         v = MAX (1., ceil (m_row_count /* page increment */ / 10.));
 	_vte_debug_print(VTE_DEBUG_EVENTS,
@@ -10205,36 +10223,34 @@ Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
 		char *normal;
 		gsize normal_length;
 
-		cnt = v * m_mouse_smooth_scroll_delta;
-		if (cnt == 0)
+                cnt_y = v * m_mouse_smooth_scroll_y_delta;
+                if (cnt_y == 0)
 			return true;
-		m_mouse_smooth_scroll_delta -= cnt / v;
+                m_mouse_smooth_scroll_y_delta -= cnt_y / v;
 		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Scroll by %d lines, smooth scroll delta set back to %f\n",
-				cnt, m_mouse_smooth_scroll_delta);
+                                "Scroll by %d lines, smooth scroll y_delta set back to %f\n",
+                                cnt_y, m_mouse_smooth_scroll_y_delta);
 
-		/* In the alternate screen there is no scrolling,
-		 * so fake a few cursor keystrokes. */
-
+                /* In the alternate screen there is no scrolling, so fake a few cursor keystrokes (only vertically). */
 		_vte_keymap_map (
-				cnt > 0 ? GDK_KEY_Down : GDK_KEY_Up,
+                                cnt_y > 0 ? GDK_KEY_Down : GDK_KEY_Up,
 				m_modifiers,
                                 m_modes_private.DEC_APPLICATION_CURSOR_KEYS(),
                                 m_modes_private.DEC_APPLICATION_KEYPAD(),
 				&normal,
 				&normal_length);
-		if (cnt < 0)
-			cnt = -cnt;
-		for (i = 0; i < cnt; i++) {
+                if (cnt_y < 0)
+                        cnt_y = -cnt_y;
+                for (i = 0; i < cnt_y; i++) {
 			send_child({normal, normal_length});
 		}
 		g_free (normal);
                 return true;
 	} else if (m_fallback_scrolling) {
 		/* Perform a history scroll. */
-		double dcnt = m_screen->scroll_delta + v * m_mouse_smooth_scroll_delta;
+                double dcnt = m_screen->scroll_delta + v * m_mouse_smooth_scroll_y_delta;
 		queue_adjustment_value_changed_clamped(dcnt);
-		m_mouse_smooth_scroll_delta = 0;
+                m_mouse_smooth_scroll_y_delta = 0;
                 return true;
 	}
         return false;
@@ -10773,7 +10789,8 @@ Terminal::reset(bool clear_tabstops,
         m_mouse_pressed_buttons = 0;
         m_mouse_handled_buttons = 0;
 	m_mouse_last_position = vte::view::coords(-1, -1);
-	m_mouse_smooth_scroll_delta = 0.;
+        m_mouse_smooth_scroll_x_delta = 0.;
+        m_mouse_smooth_scroll_y_delta = 0.;
 	/* Clear modifiers. */
 	m_modifiers = 0;
 

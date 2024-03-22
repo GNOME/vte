@@ -833,7 +833,8 @@ Widget::constructed() noexcept
         gtk_event_controller_set_name(controller.get(), "vte-motion-controller");
         gtk_widget_add_controller(m_widget, controller.release());
 
-        auto const scroll_flags = GtkEventControllerScrollFlags(GTK_EVENT_CONTROLLER_SCROLL_VERTICAL);
+        auto const scroll_flags = GtkEventControllerScrollFlags(GTK_EVENT_CONTROLLER_SCROLL_VERTICAL |
+                                                                GTK_EVENT_CONTROLLER_SCROLL_HORIZONTAL);
         controller = vte::glib::take_ref(gtk_event_controller_scroll_new(scroll_flags));
         g_signal_connect(controller.get(), "scroll-begin",
                          G_CALLBACK(scroll_begin_cb), this);
