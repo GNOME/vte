@@ -739,17 +739,12 @@ public:
         gboolean m_cursor_moved_pending;
         gboolean m_contents_changed_pending;
 
-        std::string m_window_title{};
-        std::string m_current_directory_uri{};
-        std::string m_current_file_uri{};
-        std::string m_window_title_pending{};
-        std::string m_current_directory_uri_pending{};
-        std::string m_current_file_uri_pending{};
-
         std::vector<std::string> m_window_title_stack{};
 
         enum class PendingChanges {
                 TERMPROPS = 1u << 0,
+
+                // deprecated but still emitted for now
                 TITLE = 1u << 1,
                 CWD   = 1u << 2,
                 CWF   = 1u << 3,
@@ -1406,6 +1401,13 @@ public:
         inline constexpr void emit_text_scrolled(long delta) const noexcept { }
 
 #endif /* WITH_A11Y && VTE_GTK == 3*/
+
+        bool m_no_legacy_signals{false};
+
+        void set_no_legacy_signals() noexcept
+        {
+                m_no_legacy_signals = true;
+        }
 
         void emit_pending_signals();
         void emit_increase_font_size();

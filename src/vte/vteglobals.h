@@ -73,4 +73,46 @@ gboolean vte_query_termprop_by_id(int prop,
                                   VtePropertyType* type,
                                   VtePropertyFlags* flags) _VTE_CXX_NOEXCEPT;
 
+/**
+ * VTE_TERMPROP_TITLE:
+ *
+ * A %VTE_PROPERTY_STRING termprop that stores the window title
+ * as set by OSC 0 and OSC 2.
+ * Use this with vte_termprop_get_string() instead of using
+ * vte_terminal_get_window_title().
+ *
+ * Note that this termprop is not settable via the termprop OSC.
+ *
+ * Since: 0.78
+ */
+#define VTE_TERMPROP_TITLE "vte.title"
+
+/**
+ * VTE_TERMPROP_CURRENT_DIRECTORY_URI_STRING:
+ *
+ * A %VTE_PROPERTY_STRING termprop that stores the current directory
+ * URI as set by OSC 7.
+ * Use this with vte_termprop_get_string() instead of using
+ * vte_terminal_get_current_directory_uri().
+ *
+ * Note that this termprop is not settable via the termprop OSC.
+ *
+ * Since: 0.78
+ */
+#define VTE_TERMPROP_CURRENT_DIRECTORY_URI_STRING "vte.cwd"
+
+/**
+ * VTE_TERMPROP_CURRENT_FILE_URI_STRING:
+ *
+ * A %VTE_PROPERTY_STRING termprop that stores the current file URI
+ * as set by OSC 6.
+ * Use this with vte_termprop_get_string() instead of using
+ * vte_terminal_get_current_file_uri().
+ *
+ * Note that this termprop is not settable via the termprop OSC.
+ *
+ * Since: 0.78
+ */
+#define VTE_TERMPROP_CURRENT_FILE_URI_STRING "vte.cwf"
+
 G_END_DECLS

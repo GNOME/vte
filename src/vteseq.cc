@@ -1457,21 +1457,30 @@ Terminal::set_current_directory_uri(vte::parser::Sequence const& seq,
                                               vte::parser::StringTokeniser::const_iterator& token,
                                               vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
 {
-        std::string uri;
+        auto const info = get_termprop_info(VTE_TERMPROP_CURRENT_DIRECTORY_URI_STRING);
+        assert(info);
+
         if (token != endtoken && token.size_remaining() > 0) {
-                uri = token.string_remaining();
+                auto uri = token.string_remaining();
 
                 auto filename = g_filename_from_uri(uri.data(), nullptr, nullptr);
                 if (filename != nullptr) {
                         g_free(filename);
+
+                        // Note that exceptionally, the string here may exceed
+                        // the general termprop string length limit.
+                        m_termprops_dirty.at(info->id()) = true;
+                        m_termprop_values.at(info->id()) = std::move(uri);
                 } else {
                         /* invalid URI */
-                        uri.clear();
+                        reset_termprop(*info);
                 }
+        } else {
+                reset_termprop(*info);
         }
 
-        m_current_directory_uri_pending.swap(uri);
-        m_pending_changes |= vte::to_integral(PendingChanges::CWD);
+        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS) |
+                vte::to_integral(PendingChanges::CWD);
 }
 
 void
@@ -1480,21 +1489,30 @@ Terminal::set_current_file_uri(vte::parser::Sequence const& seq,
                                          vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
 
 {
-        std::string uri;
+        auto const info = get_termprop_info(VTE_TERMPROP_CURRENT_FILE_URI_STRING);
+        assert(info);
+
         if (token != endtoken && token.size_remaining() > 0) {
-                uri = token.string_remaining();
+                auto uri = token.string_remaining();
 
                 auto filename = g_filename_from_uri(uri.data(), nullptr, nullptr);
                 if (filename != nullptr) {
                         g_free(filename);
+
+                        // Note that exceptionally, the string here may exceed
+                        // the general termprop string length limit.
+                        m_termprops_dirty.at(info->id()) = true;
+                        m_termprop_values.at(info->id()) = std::move(uri);
                 } else {
                         /* invalid URI */
-                        uri.clear();
+                        reset_termprop(*info);
                 }
+        } else {
+                reset_termprop(*info);
         }
 
-        m_current_file_uri_pending.swap(uri);
-        m_pending_changes |= vte::to_integral(PendingChanges::CWF);
+        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS) |
+                vte::to_integral(PendingChanges::CWF);
 }
 
 void
@@ -6773,12 +6791,18 @@ Terminal::OSC(vte::parser::Sequence const& seq)
         case VTE_OSC_XTERM_SET_WINDOW_AND_ICON_TITLE:
         case VTE_OSC_XTERM_SET_WINDOW_TITLE: {
                 /* Only sets window title; icon title is not supported */
-                std::string title;
+                auto const info = get_termprop_info(VTE_TERMPROP_TITLE);
+                assert(info);
                 if (it != cend &&
-                    it.size_remaining() < VTE_WINDOW_TITLE_MAX_LENGTH)
-                        title = it.string_remaining();
-                m_window_title_pending.swap(title);
-                m_pending_changes |= vte::to_integral(PendingChanges::TITLE);
+                    it.size_remaining() <= vte::terminal::TermpropInfo::k_max_string_len) {
+                        m_termprops_dirty.at(info->id()) = true;
+                        m_termprop_values.at(info->id()) = std::move(it.string_remaining());
+                } else {
+                        reset_termprop(*info);
+                }
+
+                m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS) |
+                        vte::to_integral(PendingChanges::TITLE);
                 break;
         }
 
@@ -9407,21 +9431,25 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 switch (seq.collect1(1)) {
                 case -1:
                 case VTE_OSC_XTERM_SET_WINDOW_AND_ICON_TITLE:
-                case VTE_OSC_XTERM_SET_WINDOW_TITLE:
+                case VTE_OSC_XTERM_SET_WINDOW_TITLE: {
                         if (m_window_title_stack.size() >= VTE_WINDOW_TITLE_STACK_MAX_DEPTH) {
                                 /* Drop the bottommost item */
                                 m_window_title_stack.erase(m_window_title_stack.cbegin());
                         }
 
-                        if (m_pending_changes & vte::to_integral(PendingChanges::TITLE))
+                        auto const info = get_termprop_info(VTE_TERMPROP_TITLE);
+                        auto const value = get_termprop(*info);
+                        if (value &&
+                            std::holds_alternative<std::string>(*value))
                                 m_window_title_stack.emplace(m_window_title_stack.cend(),
-                                                             m_window_title_pending);
+                                                             std::get<std::string>(*value));
                         else
                                 m_window_title_stack.emplace(m_window_title_stack.cend(),
-                                                             m_window_title);
+                                                             std::string{});
 
                         vte_assert_cmpuint(m_window_title_stack.size(), <=, VTE_WINDOW_TITLE_STACK_MAX_DEPTH);
                         break;
+                }
 
                 case VTE_OSC_XTERM_SET_ICON_TITLE:
                 default:
@@ -9433,14 +9461,19 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 switch (seq.collect1(1)) {
                 case -1:
                 case VTE_OSC_XTERM_SET_WINDOW_AND_ICON_TITLE:
-                case VTE_OSC_XTERM_SET_WINDOW_TITLE:
+                case VTE_OSC_XTERM_SET_WINDOW_TITLE: {
                         if (m_window_title_stack.empty())
                                 break;
 
-                        m_pending_changes |= vte::to_integral(PendingChanges::TITLE);
-                        m_window_title_pending.swap(m_window_title_stack.back());
+                        auto const info = get_termprop_info(VTE_TERMPROP_TITLE);
+                        m_termprops_dirty.at(info->id()) = true;
+                        m_termprop_values.at(info->id()) = std::move(m_window_title_stack.back());
                         m_window_title_stack.pop_back();
+
+                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS) |
+                                vte::to_integral(PendingChanges::TITLE);
                         break;
+                }
 
                 case VTE_OSC_XTERM_SET_ICON_TITLE:
                 default:

@@ -1421,7 +1421,6 @@ check_termprop_blocklisted_alias(char const* name) noexcept
         return false;
 }
 
-#if 0
 static int
 _vte_install_termprop(char const* name,
                       vte::terminal::TermpropType type,
@@ -1441,7 +1440,6 @@ catch (...)
         vte::log_exception();
         return -1;
 }
-#endif
 
 static void
 vte_terminal_class_init(VteTerminalClass *klass)
@@ -1625,11 +1623,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * @vteterminal: the object which received the signal
          *
          * Emitted when the #VteTerminal:window-title property is modified.
+         *
+         * Deprecated: 0.78: Use the #VteTerminal:termprop-changed signal
+         *   for the %VTE_TERMPROP_TITLE termprop.
          */
         signals[SIGNAL_WINDOW_TITLE_CHANGED] =
                 g_signal_new(I_("window-title-changed"),
                              G_OBJECT_CLASS_TYPE(klass),
-                             G_SIGNAL_RUN_LAST,
+                             GSignalFlags(G_SIGNAL_RUN_LAST |
+                                          G_SIGNAL_DEPRECATED),
                              G_STRUCT_OFFSET(VteTerminalClass, window_title_changed),
                              NULL,
                              NULL,
@@ -1663,11 +1665,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * @vteterminal: the object which received the signal
          *
          * Emitted when the current directory URI is modified.
+         *
+         * Deprecated: 0.78: Use the #VteTerminal:termprop-changed signal
+         *   for the %VTE_TERMPROP_CURRENT_DIRECTORY_URI_STRING termprop.
          */
         signals[SIGNAL_CURRENT_DIRECTORY_URI_CHANGED] =
                 g_signal_new(I_("current-directory-uri-changed"),
                              G_OBJECT_CLASS_TYPE(klass),
-                             G_SIGNAL_RUN_LAST,
+                             GSignalFlags(G_SIGNAL_RUN_LAST |
+                                          G_SIGNAL_DEPRECATED),
                              0,
                              NULL,
                              NULL,
@@ -1682,11 +1688,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * @vteterminal: the object which received the signal
          *
          * Emitted when the current file URI is modified.
+         *
+         * Deprecated: 0.78: Use the #VteTerminal:termprop-changed signal
+         *   for the %VTE_TERMPROP_CURRENT_FILE_URI_STRING termprop.
          */
         signals[SIGNAL_CURRENT_FILE_URI_CHANGED] =
                 g_signal_new(I_("current-file-uri-changed"),
                              G_OBJECT_CLASS_TYPE(klass),
-                             G_SIGNAL_RUN_LAST,
+                             GSignalFlags(G_SIGNAL_RUN_LAST |
+                                          G_SIGNAL_DEPRECATED),
                              0,
                              NULL,
                              NULL,
@@ -2769,31 +2779,37 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal:window-title:
          *
          * The terminal's title.
+         *
+         * Deprecated: 0.78: Use the %VTE_TERMPROP_TITLE termprop.
          */
         pspecs[PROP_WINDOW_TITLE] =
                 g_param_spec_string ("window-title", NULL, NULL,
                                      NULL,
-                                     (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                     (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_DEPRECATED));
 
         /**
          * VteTerminal:current-directory-uri:
          *
          * The current directory URI, or %NULL if unset.
+         *
+         * Deprecated: 0.78: Use the %VTE_TERMPROP_CURRENT_DIRECTORY_URI termprop.
          */
         pspecs[PROP_CURRENT_DIRECTORY_URI] =
                 g_param_spec_string ("current-directory-uri", NULL, NULL,
                                      NULL,
-                                     (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                     (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_DEPRECATED));
 
         /**
          * VteTerminal:current-file-uri:
          *
          * The current file URI, or %NULL if unset.
+         *
+         * Deprecated: 0.78: Use the %VTE_TERMPROP_CURRENT_FILE_URI termprop.
          */
         pspecs[PROP_CURRENT_FILE_URI] =
                 g_param_spec_string ("current-file-uri", NULL, NULL,
                                      NULL,
-                                     (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                     (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_DEPRECATED));
 
         /**
          * VteTerminal:hyperlink-hover-uri:
@@ -2929,6 +2945,18 @@ vte_terminal_class_init(VteTerminalClass *klass)
 #endif
 
         // Install built-in termprops
+        auto id = _vte_install_termprop(VTE_TERMPROP_TITLE,
+                                        vte::terminal::TermpropType::STRING,
+                                        vte::terminal::TermpropFlags::NO_OSC);
+        vte_assert_cmpint(id, ==, VTE_PROPERTY_ID_TITLE);
+        id =_vte_install_termprop(VTE_TERMPROP_CURRENT_DIRECTORY_URI_STRING,
+                                  vte::terminal::TermpropType::STRING,
+                                  vte::terminal::TermpropFlags::NO_OSC);
+        vte_assert_cmpint(id, ==, VTE_PROPERTY_ID_CURRENT_DIRECTORY_URI_STRING);
+        id = _vte_install_termprop(VTE_TERMPROP_CURRENT_FILE_URI_STRING,
+                                   vte::terminal::TermpropType::STRING,
+                                   vte::terminal::TermpropFlags::NO_OSC);
+        vte_assert_cmpint(id, ==, VTE_PROPERTY_ID_CURRENT_FILE_URI_STRING);
 }
 
 /* public API */
@@ -6139,19 +6167,13 @@ catch (...)
  *
  * Returns: (nullable) (transfer none): the URI of the current directory of the
  *   process running in the terminal, or %NULL
+ *
+ * Deprecated: 0.78: Use the %VTE_TERMPROP_CURRENT_FILE_URI_STRING termprop.
  */
 const char *
 vte_terminal_get_current_directory_uri(VteTerminal *terminal) noexcept
-try
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-        auto impl = IMPL(terminal);
-        return impl->m_current_directory_uri.size() ? impl->m_current_directory_uri.data() : nullptr;
-}
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
+        return vte_terminal_get_termprop_string(terminal, VTE_TERMPROP_CURRENT_DIRECTORY_URI_STRING, nullptr);
 }
 
 /**
@@ -6161,19 +6183,13 @@ catch (...)
  * Returns: (nullable) (transfer none): the URI of the current file the
  *   process running in the terminal is operating on, or %NULL if
  *   not set
+ *
+ * Deprecated: 0.78: Use the %VTE_TERMPROP_CURRENT_FILE_URI_STRING termprop.
  */
 const char *
 vte_terminal_get_current_file_uri(VteTerminal *terminal) noexcept
-try
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-        auto impl = IMPL(terminal);
-        return impl->m_current_file_uri.size() ? impl->m_current_file_uri.data() : nullptr;
-}
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
+        return vte_terminal_get_termprop_string(terminal, VTE_TERMPROP_CURRENT_FILE_URI_STRING, nullptr);
 }
 
 /**
@@ -7457,18 +7473,13 @@ catch (...)
  * @terminal: a #VteTerminal
  *
  * Returns: (nullable) (transfer none): the window title, or %NULL
+ *
+ * Deprecated: 0.78: Use the %VTE_TERMPROP_CURRENT_FILE_URI termprop.
  */
 const char *
 vte_terminal_get_window_title(VteTerminal *terminal) noexcept
-try
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
-	return IMPL(terminal)->m_window_title.data();
-}
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
+        return vte_terminal_get_termprop_string(terminal, VTE_TERMPROP_TITLE, nullptr);
 }
 
 /**
@@ -7637,6 +7648,28 @@ catch (...)
         vte::log_exception();
         *color = {0., 0., 0., 1.};
 }
+
+/**
+ * vte_terminal_set_suppress_legacy_signals:
+ * @terminal: a #VteTerminal
+ * @version: the minor version
+ *
+ * Suppress emissions of signals that were deprecated in or
+ * before @version.
+ *
+ * Since: 0.78
+ */
+void
+vte_terminal_set_suppress_legacy_signals(VteTerminal* terminal) noexcept
+try
+{
+        WIDGET(terminal)->set_no_legacy_signals();
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
 
 /**
  * vte_terminal_set_enable_sixel:

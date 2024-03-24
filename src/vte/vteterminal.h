@@ -574,12 +574,6 @@ _VTE_PUBLIC
 glong vte_terminal_get_row_count(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
 glong vte_terminal_get_column_count(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
-_VTE_PUBLIC
-const char *vte_terminal_get_window_title(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
-_VTE_PUBLIC
-const char *vte_terminal_get_current_directory_uri(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
-_VTE_PUBLIC
-const char *vte_terminal_get_current_file_uri(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 /* misc */
 _VTE_PUBLIC
@@ -596,6 +590,9 @@ void vte_terminal_set_clear_background(VteTerminal* terminal,
 _VTE_PUBLIC
 void vte_terminal_get_color_background_for_draw(VteTerminal* terminal,
                                                 GdkRGBA* color) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+void vte_terminal_set_suppress_legacy_signals(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 /* Writing contents out */
 _VTE_PUBLIC

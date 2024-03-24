@@ -275,4 +275,20 @@ typedef enum {
         VTE_PROPERTY_UUID,
 } VtePropertyType;
 
+/**
+ * VtePropertyId:
+ * @VTE_PROPERTY_ID_TITLE: the ID of the %VTE_TERMPROP_TITLE termprop
+ * @VTE_PROPERTY_ID_CURRENT_DIRECTORY_URI_STRING: the ID of the %VTE_TERMPROP_CURRENT_DIRECTORY_URI_STRING termprop*
+ * @VTE_PROPERTY_ID_CURRENT_FILE_URI_STRING: the ID of the %VTE_TERMPROP_CURRENT_FILE_URI_STRING termprop
+ *
+ * An enum containing the IDs of the always-installed termprops.
+ *
+ * Since: 0.78
+ */
+typedef enum {
+        VTE_PROPERTY_ID_TITLE = 0,
+        VTE_PROPERTY_ID_CURRENT_DIRECTORY_URI_STRING = 1,
+        VTE_PROPERTY_ID_CURRENT_FILE_URI_STRING = 2,
+} VtePropertyId;
+
 G_END_DECLS
