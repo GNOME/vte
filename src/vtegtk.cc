@@ -1072,6 +1072,9 @@ try
                 case PROP_ENABLE_FALLBACK_SCROLLING:
                         g_value_set_boolean (value, vte_terminal_get_enable_fallback_scrolling(terminal));
                         break;
+                case PROP_ENABLE_LEGACY_OSC777:
+                        g_value_set_boolean(value, vte_terminal_get_enable_legacy_osc777(terminal));
+                        break;
                 case PROP_ENABLE_SHAPING:
                         g_value_set_boolean (value, vte_terminal_get_enable_shaping (terminal));
                         break;
@@ -1148,7 +1151,6 @@ try
                 case PROP_YFILL:
                         g_value_set_boolean(value, vte_terminal_get_yfill(terminal));
                         break;
-
                 default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 			return;
@@ -1229,6 +1231,9 @@ try
                         break;
                 case PROP_ENABLE_FALLBACK_SCROLLING:
                         vte_terminal_set_enable_fallback_scrolling (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_ENABLE_LEGACY_OSC777:
+                        vte_terminal_set_enable_legacy_osc777(terminal, g_value_get_boolean(value));
                         break;
                 case PROP_ENABLE_SHAPING:
                         vte_terminal_set_enable_shaping (terminal, g_value_get_boolean (value));
@@ -1343,12 +1348,17 @@ check_termprop_wellknown(char const* name,
                          VtePropertyType* type,
                          VtePropertyFlags* flags) noexcept
 {
-#if 0 // remove this when adding the first well-known termprop
         static constinit struct {
                 char const* name;
                 VtePropertyType type;
                 VtePropertyFlags flags;
         } const well_known_termprops[] = {
+                { VTE_TERMPROP_FEDORA_CONTAINER_NAME,    VTE_PROPERTY_STRING,    VTE_PROPERTY_FLAG_NONE },
+                { VTE_TERMPROP_FEDORA_CONTAINER_RUNTIME, VTE_PROPERTY_STRING,    VTE_PROPERTY_FLAG_NONE },
+                { VTE_TERMPROP_FEDORA_CONTAINER_UID,     VTE_PROPERTY_UINT,      VTE_PROPERTY_FLAG_NONE },
+                { VTE_TERMPROP_FEDORA_SHELL_PRECMD,      VTE_PROPERTY_VALUELESS, VTE_PROPERTY_FLAG_NONE },
+                { VTE_TERMPROP_FEDORA_SHELL_PREEXEC,     VTE_PROPERTY_VALUELESS, VTE_PROPERTY_FLAG_NONE },
+                { VTE_TERMPROP_FEDORA_SHELL_POSTEXEC,    VTE_PROPERTY_VALUELESS, VTE_PROPERTY_FLAG_NONE },
         };
 
         for (auto i = 0u; i < G_N_ELEMENTS(well_known_termprops); ++i) {
@@ -1362,7 +1372,6 @@ check_termprop_wellknown(char const* name,
                         *flags = wkt->flags;
                 return true;
         }
-#endif
 
         return false;
 }
@@ -2890,6 +2899,19 @@ vte_terminal_class_init(VteTerminalClass *klass)
         pspecs[PROP_YFILL] =
                 g_param_spec_boolean("yfill", nullptr, nullptr,
                                      TRUE,
+                                     GParamFlags(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:enable-legacy-osc777:
+         *
+         * Whether legacy OSC 777 sequences are translated to
+         * their corresponding termprops, if installed.
+         *
+         * Since: 0.78
+         */
+        pspecs[PROP_ENABLE_LEGACY_OSC777] =
+                g_param_spec_boolean("enable-legacy-osc777", nullptr, nullptr,
+                                     false,
                                      GParamFlags(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         g_object_class_install_properties(gobject_class, LAST_PROP, pspecs);
@@ -7923,6 +7945,54 @@ try
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), true);
 
         return WIDGET(terminal)->yfill();
+}
+catch (...)
+{
+        vte::log_exception();
+        return true;
+}
+
+/**
+ * vte_terminal_set_enable_legacy_osc777:
+ * @terminal: a #VteTerminal
+ * @enable: whether to enable legacy OSC 777
+ *
+ * Sets whether legacy OSC 777 sequences are translated to
+ * their corresponding termprops, if installed.
+ *
+ * Since: 0.78
+ */
+void
+vte_terminal_set_enable_legacy_osc777(VteTerminal* terminal,
+                                      gboolean enable) noexcept
+try
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (WIDGET(terminal)->set_enable_legacy_osc777(enable != false))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_ENABLE_LEGACY_OSC777]);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
+ * vte_terminal_get_enable_legacy_osc777:
+ * @terminal: a #VteTerminal
+ * @enable: whether to enable legacy OSC 777
+ *
+ * Returns: %TRUE iff legacy OSC 777 is enabled
+ *
+ * Since: 0.78
+ */
+gboolean
+vte_terminal_get_enable_legacy_osc777(VteTerminal* terminal) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), true);
+
+        return WIDGET(terminal)->enable_legacy_osc777();
 }
 catch (...)
 {

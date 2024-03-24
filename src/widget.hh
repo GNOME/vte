@@ -538,6 +538,9 @@ public:
         bool set_fallback_scrolling(bool set) { return terminal()->set_fallback_scrolling(set); }
         bool fallback_scrolling() const noexcept { return terminal()->fallback_scrolling(); }
 
+        bool set_enable_legacy_osc777(bool enable) { return terminal()->set_enable_legacy_osc777(enable); }
+        auto enable_legacy_osc777() const noexcept { return terminal()->enable_legacy_osc777(); }
+
         char const* encoding() const noexcept { return m_terminal->encoding(); }
 
         void emit_child_exited(int status) noexcept;

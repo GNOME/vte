@@ -1712,6 +1712,101 @@ Terminal::vte_termprop(vte::parser::Sequence const& seq,
         }
 }
 
+void
+Terminal::urxvt_extension(vte::parser::Sequence const& seq,
+                          vte::parser::StringTokeniser::const_iterator& token,
+                          vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
+{
+        if (!enable_legacy_osc777())
+                return;
+
+        if (token == endtoken)
+                return;
+
+        auto maybe_set_termprop_void = [&](auto const& name,
+                                           bool set = true) -> void {
+                if (auto const info = get_termprop_info(name);
+                    info && info->type() == vte::terminal::TermpropType::VALUELESS) {
+                        m_termprops_dirty.at(info->id()) = set;
+                        m_termprop_values.at(info->id()) = {};
+                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                }
+        };
+
+        auto maybe_set_termprop = [&](auto const& name,
+                                      auto&& value) -> void {
+                if (auto const info = get_termprop_info(name)) {
+                        m_termprops_dirty.at(info->id()) = true;
+                        m_termprop_values.at(info->id()) = std::move(value);
+                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                }
+        };
+
+        auto maybe_reset_termprop = [&](auto const& name) -> void {
+                if (auto const info = get_termprop_info(name)) {
+                        m_termprops_dirty.at(info->id()) = true;
+                        m_termprop_values.at(info->id()) = {};
+                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                }
+        };
+
+        auto const cmd = *token;
+        if (cmd == "precmd") {
+                maybe_set_termprop_void(VTE_TERMPROP_FEDORA_SHELL_PRECMD);
+
+        } else if (cmd == "preexec") {
+                maybe_set_termprop_void(VTE_TERMPROP_FEDORA_SHELL_PREEXEC);
+
+        } else if (cmd == "notify") {
+                if (++token == endtoken)
+                        return;
+
+                if (*token != "Command completed")
+                        return;
+
+                maybe_set_termprop_void(VTE_TERMPROP_FEDORA_SHELL_POSTEXEC);
+
+        } else if (cmd == "container") {
+
+                if (++token == endtoken)
+                        return;
+
+                auto const subcmd = *token;
+                if (subcmd != "pop" && subcmd != "push")
+                        return;
+
+                // Note: There is no stack of values anymore.
+
+                // Reset container termprops so we don't get inconsistent
+                // values with incomplete sequences below.
+                maybe_reset_termprop(VTE_TERMPROP_FEDORA_CONTAINER_NAME);
+                maybe_reset_termprop(VTE_TERMPROP_FEDORA_CONTAINER_RUNTIME);
+                maybe_reset_termprop(VTE_TERMPROP_FEDORA_CONTAINER_UID);
+
+                if (subcmd == "push") {
+                        if (++token == endtoken)
+                                return;
+
+                        maybe_set_termprop(VTE_TERMPROP_FEDORA_CONTAINER_NAME, *token);
+
+                        if (++token == endtoken)
+                                return;
+
+                        maybe_set_termprop(VTE_TERMPROP_FEDORA_CONTAINER_RUNTIME, *token);
+
+                        if (++token == endtoken)
+                                return;
+
+                        if (auto value = vte::terminal::parse_termprop_value(vte::terminal::TermpropType::UINT, *token)) {
+                                maybe_set_termprop(VTE_TERMPROP_FEDORA_CONTAINER_UID, *value);
+                        }
+
+                } else if (subcmd == "pop") {
+                        // already reset above
+                }
+        }
+}
+
 /*
  * Command Handlers
  * This is the unofficial documentation of all the VTE_CMD_* definitions.
@@ -6860,6 +6955,10 @@ Terminal::OSC(vte::parser::Sequence const& seq)
                 vte_termprop(seq, it, cend);
                 break;
 
+        case VTE_OSC_URXVT_EXTENSION:
+                urxvt_extension(seq, it, cend);
+                break;
+
         case VTE_OSC_XTERM_SET_ICON_TITLE:
         case VTE_OSC_XTERM_SET_XPROPERTY:
         case VTE_OSC_XTERM_SET_COLOR_MOUSE_CURSOR_FG:
@@ -6900,7 +6999,6 @@ Terminal::OSC(vte::parser::Sequence const& seq)
         case VTE_OSC_URXVT_SET_FONT_BOLD_ITALIC:
         case VTE_OSC_URXVT_VIEW_UP:
         case VTE_OSC_URXVT_VIEW_DOWN:
-        case VTE_OSC_URXVT_EXTENSION:
         case VTE_OSC_YF_RQGWR:
         default:
                 break;

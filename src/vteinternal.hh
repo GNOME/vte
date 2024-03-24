@@ -864,6 +864,22 @@ public:
                 m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
         }
 
+        bool m_enable_legacy_osc777{false};
+
+        bool set_enable_legacy_osc777(bool enable) noexcept
+        {
+                if (enable == m_enable_legacy_osc777)
+                        return false;
+
+                m_enable_legacy_osc777 = enable;
+                return true;
+        }
+
+        constexpr auto enable_legacy_osc777() const noexcept
+        {
+                return m_enable_legacy_osc777;
+        }
+
 public:
 
         inline VteRowData const* find_row_data(vte::grid::row_t row) const;
@@ -1783,6 +1799,10 @@ public:
         void vte_termprop(vte::parser::Sequence const& seq,
                           vte::parser::StringTokeniser::const_iterator& token,
                           vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+
+        void urxvt_extension(vte::parser::Sequence const& seq,
+                             vte::parser::StringTokeniser::const_iterator& token,
+                             vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
 
         void ringview_update();
 

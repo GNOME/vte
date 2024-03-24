@@ -641,6 +641,13 @@ _VTE_PUBLIC
 gboolean vte_terminal_get_yfill(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
+void vte_terminal_set_enable_legacy_osc777(VteTerminal* terminal,
+                                           gboolean enable) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_enable_legacy_osc777(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
 void vte_terminal_set_context_menu_model(VteTerminal* terminal,
                                          GMenuModel* model) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
@@ -670,7 +677,6 @@ gboolean vte_event_context_get_coordinates(VteEventContext const* context,
                                            double* y) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 #endif /* VTE_GTK */
-
 _VTE_PUBLIC
 gboolean vte_terminal_get_termprop_bool(VteTerminal* terminal,
                                         char const* prop,

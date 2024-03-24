@@ -465,3 +465,10 @@ parse_termprop_value(TermpropType type,
 }
 
 } // namespace vte::terminal
+
+#define VTE_TERMPROP_FEDORA_CONTAINER_NAME    VTE_TERMPROP_NAME_PREFIX "fedora.container.name"    /* string */
+#define VTE_TERMPROP_FEDORA_CONTAINER_RUNTIME VTE_TERMPROP_NAME_PREFIX "fedora.container.runtime" /* string */
+#define VTE_TERMPROP_FEDORA_CONTAINER_UID     VTE_TERMPROP_NAME_PREFIX "fedora.container.uid"     /* uint64 */
+#define VTE_TERMPROP_FEDORA_SHELL_PRECMD      VTE_TERMPROP_NAME_PREFIX "fedora.shell.precmd"      /* valueless */
+#define VTE_TERMPROP_FEDORA_SHELL_PREEXEC     VTE_TERMPROP_NAME_PREFIX "fedora.shell.preexec"     /* valueless */
+#define VTE_TERMPROP_FEDORA_SHELL_POSTEXEC    VTE_TERMPROP_NAME_PREFIX "fedora.shell.postexec"    /* valueless */

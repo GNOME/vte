@@ -1814,6 +1814,13 @@ vteapp_search_popover_new(VteTerminal* terminal,
 #define VTEAPP_IS_TERMINAL_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE((k), VTEAPP_TYPE_TERMINAL))
 #define VTEAPP_TERMINAL_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS((o), VTEAPP_TYPE_TERMINAL, VteappTerminalClass))
 
+#define VTEAPP_TERMPROP_FEDORA_CONTAINER_NAME    VTE_TERMPROP_NAME_PREFIX "fedora.container.name"    /* string */
+#define VTEAPP_TERMPROP_FEDORA_CONTAINER_RUNTIME VTE_TERMPROP_NAME_PREFIX "fedora.container.runtime" /* string */
+#define VTEAPP_TERMPROP_FEDORA_CONTAINER_UID     VTE_TERMPROP_NAME_PREFIX "fedora.container.uid"     /* uint64 */
+#define VTEAPP_TERMPROP_FEDORA_SHELL_PRECMD      VTE_TERMPROP_NAME_PREFIX "fedora.shell.precmd"      /* valueless */
+#define VTEAPP_TERMPROP_FEDORA_SHELL_PREEXEC     VTE_TERMPROP_NAME_PREFIX "fedora.shell.preexec"     /* valueless */
+#define VTEAPP_TERMPROP_FEDORA_SHELL_POSTEXEC    VTE_TERMPROP_NAME_PREFIX "fedora.shell.postexec"    /* valueless */
+
 typedef struct _VteappTerminal       VteappTerminal;
 typedef struct _VteappTerminalClass  VteappTerminalClass;
 
@@ -2127,6 +2134,27 @@ vteapp_terminal_class_init(VteappTerminalClass *klass)
                 vte_install_termprop_alias("vte.ext.vteapp.test.alias",
                                            "vte.ext.vteapp.test.bool");
         }
+
+        { // BEGIN distro patches
+                vte_install_termprop(VTEAPP_TERMPROP_FEDORA_CONTAINER_NAME,
+                                     VTE_PROPERTY_STRING,
+                                     VTE_PROPERTY_FLAG_NONE);
+                vte_install_termprop(VTEAPP_TERMPROP_FEDORA_CONTAINER_RUNTIME,
+                                     VTE_PROPERTY_STRING,
+                                     VTE_PROPERTY_FLAG_NONE);
+                vte_install_termprop(VTEAPP_TERMPROP_FEDORA_CONTAINER_UID,
+                                     VTE_PROPERTY_UINT,
+                                     VTE_PROPERTY_FLAG_NONE);
+                vte_install_termprop(VTEAPP_TERMPROP_FEDORA_SHELL_PRECMD,
+                                     VTE_PROPERTY_VALUELESS,
+                                     VTE_PROPERTY_FLAG_NONE);
+                vte_install_termprop(VTEAPP_TERMPROP_FEDORA_SHELL_PREEXEC,
+                                     VTE_PROPERTY_VALUELESS,
+                                     VTE_PROPERTY_FLAG_NONE);
+                vte_install_termprop(VTEAPP_TERMPROP_FEDORA_SHELL_POSTEXEC,
+                                     VTE_PROPERTY_VALUELESS,
+                                     VTE_PROPERTY_FLAG_NONE);
+        } // END distro patches
 }
 
 static void
@@ -2140,6 +2168,8 @@ vteapp_terminal_init(VteappTerminal *terminal)
         if (options.background_pixbuf != nullptr)
                 vte_terminal_set_clear_background(VTE_TERMINAL(terminal), false);
 #endif /* VTE_GTK == 3 */
+
+        vte_terminal_set_enable_legacy_osc777(VTE_TERMINAL(terminal), true);
 }
 
 static GtkWidget *
