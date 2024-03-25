@@ -4074,7 +4074,7 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                                         single_width_chars[single_width_chars_count++] = *ip;
                                         ip++;
                                 }
-                                if (ip < iend || *ip >= 0x80) {
+                                if (ip < iend && *ip >= 0x80) {
                                         /* Continue with UTF-8 (possibly including further ASCII) non-control chars. */
                                         /* This is just a little bit slower than the ASCII loop above. */
                                         vte::base::UTF8Decoder decoder;
