@@ -1092,22 +1092,22 @@ public:
                                            char const* desc,
                                            char const* negated_desc) constexpr noexcept -> void
                 {
-                        entries.emplace_back(option,
-                                             short_option,
-                                             // hide this option if it's the default anyway
-                                             flags | (*arg_data ? G_OPTION_FLAG_HIDDEN : 0),
-                                             G_OPTION_ARG_NONE,
-                                             arg_data,
-                                             desc,
-                                             nullptr);
-                        entries.emplace_back(negated_option,
-                                             negated_short_option,
-                                             // hide this option if it's the default anyway
-                                             flags | (*arg_data ? 0 : G_OPTION_FLAG_HIDDEN) | G_OPTION_FLAG_REVERSE,
-                                             G_OPTION_ARG_NONE,
-                                             arg_data,
-                                             negated_desc,
-                                             nullptr);
+                        entries.push_back({option,
+                                           short_option,
+                                           // hide this option if it's the default anyway
+                                           flags | (*arg_data ? G_OPTION_FLAG_HIDDEN : 0),
+                                           G_OPTION_ARG_NONE,
+                                           arg_data,
+                                           desc,
+                                           nullptr});
+                        entries.push_back({negated_option,
+                                           negated_short_option,
+                                           // hide this option if it's the default anyway
+                                           flags | (*arg_data ? 0 : G_OPTION_FLAG_HIDDEN) | G_OPTION_FLAG_REVERSE,
+                                           G_OPTION_ARG_NONE,
+                                           arg_data,
+                                           negated_desc,
+                                           nullptr});
                 };
 
                 add_bool_option("allow-window-ops", 0, "no-allow-window-ops", 0,
