@@ -737,7 +737,7 @@ private:
 
                         auto v = 0;
                         if (parse_enum(enum_type, str.get(), v, nullptr))
-                                *ptr = (typeof *ptr)v;
+                                *ptr = (decltype(*ptr))v;
                 };
 
                 load_enum_option("BackgroundExtend", CAIRO_GOBJECT_TYPE_EXTEND, &background_extend);
