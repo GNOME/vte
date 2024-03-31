@@ -16,6 +16,11 @@ download a tarball at
 https://gitlab.gnome.org/GNOME/vte/-/archive/TAG/vte-TAG.tar.bz2
 replacing `TAG` with the desired tag's name (e.g. `0.64.0`).
 
+Tarballs for new, and also older pre-git releases, may still be available
+on download.gnome.org, but please note that any tarball for releases
+after 0.60.3 were made by either the gnome release team or other
+gnome contributors, but not by a VTE maintainer.
+
 Installation
 ------------
 
