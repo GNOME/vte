@@ -131,7 +131,7 @@ assert_termprop_parse_integral_value(TermpropType type,
                                      T const& expected_value = {},
                                      int line = __builtin_LINE()) noexcept
 {
-        using V = std::conditional_t<std::is_unsigned_v<T>, uintmax_t, intmax_t>;
+        using V = std::conditional_t<std::is_unsigned_v<T>, uint64_t, int64_t>;
         assert_termprop_parse_value<V>(type, str, V{expected_value}, line);
 }
 

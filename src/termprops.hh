@@ -250,8 +250,8 @@ using termprop_rgba = vte::color::rgba_base<double>;
 
 using TermpropValue = std::variant<std::monostate,
                                    bool,
-                                   intmax_t,
-                                   uintmax_t,
+                                   int64_t,
+                                   uint64_t,
                                    double,
                                    termprop_rgba,
                                    vte::uuid,
@@ -323,9 +323,9 @@ parse_termprop_integral(std::string_view const& str) noexcept
                                               v);
             err == std::errc() && ptr == std::end(str)) {
                 if constexpr (std::is_unsigned_v<T>) {
-                        return uintmax_t(v);
+                        return uint64_t(v);
                 } else {
-                        return intmax_t(v);
+                        return int64_t(v);
                 }
         }
 

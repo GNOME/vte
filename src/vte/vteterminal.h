@@ -687,22 +687,22 @@ gboolean vte_terminal_get_termprop_bool_by_id(VteTerminal* terminal,
 _VTE_PUBLIC
 gboolean vte_terminal_get_termprop_int(VteTerminal* terminal,
                                        char const* prop,
-                                       intmax_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+                                       int64_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
 
 _VTE_PUBLIC
 gboolean vte_terminal_get_termprop_int_by_id(VteTerminal* terminal,
                                              int prop,
-                                             intmax_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+                                             int64_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
 gboolean vte_terminal_get_termprop_uint(VteTerminal* terminal,
                                         char const* prop,
-                                        uintmax_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+                                        uint64_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
 
 _VTE_PUBLIC
 gboolean vte_terminal_get_termprop_uint_by_id(VteTerminal* terminal,
                                               int prop,
-                                              uintmax_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+                                              uint64_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
 gboolean vte_terminal_get_termprop_double(VteTerminal* terminal,

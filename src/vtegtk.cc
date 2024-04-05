@@ -8176,7 +8176,7 @@ vte_terminal_get_termprop_bool(VteTerminal* terminal,
 gboolean
 vte_terminal_get_termprop_int_by_id(VteTerminal* terminal,
                                     int prop,
-                                    intmax_t *valuep) noexcept
+                                    int64_t *valuep) noexcept
 try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
@@ -8194,9 +8194,9 @@ try
 
         auto const value = widget->get_termprop(*info);
         if (value &&
-            std::holds_alternative<intmax_t>(*value)) {
+            std::holds_alternative<int64_t>(*value)) {
                 if (valuep) [[likely]]
-                        *valuep = std::get<intmax_t>(*value);
+                        *valuep = std::get<int64_t>(*value);
                 return true;
         }
 
@@ -8232,7 +8232,7 @@ catch (...)
 gboolean
 vte_terminal_get_termprop_int(VteTerminal* terminal,
                               char const* prop,
-                              intmax_t *valuep) noexcept
+                              int64_t *valuep) noexcept
 {
         g_return_val_if_fail(prop != nullptr, false);
 
@@ -8257,7 +8257,7 @@ vte_terminal_get_termprop_int(VteTerminal* terminal,
 gboolean
 vte_terminal_get_termprop_uint_by_id(VteTerminal* terminal,
                                      int prop,
-                                     uintmax_t *valuep) noexcept
+                                     uint64_t *valuep) noexcept
 try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
@@ -8275,9 +8275,9 @@ try
 
         auto const value = widget->get_termprop(*info);
         if (value &&
-            std::holds_alternative<uintmax_t>(*value)) {
+            std::holds_alternative<uint64_t>(*value)) {
                 if (valuep) [[likely]]
-                        *valuep = std::get<uintmax_t>(*value);
+                        *valuep = std::get<uint64_t>(*value);
                 return true;
         }
 
@@ -8313,7 +8313,7 @@ catch (...)
 gboolean
 vte_terminal_get_termprop_uint(VteTerminal* terminal,
                                char const* prop,
-                               uintmax_t *valuep) noexcept
+                               uint64_t *valuep) noexcept
 {
         g_return_val_if_fail(prop != nullptr, false);
 
@@ -8871,18 +8871,18 @@ try
                 break;
 
         case vte::terminal::TermpropType::INT:
-                if (std::holds_alternative<intmax_t>(*value)) {
+                if (std::holds_alternative<int64_t>(*value)) {
                         rv = true;
                         g_value_init(gvalue, G_TYPE_INT64);
-                        g_value_set_int64(gvalue, int64_t(std::get<intmax_t>(*value)));
+                        g_value_set_int64(gvalue, int64_t(std::get<int64_t>(*value)));
                 }
                 break;
 
         case vte::terminal::TermpropType::UINT:
-                if (std::holds_alternative<uintmax_t>(*value)) {
+                if (std::holds_alternative<uint64_t>(*value)) {
                         rv = true;
                         g_value_init(gvalue, G_TYPE_UINT64);
-                        g_value_set_uint64(gvalue, uint64_t(std::get<uintmax_t>(*value)));
+                        g_value_set_uint64(gvalue, uint64_t(std::get<uint64_t>(*value)));
                 }
                 break;
 
@@ -9025,18 +9025,18 @@ try
                 break;
 
         case vte::terminal::TermpropType::INT:
-                if (std::holds_alternative<intmax_t>(*value)) {
-                        return g_variant_new_int64(int64_t(std::get<intmax_t>(*value)));
+                if (std::holds_alternative<int64_t>(*value)) {
+                        return g_variant_new_int64(int64_t(std::get<int64_t>(*value)));
                 }
                 break;
         case vte::terminal::TermpropType::UINT:
-                if (std::holds_alternative<uintmax_t>(*value)) {
-                        return g_variant_new_uint64(uint64_t(std::get<uintmax_t>(*value)));
+                if (std::holds_alternative<uint64_t>(*value)) {
+                        return g_variant_new_uint64(uint64_t(std::get<uint64_t>(*value)));
                 }
                 break;
 
         case vte::terminal::TermpropType::DOUBLE:
-                if (std::holds_alternative<uintmax_t>(*value)) {
+                if (std::holds_alternative<uint64_t>(*value)) {
                         return g_variant_new_double(std::get<double>(*value));
                 }
                 break;
