@@ -63,6 +63,7 @@ int vte_install_termprop_alias(char const* name,
 
 _VTE_PUBLIC
 gboolean vte_query_termprop(char const* name,
+                            char const** resolved_name,
                             int* prop,
                             VtePropertyType* type,
                             VtePropertyFlags* flags) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);

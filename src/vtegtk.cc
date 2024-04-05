@@ -3245,12 +3245,16 @@ catch (...)
 /**
  * vte_query_termprop:
  * @name: a termprop name
+ * @resolved_name: (out) (optional) (transfer none): a location to store the termprop's name
  * @prop: (out) (optional): a location to store the termprop's ID
  * @type: (out) (optional): a location to store the termprop's type as a #VtePropertyType
  * @flags: (out) (optional): a location to store the termprop's flags as a #VtePropertyFlags
  *
  * Gets the property type of the termprop. For properties installed by
  * vte_install_termprop(), the name starts with "vte.ext.".
+ *
+ * For an alias termprop (see vte_install_termprop_alias()), @resolved_name
+ * will be name of the alias' target termprop; otherwise it will be @name.
  *
  * Returns: %TRUE iff the termprop exists, and then @prop, @type and
  *   @flags will be filled in
@@ -3259,6 +3263,7 @@ catch (...)
  */
 gboolean
 vte_query_termprop(char const* name,
+                   char const** resolved_name,
                    int* prop,
                    VtePropertyType* type,
                    VtePropertyFlags* flags) noexcept
@@ -3267,6 +3272,8 @@ try
         g_return_val_if_fail(vte::terminal::validate_termprop_name(name), false);
 
         if (auto const info = vte::terminal::get_termprop_info(name)) {
+                if (resolved_name)
+                        *resolved_name = g_quark_to_string(info->quark());
                 if (prop)
                         *prop = info->id();
                 if (type)
@@ -3287,12 +3294,15 @@ catch (...)
 /**
  * vte_query_termprop_by_id:
  * @prop: a termprop ID
- * @name: (out) (optional): a location to store the termprop's name
+ * @name: (out) (optional) (transfer none): a location to store the termprop's name
  * @type: (out) (optional): a location to store the termprop's type as a #VtePropertyType
  * @flags: (out) (optional): a location to store the termprop's flags as a #VtePropertyFlags
  *
  * Like vte_query_termprop() except that it takes the termprop by ID.
  * See that function for more information.
+ *
+ * For an alias termprop (see vte_install_termprop_alias()), @resolved_name
+ * will be name of the alias' target termprop; otherwise it will be @name.
  *
  * Returns: %TRUE iff the termprop exists, and then @name, @type and
  *   @flags will be filled in
