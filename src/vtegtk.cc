@@ -3243,6 +3243,49 @@ catch (...)
 }
 
 /**
+ * vte_get_termprops:
+ * @length: (out) (optional): a location to store the length of the returned array
+ *
+ * Gets the names of the installed termprops in an unspecified order.
+ *
+ * Returns: (transfer container) (array length=length) (nullable): the names of the installed
+ *   termprops, or %NULL if there are no termprops
+ *
+ * Since: 0.78
+ */
+char const**
+vte_get_termprops(gsize* length) noexcept
+try
+{
+        auto const n_termprops = vte::terminal::n_registered_termprops();
+        auto strv = vte::glib::take_free_ptr(g_try_new0(char*, n_termprops + 1));
+        if (!strv || !n_termprops) {
+                if (length)
+                        *length = 0;
+                return nullptr;
+        }
+
+        auto i = 0;
+        for (auto const& info : vte::terminal::s_registered_termprops) {
+                strv.get()[i++] = const_cast<char*>(g_quark_to_string(info.quark()));
+        }
+        strv.get()[i] = nullptr;
+        vte_assert_cmpint(i, ==, int(n_termprops));
+
+        if (length)
+                *length = i;
+
+        return const_cast<char const**>(strv.release());
+}
+catch (...)
+{
+        vte::log_exception();
+        if (length)
+                *length = 0;
+        return nullptr;
+}
+
+/**
  * vte_query_termprop:
  * @name: a termprop name
  * @resolved_name: (out) (optional) (transfer none): a location to store the termprop's name

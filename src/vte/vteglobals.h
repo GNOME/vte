@@ -62,6 +62,9 @@ int vte_install_termprop_alias(char const* name,
                                char const* target_name) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
 
 _VTE_PUBLIC
+char const** vte_get_termprops(gsize* length) _VTE_CXX_NOEXCEPT G_GNUC_MALLOC;
+
+_VTE_PUBLIC
 gboolean vte_query_termprop(char const* name,
                             char const** resolved_name,
                             int* prop,

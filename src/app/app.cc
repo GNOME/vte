@@ -2127,6 +2127,15 @@ vteapp_terminal_class_init(VteappTerminalClass *klass)
                 vte_install_termprop_alias("vte.ext.vteapp.test.alias",
                                            "vte.ext.vteapp.test.bool");
         }
+
+        if (options.verbosity > 1) {
+                auto n_termprops = gsize{0};
+                auto termprops = vte::glib::take_free_ptr(vte_get_termprops(&n_termprops));
+                verbose_print("Installed termprops are:\n");
+                for (auto i = gsize{0}; i < n_termprops; ++i) {
+                        verbose_print("  %s\n", termprops.get()[i]);
+                }
+        }
 }
 
 static void
@@ -3917,6 +3926,8 @@ main(int argc,
                vte_set_test_flags(VTE_TEST_FLAGS_ALL);
                options.allow_window_ops = true;
        }
+#else
+       options.test_mode = false;
 #endif
 
        auto reset_termios = bool{false};
