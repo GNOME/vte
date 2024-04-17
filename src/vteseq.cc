@@ -1360,7 +1360,10 @@ Terminal::set_color(vte::parser::Sequence const& seq,
                         continue;
                 }
 
-                set_color_index(seq, token, endtoken, value, index, -1, osc);
+                /* The fallback color is never used with OSC 4 and the 256-color palette,
+                 * it is only used with OSC 5 (a.k.a. OSC 4 with indices 256 and beyond)
+                 * special colors where the fallback is always the default foreground. */
+                set_color_index(seq, token, endtoken, value, index, VTE_DEFAULT_FG, osc);
                 ++token;
         }
 }
@@ -1378,13 +1381,13 @@ Terminal::set_color_index(vte::parser::Sequence const& seq,
 
         if (str == "?"s) {
                 vte::color::rgb color{0, 0, 0};
-                if (index != -1) {
-                        auto const* c = get_color(index);
-                        if (c == nullptr && index_fallback != -1)
-                                c = get_color(index_fallback);
-                        if (c != nullptr)
-                                color = *c;
-                }
+                vte::color::rgb const *c = nullptr;
+                if (index != -1)
+                        c = get_color(index);
+                if (c == nullptr && index_fallback != -1)
+                        c = get_color(index_fallback);
+                if (c != nullptr)
+                        color = *c;
 
                 if (number != -1)
                         reply(seq, VTE_REPLY_OSC, {}, "%d;%d;rgb:%04x/%04x/%04x",
