@@ -148,6 +148,40 @@ vte_accessible_text_contents_get_string (VteAccessibleTextContents *contents,
         return ret;
 }
 
+static void
+vte_accessible_text_contents_xy_from_offset (VteAccessibleTextContents *contents,
+                                             int offset,
+                                             int *x,
+                                             int *y)
+{
+        int cur_offset = 0;
+        int cur_x = -1;
+        int cur_y = -1;
+        int i;
+
+        for (i = 0; i < int(char_positions_get_size (&contents->linebreaks)); i++) {
+                int linebreak = *char_positions_index (&contents->linebreaks, i);
+
+                if (offset < linebreak) {
+                        cur_x = offset - cur_offset;
+                        cur_y = i - 1;
+                        break;
+                }  else {
+                        cur_offset = linebreak;
+                }
+        }
+
+        if (i == int(char_positions_get_size (&contents->linebreaks))) {
+                if (offset <= int(char_positions_get_size (&contents->characters))) {
+                        cur_x = offset - cur_offset;
+                        cur_y = i - 1;
+                }
+        }
+
+        *x = cur_x;
+        *y = cur_y;
+}
+
 static int
 vte_accessible_text_contents_offset_from_xy (VteAccessibleTextContents *contents,
                                              int x,
@@ -645,6 +679,89 @@ vte_accessible_text_get_attributes (GtkAccessibleText        *accessible,
         return TRUE;
 }
 
+#if GTK_CHECK_VERSION(4, 15, 1)
+static gboolean
+vte_accessible_text_get_extents (GtkAccessibleText *accessible,
+                                 unsigned int       start,
+                                 unsigned int       end,
+                                 graphene_rect_t   *extents)
+{
+        VteTerminal *terminal = VTE_TERMINAL (accessible);
+        graphene_rect_t start_rect;
+        graphene_rect_t end_rect;
+        int start_x, start_y;
+        int end_x, end_y;
+
+        g_assert (VTE_IS_TERMINAL (terminal));
+        g_assert (extents != nullptr);
+
+        auto impl = _vte_terminal_get_impl (terminal);
+        auto state = vte_accessible_text_get (terminal);
+        auto contents = &state->contents[state->contents_flip];
+
+        glong cell_width = vte_terminal_get_char_width (terminal);
+        glong cell_height = vte_terminal_get_char_height (terminal);
+        glong columns = vte_terminal_get_column_count (terminal);
+
+        vte_accessible_text_contents_xy_from_offset (contents, start, &start_x, &start_y);
+        vte_accessible_text_contents_xy_from_offset (contents, end, &end_x, &end_y);
+
+        start_rect.origin.x = start_x * cell_width;
+        start_rect.origin.y = start_y * cell_height;
+        start_rect.size.width = cell_width;
+        start_rect.size.height = cell_height;
+
+        end_rect.origin.x = end_x * cell_width;
+        end_rect.origin.y = end_y * cell_height;
+        end_rect.size.width = cell_width;
+        end_rect.size.height = cell_height;
+
+        graphene_rect_union (&start_rect, &end_rect, extents);
+
+        /* If the Y position of the two lines do not match, then we need
+         * to extend the area to contain all possible wrap-around text
+         * for the region.
+         *
+         * This does not attempt to try to find the earliest/latest character
+         * on each line which could be an opportunity for shrinking the
+         * included extents.
+         */
+        if (!_vte_double_equal (end_rect.origin.y, start_rect.origin.y)) {
+                extents->origin.x = 0;
+                extents->size.width = cell_width * columns;
+        }
+
+        extents->origin.x += impl->m_border.left;
+        extents->origin.y += impl->m_border.top;
+
+        return TRUE;
+}
+
+static gboolean
+vte_accessible_text_get_offset (GtkAccessibleText      *accessible,
+                                const graphene_point_t *point,
+                                unsigned int           *offset)
+{
+        VteTerminal *terminal = VTE_TERMINAL (accessible);
+
+        g_assert (VTE_IS_TERMINAL (terminal));
+
+        auto impl = _vte_terminal_get_impl (terminal);
+        auto state = vte_accessible_text_get (terminal);
+        auto contents = &state->contents[state->contents_flip];
+
+        glong cell_width = vte_terminal_get_char_width (terminal);
+        glong cell_height = vte_terminal_get_char_height (terminal);
+
+        int x = (point->x - impl->m_border.left) / cell_width;
+        int y = (point->y - impl->m_border.top) / cell_height;
+
+        *offset = vte_accessible_text_contents_offset_from_xy (contents, x, y);
+
+        return TRUE;
+}
+#endif
+
 void
 _vte_accessible_text_iface_init (GtkAccessibleTextInterface *iface)
 {
@@ -653,6 +770,11 @@ _vte_accessible_text_iface_init (GtkAccessibleTextInterface *iface)
         iface->get_contents = vte_accessible_text_get_contents;
         iface->get_contents_at = vte_accessible_text_get_contents_at;
         iface->get_selection = vte_accessible_text_get_selection;
+
+#if GTK_CHECK_VERSION(4, 15, 1)
+        iface->get_offset = vte_accessible_text_get_offset;
+        iface->get_extents = vte_accessible_text_get_extents;
+#endif
 }
 
 static void
