@@ -7679,7 +7679,7 @@ try
         g_return_if_fail(color != nullptr);
 
         auto impl = IMPL(terminal);
-        auto const c = impl->get_color(VTE_DEFAULT_BG);
+        auto const c = impl->get_color(vte::color_palette::ColorPaletteIndex::default_bg());
         color->red = c->red / 65535.;
         color->green = c->green / 65535.;
         color->blue = c->blue / 65535.;

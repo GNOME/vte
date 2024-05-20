@@ -202,6 +202,9 @@ vte::parser::Sequence::ucs4_to_utf8(gunichar const* str,
 namespace vte {
 namespace terminal {
 
+using namespace vte::color_palette;
+using namespace vte::osc_colors;
+
 /* Emit a "bell" signal. */
 void
 Terminal::emit_bell()
@@ -1305,151 +1308,112 @@ Terminal::erase_in_line(vte::parser::Sequence const& seq)
         m_text_deleted_flag = TRUE;
 }
 
-bool
-Terminal::get_osc_color_index(int osc,
-                                        int value,
-                                        int& index) const noexcept
-{
-        if (value < 0)
-                return false;
-
-        if (osc == VTE_OSC_XTERM_SET_COLOR ||
-            osc == VTE_OSC_XTERM_RESET_COLOR) {
-                if (value < VTE_DEFAULT_FG) {
-                        index = value;
-                        return true;
-                }
-
-                index = value - VTE_DEFAULT_FG;
-        } else {
-                index = value;
-        }
-
-        /* Translate OSC 5 numbers to color index.
-         *
-         * We return -1 for known but umimplemented special colors
-         * so that we can send a dummy reply when queried.
-         */
-        switch (index) {
-        case 0: index = VTE_BOLD_FG; return true; /* Bold */
-        case 1: index = -1; return true; /* Underline */
-        case 2: index = -1; return true; /* Blink */
-        case 3: index = -1; return true; /* Reverse */
-        case 4: index = -1; return true; /* Italic */
-        default: return false;
-        }
-}
-
 void
 Terminal::set_color(vte::parser::Sequence const& seq,
-                              vte::parser::StringTokeniser::const_iterator& token,
-                              vte::parser::StringTokeniser::const_iterator const& endtoken,
-                              int osc) noexcept
+                    vte::parser::StringTokeniser::const_iterator& token,
+                    vte::parser::StringTokeniser::const_iterator const& endtoken,
+                    osc_colors::OSCValuedColorSequenceKind osc_kind,
+                    int osc) noexcept
 {
         while (token != endtoken) {
-                int value;
-                bool has_value = token.number(value);
+                auto const value = token.number();
 
                 if (++token == endtoken)
                         break;
 
-                int index;
-                if (!has_value ||
-                    !get_osc_color_index(osc, value, index)) {
-                        ++token;
+                if (!value) {
+                        ++token; // skip the colour param
                         continue;
                 }
 
-                /* The fallback color is never used with OSC 4 and the 256-color palette,
-                 * it is only used with OSC 5 (a.k.a. OSC 4 with indices 256 and beyond)
-                 * special colors where the fallback is always the default foreground. */
-                set_color_index(seq, token, endtoken, value, index, VTE_DEFAULT_FG, osc);
+                if (auto const index = OSCColorIndex::from_sequence(osc_kind, *value))
+                        set_color_index(seq, token, endtoken, value, *index, osc);
+
                 ++token;
         }
 }
 
 void
 Terminal::set_color_index(vte::parser::Sequence const& seq,
-                                    vte::parser::StringTokeniser::const_iterator& token,
-                                    vte::parser::StringTokeniser::const_iterator const& endtoken,
-                                    int number,
-                                    int index,
-                                    int index_fallback,
-                                    int osc) noexcept
+                          vte::parser::StringTokeniser::const_iterator& token,
+                          vte::parser::StringTokeniser::const_iterator const& endtoken,
+                          std::optional<int> number,
+                          OSCColorIndex index,
+                          int osc) noexcept
 {
         auto const str = *token;
 
         if (str == "?"s) {
-                vte::color::rgb color{0, 0, 0};
-                vte::color::rgb const *c = nullptr;
-                if (index != -1)
-                        c = get_color(index);
-                if (c == nullptr && index_fallback != -1)
-                        c = get_color(index_fallback);
-                if (c != nullptr)
-                        color = *c;
+                auto const color = resolve_reported_color(index).value_or(vte::color::rgb{0, 0, 0});
 
-                if (number != -1)
+                if (number)
                         reply(seq, VTE_REPLY_OSC, {}, "%d;%d;rgb:%04x/%04x/%04x",
-                              osc, number, color.red, color.green, color.blue);
+                              osc, *number, color.red, color.green, color.blue);
                 else
                         reply(seq, VTE_REPLY_OSC, {}, "%d;rgb:%04x/%04x/%04x",
                               osc, color.red, color.green, color.blue);
         } else {
                 vte::color::rgb color;
 
-                if (index != -1 &&
+                if (index.kind() == OSCColorIndexKind::Palette &&
                     color.parse(str.data())) {
-                        set_color(index, VTE_COLOR_SOURCE_ESCAPE, color);
+                        set_color(index.palette_index(), ColorSource::Escape, color);
                 }
         }
+}
+
+auto
+Terminal::resolve_reported_color(osc_colors::OSCColorIndex index) const noexcept -> std::optional<vte::color::rgb>
+{
+        if (index.kind() == OSCColorIndexKind::Palette) {
+                if (auto const color = get_color_opt(index.palette_index()))
+                        return color;
+        }
+
+        if (auto const fallback_index = index.fallback_palette_index())
+                return get_color_opt(*fallback_index);
+
+        return std::nullopt;
 }
 
 void
 Terminal::set_special_color(vte::parser::Sequence const& seq,
                                       vte::parser::StringTokeniser::const_iterator& token,
                                       vte::parser::StringTokeniser::const_iterator const& endtoken,
-                                      int index,
-                                      int index_fallback,
-                                      int osc) noexcept
+                                      const ColorPaletteIndex index,
+                                      const int osc) noexcept
 {
         if (token == endtoken)
                 return;
 
-        set_color_index(seq, token, endtoken, -1, index, index_fallback, osc);
+        set_color_index(seq, token, endtoken, std::nullopt, index, osc);
 }
 
 void
 Terminal::reset_color(vte::parser::Sequence const& seq,
                                 vte::parser::StringTokeniser::const_iterator& token,
                                 vte::parser::StringTokeniser::const_iterator const& endtoken,
-                                int osc) noexcept
+                                const osc_colors::OSCValuedColorSequenceKind osc_kind) noexcept
 {
         /* Empty param? Reset all */
         if (token == endtoken ||
             token.size_remaining() == 0) {
-                if (osc == VTE_OSC_XTERM_RESET_COLOR) {
-                        for (unsigned int idx = 0; idx < VTE_DEFAULT_FG; idx++)
-                                reset_color(idx, VTE_COLOR_SOURCE_ESCAPE);
+                if (osc_kind == OSCValuedColorSequenceKind::XTermColor) {
+                        for (auto idx = 0; idx < VTE_DEFAULT_FG; idx++)
+                                reset_color(idx, ColorSource::Escape);
                 }
 
-                reset_color(VTE_BOLD_FG, VTE_COLOR_SOURCE_ESCAPE);
+                reset_color(ColorPaletteIndex::bold_fg(), ColorSource::Escape);
                 /* Add underline/blink/reverse/italic here if/when implemented */
 
                 return;
         }
 
         while (token != endtoken) {
-                int value;
-                if (!token.number(value)) {
-                        ++token;
-                        continue;
-                }
-
-                int index;
-                if (get_osc_color_index(osc, value, index) &&
-                    index != -1) {
-                        reset_color(index, VTE_COLOR_SOURCE_ESCAPE);
+                if (auto const value = token.number()) {
+                        if (auto index = OSCColorIndex::from_sequence(osc_kind, *value))
+                                if (index->kind() == OSCColorIndexKind::Palette)
+                                        reset_color(index->palette_index(), ColorSource::Escape);
                 }
 
                 ++token;
@@ -6787,53 +6751,59 @@ Terminal::OSC(vte::parser::Sequence const& seq)
         }
 
         case VTE_OSC_XTERM_SET_COLOR:
+                set_color(seq, it, cend, OSCValuedColorSequenceKind::XTermColor, osc);
+                break;
+
         case VTE_OSC_XTERM_SET_COLOR_SPECIAL:
-                set_color(seq, it, cend, osc);
+                set_color(seq, it, cend, OSCValuedColorSequenceKind::XTermSpecialColor, osc);
                 break;
 
         case VTE_OSC_XTERM_SET_COLOR_TEXT_FG:
-                set_special_color(seq, it, cend, VTE_DEFAULT_FG, -1, osc);
+                set_special_color(seq, it, cend, ColorPaletteIndex::default_fg(), osc);
                 break;
 
         case VTE_OSC_XTERM_SET_COLOR_TEXT_BG:
-                set_special_color(seq, it, cend, VTE_DEFAULT_BG, -1, osc);
+                set_special_color(seq, it, cend, ColorPaletteIndex::default_bg(), osc);
                 break;
 
         case VTE_OSC_XTERM_SET_COLOR_CURSOR_BG:
-                set_special_color(seq, it, cend, VTE_CURSOR_BG, VTE_DEFAULT_FG, osc);
+                set_special_color(seq, it, cend, ColorPaletteIndex::cursor_bg(), osc);
                 break;
 
         case VTE_OSC_XTERM_SET_COLOR_HIGHLIGHT_BG:
-                set_special_color(seq, it, cend, VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, osc);
+                set_special_color(seq, it, cend, ColorPaletteIndex::highlight_bg(), osc);
                 break;
 
         case VTE_OSC_XTERM_SET_COLOR_HIGHLIGHT_FG:
-                set_special_color(seq, it, cend, VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, osc);
+                set_special_color(seq, it, cend, ColorPaletteIndex::highlight_fg(), osc);
                 break;
 
         case VTE_OSC_XTERM_RESET_COLOR:
+                reset_color(seq, it, cend, OSCValuedColorSequenceKind::XTermColor);
+                break;
+
         case VTE_OSC_XTERM_RESET_COLOR_SPECIAL:
-                reset_color(seq, it, cend, osc);
+                reset_color(seq, it, cend, OSCValuedColorSequenceKind::XTermSpecialColor);
                 break;
 
         case VTE_OSC_XTERM_RESET_COLOR_TEXT_FG:
-                reset_color(VTE_DEFAULT_FG, VTE_COLOR_SOURCE_ESCAPE);
+                reset_color(ColorPaletteIndex::default_fg(), ColorSource::Escape);
                 break;
 
         case VTE_OSC_XTERM_RESET_COLOR_TEXT_BG:
-                reset_color(VTE_DEFAULT_BG, VTE_COLOR_SOURCE_ESCAPE);
+                reset_color(ColorPaletteIndex::cursor_fg(), ColorSource::Escape);
                 break;
 
         case VTE_OSC_XTERM_RESET_COLOR_CURSOR_BG:
-                reset_color(VTE_CURSOR_BG, VTE_COLOR_SOURCE_ESCAPE);
+                reset_color(ColorPaletteIndex::cursor_bg(), ColorSource::Escape);
                 break;
 
         case VTE_OSC_XTERM_RESET_COLOR_HIGHLIGHT_BG:
-                reset_color(VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_ESCAPE);
+                reset_color(ColorPaletteIndex::highlight_bg(), ColorSource::Escape);
                 break;
 
         case VTE_OSC_XTERM_RESET_COLOR_HIGHLIGHT_FG:
-                reset_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_ESCAPE);
+                reset_color(ColorPaletteIndex::highlight_fg(), ColorSource::Escape);
                 break;
 
         case VTE_OSC_VTE_TERMPROP:

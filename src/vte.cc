@@ -114,6 +114,8 @@ static inline double round(double x) {
 namespace vte {
 namespace terminal {
 
+using namespace vte::color_palette;
+
 // _vte_unichar_width() determines the number of cells that a character
 // would occupy. The primary likely case is hoisted into a define so
 // it ends up in the caller without inlining the entire function.
@@ -2269,11 +2271,24 @@ Terminal::get_color(int entry) const
 	return nullptr;
 }
 
+vte::color::rgb const*
+Terminal::get_color(color_palette::ColorPaletteIndex entry) const noexcept
+{
+        return get_color(entry.value());
+}
+
+auto
+Terminal::get_color_opt(const ColorPaletteIndex entry) const noexcept -> std::optional<vte::color::rgb>
+{
+        auto const color = get_color(entry);
+        return color != nullptr ? std::make_optional(*color) : std::nullopt;
+}
+
 /* Set up a palette entry with a more-or-less match for the requested color. */
 void
 Terminal::set_color(int entry,
-                              int source,
-                              vte::color::rgb const& proposed)
+                    color_palette::ColorSource source_,
+                    vte::color::rgb const& proposed)
 {
         g_assert(entry >= 0 && entry < VTE_PALETTE_SIZE);
 
@@ -2281,9 +2296,10 @@ Terminal::set_color(int entry,
 
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Set %s color[%d] to (%04x,%04x,%04x).\n",
-                         source == VTE_COLOR_SOURCE_ESCAPE ? "escape" : "API",
+                         source_ == color_palette::ColorSource::Escape ? "escape" : "API",
                          entry, proposed.red, proposed.green, proposed.blue);
 
+        auto const source = vte::to_integral(source_);
         if (palette_color->sources[source].is_set &&
             palette_color->sources[source].color == proposed) {
                 return;
@@ -2303,8 +2319,16 @@ Terminal::set_color(int entry,
 }
 
 void
+Terminal::set_color(color_palette::ColorPaletteIndex entry,
+                    color_palette::ColorSource source,
+                    vte::color::rgb const& proposed)
+{
+        return set_color(entry.value(), source, proposed);
+}
+
+void
 Terminal::reset_color(int entry,
-                                int source)
+                      color_palette::ColorSource source_)
 {
         g_assert(entry >= 0 && entry < VTE_PALETTE_SIZE);
 
@@ -2312,9 +2336,10 @@ Terminal::reset_color(int entry,
 
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Reset %s color[%d].\n",
-                         source == VTE_COLOR_SOURCE_ESCAPE ? "escape" : "API",
+                         source_ == color_palette::ColorSource::Escape ? "escape" : "API",
                          entry);
 
+        auto const source = vte::to_integral(source_);
         if (!palette_color->sources[source].is_set) {
                 return;
         }
@@ -2329,6 +2354,13 @@ Terminal::reset_color(int entry,
 		invalidate_cursor_once();
 	else
 		invalidate_all();
+}
+
+void
+Terminal::reset_color(color_palette::ColorPaletteIndex entry,
+                      color_palette::ColorSource source)
+{
+        return reset_color(entry.value(), source);
 }
 
 bool
@@ -2463,9 +2495,9 @@ Terminal::set_colors(vte::color::rgb const* foreground,
 
 		/* Set up the color entry. */
                 if (unset)
-                        reset_color(i, VTE_COLOR_SOURCE_API);
+                        reset_color(i, color_palette::ColorSource::API);
                 else
-                        set_color(i, VTE_COLOR_SOURCE_API, color);
+                        set_color(i, color_palette::ColorSource::API, color);
 	}
 }
 
@@ -2482,7 +2514,7 @@ Terminal::set_color_bold(vte::color::rgb const& color)
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Set %s color to (%04x,%04x,%04x).\n", "bold",
                          color.red, color.green, color.blue);
-        set_color(VTE_BOLD_FG, VTE_COLOR_SOURCE_API, color);
+        set_color(ColorPaletteIndex::bold_fg(), ColorSource::API, color);
 }
 
 void
@@ -2490,7 +2522,7 @@ Terminal::reset_color_bold()
 {
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Reset %s color.\n", "bold");
-        reset_color(VTE_BOLD_FG, VTE_COLOR_SOURCE_API);
+        reset_color(ColorPaletteIndex::bold_fg(), ColorSource::API);
 }
 
 /*
@@ -2505,7 +2537,7 @@ Terminal::set_color_foreground(vte::color::rgb const& color)
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Set %s color to (%04x,%04x,%04x).\n", "foreground",
                          color.red, color.green, color.blue);
-	set_color(VTE_DEFAULT_FG, VTE_COLOR_SOURCE_API, color);
+	set_color(ColorPaletteIndex::default_fg(), ColorSource::API, color);
 }
 
 /*
@@ -2522,7 +2554,7 @@ Terminal::set_color_background(vte::color::rgb const& color)
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Set %s color to (%04x,%04x,%04x).\n", "background",
                          color.red, color.green, color.blue);
-	set_color(VTE_DEFAULT_BG, VTE_COLOR_SOURCE_API, color);
+	set_color(ColorPaletteIndex::default_bg(), ColorSource::API, color);
 }
 
 /*
@@ -2539,7 +2571,7 @@ Terminal::set_color_cursor_background(vte::color::rgb const& color)
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Set %s color to (%04x,%04x,%04x).\n", "cursor background",
                          color.red, color.green, color.blue);
-	set_color(VTE_CURSOR_BG, VTE_COLOR_SOURCE_API, color);
+	set_color(ColorPaletteIndex::cursor_bg(), ColorSource::API, color);
 }
 
 void
@@ -2547,7 +2579,7 @@ Terminal::reset_color_cursor_background()
 {
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Reset %s color.\n", "cursor background");
-        reset_color(VTE_CURSOR_BG, VTE_COLOR_SOURCE_API);
+        reset_color(ColorPaletteIndex::cursor_bg(), ColorSource::API);
 }
 
 /*
@@ -2564,7 +2596,7 @@ Terminal::set_color_cursor_foreground(vte::color::rgb const& color)
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Set %s color to (%04x,%04x,%04x).\n", "cursor foreground",
                          color.red, color.green, color.blue);
-	set_color(VTE_CURSOR_FG, VTE_COLOR_SOURCE_API, color);
+	set_color(ColorPaletteIndex::cursor_fg(), ColorSource::API, color);
 }
 
 void
@@ -2572,7 +2604,7 @@ Terminal::reset_color_cursor_foreground()
 {
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Reset %s color.\n", "cursor foreground");
-        reset_color(VTE_CURSOR_FG, VTE_COLOR_SOURCE_API);
+        reset_color(ColorPaletteIndex::cursor_fg(), ColorSource::API);
 }
 
 /*
@@ -2590,7 +2622,7 @@ Terminal::set_color_highlight_background(vte::color::rgb const& color)
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Set %s color to (%04x,%04x,%04x).\n", "highlight background",
                          color.red, color.green, color.blue);
-	set_color(VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_API, color);
+	set_color(ColorPaletteIndex::highlight_bg(), ColorSource::API, color);
 }
 
 void
@@ -2598,7 +2630,7 @@ Terminal::reset_color_highlight_background()
 {
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Reset %s color.\n", "highlight background");
-        reset_color(VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_API);
+        reset_color(ColorPaletteIndex::highlight_bg(), ColorSource::API);
 }
 
 /*
@@ -2616,7 +2648,7 @@ Terminal::set_color_highlight_foreground(vte::color::rgb const& color)
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Set %s color to (%04x,%04x,%04x).\n", "highlight foreground",
                          color.red, color.green, color.blue);
-	set_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_API, color);
+	set_color(ColorPaletteIndex::highlight_fg(), ColorSource::API, color);
 }
 
 void
@@ -2624,7 +2656,7 @@ Terminal::reset_color_highlight_foreground()
 {
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Reset %s color.\n", "highlight foreground");
-        reset_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_API);
+        reset_color(ColorPaletteIndex::highlight_fg(), ColorSource::API);
 }
 
 /*
@@ -8311,7 +8343,7 @@ Terminal::Terminal(vte::platform::Widget* w,
 	/* Set up the desired palette. */
 	set_colors_default();
 	for (auto i = 0; i < VTE_PALETTE_SIZE; i++)
-		m_palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
+		m_palette[i].sources[vte::to_integral(color_palette::ColorSource::Escape)].is_set = false;
 
         /* Dispatch unripe DCS (for now, just DECSIXEL) sequences,
          * so we can switch data syntax and parse the contents with
@@ -9892,7 +9924,7 @@ Terminal::paint_im_preedit_string()
                                         row_to_pixel(m_screen->cursor.row),
                                         width * columns,
                                         height,
-                                        get_color(VTE_DEFAULT_BG), m_background_alpha);
+                                        get_color(ColorPaletteIndex::default_bg()), m_background_alpha);
                 }
 
 		draw_cells_with_attributes(
@@ -10008,7 +10040,7 @@ Terminal::draw(cairo_region_t const* region) noexcept
                              allocated_width + m_style_border.left + m_style_border.right,
                              allocated_height + m_style_border.top + m_style_border.bottom,
 #endif
-                             get_color(VTE_DEFAULT_BG), m_background_alpha);
+                             get_color(ColorPaletteIndex::default_bg()), m_background_alpha);
         }
 
         /* Clip vertically, for the sake of smooth scrolling. We want the top and bottom paddings to be unused.
@@ -10742,7 +10774,7 @@ Terminal::reset(bool clear_tabstops,
 
 	/* Reset the color palette. Only the 256 indexed colors, not the special ones, as per xterm. */
 	for (int i = 0; i < 256; i++)
-		m_palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
+		m_palette[i].sources[vte::to_integral(color_palette::ColorSource::Escape)].is_set = false;
 	/* Reset the default attributes.  Reset the alternate attribute because
 	 * it's not a real attribute, but we need to treat it as one here. */
         reset_default_attributes(true);

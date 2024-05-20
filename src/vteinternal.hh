@@ -53,6 +53,8 @@
 #include "termprops.hh"
 #include "refptr.hh"
 #include "fwd.hh"
+#include "color-palette.hh"
+#include "osc-colors.hh"
 
 #include "pcre2-glue.hh"
 #include "vteregexinternal.hh"
@@ -1556,11 +1558,18 @@ public:
         long get_cell_width()  { ensure_font(); return m_cell_width;  }
 
         vte::color::rgb const* get_color(int entry) const;
+        vte::color::rgb const* get_color(color_palette::ColorPaletteIndex entry) const noexcept;
+        auto get_color_opt(color_palette::ColorPaletteIndex entry) const noexcept -> std::optional<vte::color::rgb>;
         void set_color(int entry,
-                       int source,
+                       color_palette::ColorSource source,
+                       vte::color::rgb const& proposed);
+        void set_color(color_palette::ColorPaletteIndex entry,
+                       color_palette::ColorSource source,
                        vte::color::rgb const& proposed);
         void reset_color(int entry,
-                         int source);
+                         color_palette::ColorSource source);
+        void reset_color(color_palette::ColorPaletteIndex entry,
+                         color_palette::ColorSource source);
 
         bool set_audible_bell(bool setting);
         bool set_text_blink_mode(TextBlinkMode setting);
@@ -1738,16 +1747,13 @@ public:
                    ...) noexcept G_GNUC_PRINTF(5, 6);
 
         /* OSC handler helpers */
-        bool get_osc_color_index(int osc,
-                                 int value,
-                                 int& index) const noexcept;
         void set_color_index(vte::parser::Sequence const& seq,
                              vte::parser::StringTokeniser::const_iterator& token,
                              vte::parser::StringTokeniser::const_iterator const& endtoken,
-                             int number,
-                             int index,
-                             int index_fallback,
+                             std::optional<int> number,
+                             osc_colors::OSCColorIndex index,
                              int osc) noexcept;
+        auto resolve_reported_color(osc_colors::OSCColorIndex index) const noexcept -> std::optional<vte::color::rgb>;
         void parse_termprop(std::string_view const& str,
                             bool& set,
                             bool& query) noexcept;
@@ -1756,17 +1762,17 @@ public:
         void set_color(vte::parser::Sequence const& seq,
                        vte::parser::StringTokeniser::const_iterator& token,
                        vte::parser::StringTokeniser::const_iterator const& endtoken,
+                       osc_colors::OSCValuedColorSequenceKind osc_kind,
                        int osc) noexcept;
         void set_special_color(vte::parser::Sequence const& seq,
                                vte::parser::StringTokeniser::const_iterator& token,
                                vte::parser::StringTokeniser::const_iterator const& endtoken,
-                               int index,
-                               int index_fallback,
+                               color_palette::ColorPaletteIndex index,
                                int osc) noexcept;
         void reset_color(vte::parser::Sequence const& seq,
                          vte::parser::StringTokeniser::const_iterator& token,
                          vte::parser::StringTokeniser::const_iterator const& endtoken,
-                         int osc) noexcept;
+                         osc_colors::OSCValuedColorSequenceKind osc_kind) noexcept;
         void set_current_directory_uri(vte::parser::Sequence const& seq,
                                        vte::parser::StringTokeniser::const_iterator& token,
                                        vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;

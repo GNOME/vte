@@ -87,10 +87,6 @@
 
 #define VTE_UTF8_BPC                    (4) /* Maximum number of bytes used per UTF-8 character */
 
-/* Keep in decreasing order of precedence. */
-#define VTE_COLOR_SOURCE_ESCAPE 0
-#define VTE_COLOR_SOURCE_API 1
-
 #define VTE_FONT_SCALE_MIN (.25)
 #define VTE_FONT_SCALE_MAX (4.)
 #define VTE_CELL_SCALE_MIN (1.)

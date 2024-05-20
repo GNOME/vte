@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <algorithm>
 #include <string>
+#include <optional>
 
 #include "parser.hh"
 
@@ -548,9 +549,10 @@ public:
                 /*
                  * number:
                  *
-                 * Returns the value of the iterator as a number, or -1
-                 *   if the string could not be parsed as a number, or
-                 *   the parsed values exceeds the uint16_t range.
+                 * Returns true and stores the value of the iterator as a number
+                 *   (-1 for a default param), or false if the string could not
+                 *   be parsed as a number, or the parsed values exceeds the
+                 *   uint16_t range.
                  *
                  * Returns: true if a number was parsed
                  */
@@ -576,6 +578,23 @@ public:
 
                         /* All consumed? */
                         return i == s;
+                }
+
+                /*
+                 * number:
+                 *
+                 * Returns the value of the iterator as an optional containing
+                 *   the number (or -1 for a default param), or nullopt
+                 *   if the string could not be parsed as a number, or
+                 *   the parsed values exceeds the uint16_t range.
+                 *
+                 * Returns: a valued optional if a number was parsed, or nullopt
+                 */
+                auto number() const noexcept -> std::optional<int> {
+                        auto v = 0;
+                        if (number(v)) [[likely]]
+                                return std::make_optional(v);
+                        return std::nullopt;
                 }
 
                 inline size_type size() const noexcept
