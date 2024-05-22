@@ -148,6 +148,8 @@ vte_accessible_text_contents_get_string (VteAccessibleTextContents *contents,
         return ret;
 }
 
+#if GTK_CHECK_VERSION(4, 15, 1)
+
 static void
 vte_accessible_text_contents_xy_from_offset (VteAccessibleTextContents *contents,
                                              int offset,
@@ -181,6 +183,8 @@ vte_accessible_text_contents_xy_from_offset (VteAccessibleTextContents *contents
         *x = cur_x;
         *y = cur_y;
 }
+
+#endif // gtk 4.16
 
 static int
 vte_accessible_text_contents_offset_from_xy (VteAccessibleTextContents *contents,
@@ -680,6 +684,7 @@ vte_accessible_text_get_attributes (GtkAccessibleText        *accessible,
 }
 
 #if GTK_CHECK_VERSION(4, 15, 1)
+
 static gboolean
 vte_accessible_text_get_extents (GtkAccessibleText *accessible,
                                  unsigned int       start,
@@ -760,7 +765,8 @@ vte_accessible_text_get_offset (GtkAccessibleText      *accessible,
 
         return TRUE;
 }
-#endif
+
+#endif // gtk 4.16
 
 void
 _vte_accessible_text_iface_init (GtkAccessibleTextInterface *iface)
