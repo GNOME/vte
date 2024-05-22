@@ -266,9 +266,6 @@ protected:
         int m_scale_factor{1};
         GtkBorder m_char_spacing{1, 1, 1, 1};
 
-
-        Minifont m_minifont{};
-
         /* Cache the undercurl's rendered look. */
         vte::Freeable<cairo_surface_t> m_undercurl_surface{};
         int m_undercurl_surface_scale{0};

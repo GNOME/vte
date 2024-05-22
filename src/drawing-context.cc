@@ -151,7 +151,7 @@ DrawingContext::get_char_edges(vteunistr c,
                                int& left,
                                int& right)
 {
-        if (G_UNLIKELY(m_minifont.unistr_is_local_graphic (c))) {
+        if (Minifont::unistr_is_local_graphic(c)) [[unlikely]] {
                 left = 0;
                 right = m_cell_width * columns;
                 return;

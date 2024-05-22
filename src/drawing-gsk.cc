@@ -188,7 +188,7 @@ DrawingGsk::draw_text(TextRequest* requests,
                         vte_bidi_get_mirror_char (c, requests[i].box_mirror, &c);
                 }
 
-                if (m_minifont.unistr_is_local_graphic(c)) {
+                if (Minifont::unistr_is_local_graphic(c)) {
                         m_minifont.draw_graphic(*this,
                                                 c,
                                                 color,

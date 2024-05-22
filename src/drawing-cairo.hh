@@ -19,6 +19,7 @@
 #pragma once
 
 #include "drawing-context.hh"
+#include "minifont.hh"
 
 namespace vte {
 namespace view {
@@ -71,6 +72,8 @@ public:
 
         void set_cairo(cairo_t* cr) noexcept;
 
+        constexpr cairo_t* cairo() const noexcept { return m_cr; }
+
         void draw_surface_with_color_mask(cairo_surface_t *surface,
                                           int x,
                                           int y,
@@ -85,6 +88,8 @@ public:
 
 private:
         cairo_t *m_cr{nullptr}; // unowned
+
+        Minifont m_minifont{};
 };
 
 } // namespace view

@@ -20,6 +20,7 @@
 #include <gtk/gtk.h>
 
 #include "drawing-context.hh"
+#include "minifont.hh"
 
 #define GDK_ARRAY_NAME vte_glyphs
 #define GDK_ARRAY_TYPE_NAME VteGlyphs
@@ -116,6 +117,7 @@ public:
 private:
         GtkSnapshot *m_snapshot{nullptr}; // unowned
         VteGlyphs m_glyphs;
+        MinifontGsk m_minifont{};
 
         void flush_glyph_string(PangoFont* font,
                                 const GdkRGBA* rgba);
