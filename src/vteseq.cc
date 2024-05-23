@@ -1662,6 +1662,57 @@ Terminal::vte_termprop(vte::parser::Sequence const& seq,
         }
 }
 
+// collect_rect:
+// @seq:
+// @idx:
+//
+// Collects a rectangle from the parameters of @seq at @idx.
+// @idx will be advanced to the first parameter after the rect.
+//
+// As per the DEC documentation for DECCRA, DECFRA, CEDERA, DECSERA, DECCARA,
+// DECRARA, and DECRQCRA, the rectangle consists of 4 (final) parameters, in
+// order, the coordinates of the top, left, bottom, and right edges of the
+// rectangle, and are clamped to the number of lines for top, and bottom; and
+// to the number of columns for left, and right.
+// The coordinates are affected by DEC_ORIGIN_MODE, but not affected
+// by the margins (DECSTBM, DECSLRM).
+// The parameters admit default values, which are 1 for the top and left
+// parameters, the number of lines in the current page for the bottom parameter,
+// and the number of columns for the right parameter.
+// Top must be less or equal to bottom, and left must be less or equal to right.
+//
+// Returns: the rectangle if these conditions are met, or nullopt otherwise
+//
+// References: DEC STD 070 page 5-168 ff
+//             DEC VT525
+//
+std::optional<Terminal::ParamRect>
+Terminal::collect_rect(vte::parser::Sequence const& seq,
+                       unsigned& idx) noexcept
+{
+        auto top = seq.collect1(idx, 1, 1, m_row_count);
+        idx = seq.next(idx);
+        auto left = seq.collect1(idx, 1, 1, m_column_count); /* use 1 as default here */
+        idx = seq.next(idx);
+        auto bottom = seq.collect1(idx, m_row_count, 1, m_row_count);
+        idx = seq.next(idx);
+        auto right = seq.collect1(idx, m_column_count, 1, m_column_count);
+
+        if (m_modes_private.DEC_ORIGIN()) {
+                top += m_scrolling_region.top();
+                bottom += m_scrolling_region.top();
+                bottom = std::min(bottom, m_scrolling_region.bottom());
+                left += m_scrolling_region.left();
+                right += m_scrolling_region.left();
+                right = std::min(right, m_scrolling_region.right());
+        }
+
+        if (top <= bottom && left <= right)
+                return std::make_optional<Terminal::ParamRect>(top, left, bottom, right);
+
+        return std::nullopt;
+}
+
 /*
  * Command Handlers
  * This is the unofficial documentation of all the VTE_CMD_* definitions.
@@ -3617,31 +3668,14 @@ Terminal::DECRQCRA(vte::parser::Sequence const& seq)
         /* We only support 1 'page', so ignore args[1] */
         idx = seq.next(idx);
 
-        int top = seq.collect1(idx, 1, 1, m_row_count);
-        idx = seq.next(idx);
-        int left = seq.collect1(idx, 1, 1, m_column_count); /* use 1 as default here */
-        idx = seq.next(idx);
-        int bottom = seq.collect1(idx, m_row_count, 1, m_row_count);
-        idx = seq.next(idx);
-        int right = seq.collect1(idx, m_column_count, 1, m_column_count);
-
-        if (m_modes_private.DEC_ORIGIN()) {
-                top += m_scrolling_region.top();
-                bottom += m_scrolling_region.top();
-                bottom = std::min(bottom, m_scrolling_region.bottom());
-                left += m_scrolling_region.left();
-                right += m_scrolling_region.left();
-                right = std::min(right, m_scrolling_region.right());
-        }
-
-        unsigned int checksum;
-        if (bottom < top || right < left)
-                checksum = 0; /* empty area */
+        auto checksum = 0u;
+        if (auto rect = collect_rect(seq, idx))
+                checksum = checksum_area(rect->top -1 + m_screen->insert_delta,
+                                         rect->left - 1,
+                                         rect->bottom - 1 + m_screen->insert_delta,
+                                         rect->right);
         else
-                checksum = checksum_area(top -1 + m_screen->insert_delta,
-                                         left - 1,
-                                         bottom - 1 + m_screen->insert_delta,
-                                         right);
+                checksum = 0; /* empty area */
 
         reply(seq, VTE_REPLY_DECCKSR, {id}, "%04X", checksum);
 #endif /* VTE_DEBUG */

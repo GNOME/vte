@@ -1789,6 +1789,18 @@ public:
                           vte::parser::StringTokeniser::const_iterator& token,
                           vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
 
+        // helpers
+        struct ParamRect {
+                int top;
+                int left;
+                int bottom;
+                int right;
+        };
+
+        std::optional<ParamRect> collect_rect(vte::parser::Sequence const&,
+                                              unsigned&) noexcept;
+
+        // ringview
         void ringview_update();
 
         /* Sequence handlers */
