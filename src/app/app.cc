@@ -423,7 +423,12 @@ private:
                            GError* error,
                            GError** ret_error) noexcept
         {
-                if (error)
+                if (!error)
+                        return;
+
+                if (error->domain == GTK_CSS_PARSER_WARNING)
+                        verbose_printerr("Warning parsing CSS: %s", error->message);
+                else
                         *ret_error = g_error_copy(error);
         }
 #endif /* VTE_GTK == 4 */
