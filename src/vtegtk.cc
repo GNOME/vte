@@ -120,7 +120,10 @@ style_provider_parsing_error_cb(GtkCssProvider* provider,
                                 void* section,
                                 GError* error)
 {
-        g_assert_no_error(error);
+        if (error->domain == GTK_CSS_PARSER_WARNING)
+                g_warning("Warning parsing CSS: %s", error->message);
+        else
+                g_assert_no_error(error);
 }
 
 #endif
