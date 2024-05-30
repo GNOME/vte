@@ -91,6 +91,15 @@ make_pipe(int flags,
           vte::libc::FD& write_fd,
           vte::glib::Error& error)
 {
+#if !GLIB_CHECK_VERSION(2, 78, 0)
+        if constexpr (O_CLOEXEC != FD_CLOEXEC) {
+                if (flags & O_CLOEXEC) {
+                        flags &= ~O_CLOEXEC;
+                        flags |= FD_CLOEXEC;
+                }
+        }
+#endif // !glib 2.78
+
         int fds[2] = { -1, -1 };
         if (!g_unix_open_pipe(fds, flags, error))
                 return false;
@@ -558,7 +567,7 @@ SpawnOperation::prepare(vte::glib::Error& error)
 
         auto child_report_error_pipe_read = vte::libc::FD{};
         auto child_report_error_pipe_write = vte::libc::FD{};
-        if (!make_pipe(FD_CLOEXEC,
+        if (!make_pipe(O_CLOEXEC,
                        child_report_error_pipe_read,
                        child_report_error_pipe_write,
                        error))
