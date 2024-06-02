@@ -213,9 +213,18 @@ Terminal::emit_bell()
 /* Emit a "resize-window" signal.  (Grid size.) */
 void
 Terminal::emit_resize_window(guint columns,
-                                       guint rows)
+                             guint rows)
 {
-        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `resize-window'.\n");
+        // Ignore resizes with excessive number of rows or columns,
+        // see https://gitlab.gnome.org/GNOME/vte/-/issues/2786
+        if (columns < VTE_MIN_GRID_WIDTH ||
+            columns > 511 ||
+            rows < VTE_MIN_GRID_HEIGHT ||
+            rows > 511)
+                return;
+
+        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `resize-window' %d columns %d rows.\n",
+                         columns, rows);
         g_signal_emit(m_terminal, signals[SIGNAL_RESIZE_WINDOW], 0, columns, rows);
 }
 
@@ -4466,8 +4475,6 @@ Terminal::DECSLPP(vte::parser::Sequence const& seq)
                 param = 24;
         else if (param < 24)
                 return;
-
-        _vte_debug_print(VTE_DEBUG_EMULATION, "Resizing to %d rows.\n", param);
 
         emit_resize_window(m_column_count, param);
 }
@@ -8990,9 +8997,6 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 seq.collect(1, {&height, &width});
 
                 if (width != -1 && height != -1) {
-                        _vte_debug_print(VTE_DEBUG_EMULATION,
-                                         "Resizing window to %d columns, %d rows.\n",
-                                         width, height);
                         emit_resize_window(width, height);
                 }
                 break;
