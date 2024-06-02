@@ -97,6 +97,38 @@ constexpr bool check_enum_value(T value) noexcept;
 
 static constinit size_t vte_terminal_class_n_instances = 0;
 
+static inline void
+sanitise_widget_size_request(int* minimum,
+                             int* natural) noexcept
+{
+        // Overly large size requests will make gtk happily allocate
+        // a window size over the window system's limits (see
+        // e.g. https://gitlab.gnome.org/GNOME/vte/-/issues/2786),
+        // leading to aborting the whole process.
+        // The toolkit should be in a better position to know about
+        // these limits and not exceed them (which here is certainly
+        // possible since our minimum sizes are very small), let's
+        // limit the widget's size request to some large value
+        // that hopefully is within the absolute limits of
+        // the window system (assumed here to be int16 range,
+        // and leaving some space for the widgets that contain
+        // the terminal).
+        auto const limit = (1 << 15) - (1 << 12);
+
+        if (*minimum > limit || *natural > limit) {
+                static auto warned = false;
+
+                if (!warned) {
+                        g_warning("Widget size request (minimum %d, natural %d) exceeds limits\n",
+                                  *minimum, *natural);
+                        warned = true;
+                }
+        }
+
+        *minimum = std::min(*minimum, limit);
+        *natural = std::clamp(*natural, *minimum, limit);
+}
+
 struct _VteTerminalClassPrivate {
         GtkStyleProvider *style_provider;
 };
@@ -554,6 +586,7 @@ try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
         WIDGET(terminal)->get_preferred_width(minimum_width, natural_width);
+        sanitise_widget_size_request(minimum_width, natural_width);
 }
 catch (...)
 {
@@ -568,6 +601,7 @@ try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
         WIDGET(terminal)->get_preferred_height(minimum_height, natural_height);
+        sanitise_widget_size_request(minimum_height, natural_height);
 }
 catch (...)
 {
@@ -825,6 +859,7 @@ try
         WIDGET(terminal)->measure(orientation, for_size,
                                   minimum, natural,
                                   minimum_baseline, natural_baseline);
+        sanitise_widget_size_request(minimum, natural);
 }
 catch (...)
 {
