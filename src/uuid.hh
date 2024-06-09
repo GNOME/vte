@@ -138,8 +138,8 @@ public:
         {
         }
 
-        friend auto operator<=>(uuid const& lhs,
-                                uuid const& rhs) = default;
+        friend constexpr auto operator<=>(uuid const& lhs,
+                                          uuid const& rhs) = default;
 
         constexpr auto is_nil() const noexcept
         {
