@@ -41,6 +41,7 @@ _VTE_REPLY(DECSCUSR,                                  CSI, 'q', NONE, SPACE, ) /
 _VTE_REPLY(DECSRC,                                    CSI, 'q', NONE, MULT,  ) /* secure reset confirmation */
 _VTE_REPLY(DECSTBM,                                   CSI, 'r', NONE, NONE,  ) /* set top and bottom margins */
 _VTE_REPLY(DECSLRM,                                   CSI, 's', NONE, NONE,  ) /* set left and right margins */
+_VTE_REPLY(DECSLPP,                                   CSI, 't', NONE, NONE,  ) /* set lines per page */
 _VTE_REPLY(XTERM_WM,                                  CSI, 't', NONE, NONE,  ) /* XTERM WM report */
 _VTE_REPLY(DECRPDE,                                   CSI, 'w', NONE, DQUOTE,) /* report displayed extent */
 _VTE_REPLY(DECRPKT,                                   CSI, 'v', NONE, COMMA, ) /* report key type */

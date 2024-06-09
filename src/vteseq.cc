@@ -3916,6 +3916,11 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
                              {VTE_REPLY_DECSTBM, {m_scrolling_region.top() + 1,
                                                   m_scrolling_region.bottom() + 1}});
 
+        case VTE_CMD_DECSLPP:
+        case VTE_CMD_DECSLPP_OR_XTERM_WM:
+                return reply(seq, VTE_REPLY_DECRPSS, {1},
+                             {VTE_REPLY_DECSLPP, {int(m_row_count)}});
+
         case VTE_CMD_DECSLRM:
         case VTE_CMD_DECSLRM_OR_SCOSC:
                 return reply(seq, VTE_REPLY_DECRPSS, {1},
@@ -3941,7 +3946,6 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
         case VTE_CMD_DECSGR:
         case VTE_CMD_DECSKCV:
         case VTE_CMD_DECSLCK:
-        case VTE_CMD_DECSLPP:
         case VTE_CMD_DECSMBV:
         case VTE_CMD_DECSNLS:
         case VTE_CMD_DECSPMA:
