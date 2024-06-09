@@ -715,14 +715,14 @@ gboolean vte_terminal_get_termprop_double_by_id(VteTerminal* terminal,
                                                 double* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
-gboolean vte_terminal_get_termprop_color(VteTerminal* terminal,
-                                         char const* prop,
-                                         GdkRGBA* color) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+gboolean vte_terminal_get_termprop_rgba(VteTerminal* terminal,
+                                        char const* prop,
+                                        GdkRGBA* color) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
 
 _VTE_PUBLIC
-gboolean vte_terminal_get_termprop_color_by_id(VteTerminal* terminal,
-                                               int prop,
-                                               GdkRGBA* color) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+gboolean vte_terminal_get_termprop_rgba_by_id(VteTerminal* terminal,
+                                              int prop,
+                                              GdkRGBA* color) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
 char const* vte_terminal_get_termprop_string(VteTerminal* terminal,

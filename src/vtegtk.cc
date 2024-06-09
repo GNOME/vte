@@ -8481,12 +8481,12 @@ vte_terminal_get_termprop_double(VteTerminal* terminal,
 }
 
 /**
- * vte_terminal_get_termprop_color_by_id:
+ * vte_terminal_get_termprop_rgba_by_id:
  * @terminal: a #VteTerminal
  * @prop: a termprop ID
  * @color: (out) (optional): a #GdkRGBA to fill in
  *
- * Like vte_terminal_get_termprop_color() except that it takes the termprop
+ * Like vte_terminal_get_termprop_rgba() except that it takes the termprop
  * by ID. See that function for more information.
  *
  * Returns: %TRUE iff the termprop is set
@@ -8494,9 +8494,9 @@ vte_terminal_get_termprop_double(VteTerminal* terminal,
  * Since: 0.78
  */
 gboolean
-vte_terminal_get_termprop_color_by_id(VteTerminal* terminal,
-                                      int prop,
-                                      GdkRGBA* color) noexcept
+vte_terminal_get_termprop_rgba_by_id(VteTerminal* terminal,
+                                     int prop,
+                                     GdkRGBA* color) noexcept
 try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
@@ -8533,7 +8533,7 @@ catch (...)
 }
 
 /**
- * vte_terminal_get_termprop_color:
+ * vte_terminal_get_termprop_rgba:
  * @terminal: a #VteTerminal
  * @prop: a termprop name
  * @color: (out) (optional): a #GdkRGBA to fill in
@@ -8547,15 +8547,15 @@ catch (...)
  * Since: 0.78
  */
 gboolean
-vte_terminal_get_termprop_color(VteTerminal* terminal,
-                                char const* prop,
-                                GdkRGBA* color) noexcept
+vte_terminal_get_termprop_rgba(VteTerminal* terminal,
+                               char const* prop,
+                               GdkRGBA* color) noexcept
 {
         g_return_val_if_fail(prop != nullptr, false);
 
-        return vte_terminal_get_termprop_color_by_id(terminal,
-                                                     vte::terminal::get_termprop_id(prop),
-                                                     color);
+        return vte_terminal_get_termprop_rgba_by_id(terminal,
+                                                    vte::terminal::get_termprop_id(prop),
+                                                    color);
 }
 
 /**
