@@ -560,7 +560,7 @@ FontInfo::get_unistr_info(vteunistr c)
 
                 uinfo->set_coverage(UnistrInfo::Coverage::USE_PANGO_GLYPH_STRING);
 
-                ufi->using_pango_glyph_string.font = glyph_item->item->analysis.font;
+		ufi->using_pango_glyph_string.font = glyph_item->item->analysis.font ? g_object_ref (glyph_item->item->analysis.font) : nullptr;
                 ufi->using_pango_glyph_string.glyph_string = pango_glyph_string_copy (glyph_string);
         }
 #endif
