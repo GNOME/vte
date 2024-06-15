@@ -256,6 +256,7 @@ typedef enum /*< flags >*/ {
  * @VTE_PROPERTY_STRING: a string
  * @VTE_PROPERTY_DATA: binary data
  * @VTE_PROPERTY_UUID: a UUID
+ * @VTE_PROPERTY_URI: a URI
  *
  * An enumeration type describing types of properties.
  *
@@ -273,6 +274,7 @@ typedef enum {
         VTE_PROPERTY_STRING,
         VTE_PROPERTY_DATA,
         VTE_PROPERTY_UUID,
+        VTE_PROPERTY_URI,
 } VtePropertyType;
 
 G_END_DECLS

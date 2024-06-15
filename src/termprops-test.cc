@@ -136,6 +136,20 @@ assert_termprop_parse_integral_value(TermpropType type,
 }
 
 static void
+assert_termprop_parse_uri(std::string_view const& str,
+                          int line = __builtin_LINE()) noexcept
+{
+        auto const value = parse_termprop_value(TermpropType::URI, str);
+        assert(value);
+        assert(!value->valueless_by_exception());
+        assert(std::holds_alternative<vte::Freeable<GUri>>(*value));
+
+        auto u = vte::glib::take_string(g_uri_to_string(std::get<vte::Freeable<GUri>>(*value).get()));
+        assert(u);
+        assert(str == u.get());
+}
+
+static void
 test_termprops_valueless(void)
 {
         assert_termprop_parse_nothing(TermpropType::VALUELESS, ""sv);
@@ -330,6 +344,15 @@ test_termprops_uuid(void)
         assert_termprop_parse_nothing(TermpropType::UUID, "{urn:uuid:49ec5248-2d9a-493f-99fa-9e1cfb95b430}"sv);
 }
 
+static void
+test_termprops_uri(void)
+{
+        assert_termprop_parse_uri("https://www.gnome.org/index.html"sv);
+        assert_termprop_parse_uri("file:///uri/bin"sv);
+        assert_termprop_parse_nothing(TermpropType::URI, "data:text/plain;base64,QQo=");
+        assert_termprop_parse_nothing(TermpropType::URI, "data:text/plain%3BQbase64,Qo=");
+}
+
 int
 main(int argc,
      char* argv[])
@@ -348,6 +371,7 @@ main(int argc,
         g_test_add_func("/vte/terminal/termprops/type/string", test_termprops_string);
         g_test_add_func("/vte/terminal/termprops/type/data", test_termprops_data);
         g_test_add_func("/vte/terminal/termprops/type/uuid", test_termprops_uuid);
+        g_test_add_func("/vte/terminal/termprops/type/uri", test_termprops_uri);
 
         return g_test_run();
 }

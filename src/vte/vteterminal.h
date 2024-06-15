@@ -771,6 +771,14 @@ VteUuid* vte_terminal_dup_termprop_uuid_by_id(VteTerminal* terminal,
                                               int prop) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
+GUri* vte_terminal_ref_termprop_uri(VteTerminal* terminal,
+                                    char const* prop) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+GUri* vte_terminal_ref_termprop_uri_by_id(VteTerminal* terminal,
+                                          int prop) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
 gboolean vte_terminal_get_termprop_value(VteTerminal* terminal,
                                          char const* prop,
                                          GValue* gvalue) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2, 3);

@@ -715,7 +715,7 @@ test_tabstops = executable(
   install: false,
 )
 
-test_termprops_sources = color_sources + config_sources + termprop_sources + uuid_sources + files(
+test_termprops_sources = color_sources + config_sources + debug_sources + glib_glue_sources + termprop_sources + uuid_sources + files(
   'termprops-test.cc',
 )
 

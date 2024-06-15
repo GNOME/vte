@@ -21,6 +21,7 @@
 #include "uuid.hh"
 #include "color.hh"
 #include "color-parser.hh"
+#include "glib-glue.hh"
 
 #include <cmath> // for std::isfinite
 
@@ -49,6 +50,7 @@ enum class TermpropType {
         STRING,
         DATA,
         UUID,
+        URI,
         INVALID = -1,
 };
 
@@ -255,7 +257,8 @@ using TermpropValue = std::variant<std::monostate,
                                    double,
                                    termprop_rgba,
                                    vte::uuid,
-				   std::string>;
+				   std::string,
+                                   vte::Freeable<GUri>>;
 
 namespace impl {
 
@@ -422,6 +425,21 @@ parse_termprop_uuid(std::string_view str)
         }
 }
 
+inline std::optional<TermpropValue>
+parse_termprop_uri(std::string_view str)
+{
+        if (auto uri = vte::take_freeable(g_uri_parse(std::string{str}.c_str(),
+                                                      GUriFlags(G_URI_FLAGS_NONE),
+                                                      nullptr));
+            uri &&
+            g_uri_get_scheme(uri.get()) &&
+            !g_str_equal(g_uri_get_scheme(uri.get()), "data")) {
+                return std::make_optional<TermpropValue>(std::move(uri));
+        }
+
+        return std::nullopt;
+}
+
 } // namespace impl
 
 inline std::optional<TermpropValue>
@@ -457,6 +475,9 @@ parse_termprop_value(TermpropType type,
 
         case TermpropType::UUID:
                 return impl::parse_termprop_uuid(value);
+
+        case TermpropType::URI:
+                return impl::parse_termprop_uri(value);
 
         default:
                 __builtin_unreachable();

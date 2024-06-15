@@ -1371,6 +1371,11 @@ constexpr bool check_enum_value<VtePropertyType>(VtePropertyType value) noexcept
         case VTE_PROPERTY_DATA:
         case VTE_PROPERTY_UUID:
                 return true;
+
+                // These are not installable via the public API
+        case VTE_PROPERTY_URI:
+                return false;
+
         default:
                 return false;
         }
@@ -3103,13 +3108,32 @@ vte_terminal_class_init(VteTerminalClass *klass)
  *   string representation of an UUID in simple, braced, or URN form.
  *   See RFC 4122 for more information.
  *
+ * * A termprop of type %VTE_PROPERTY_URI is a URI, and takes a
+ *   string representation of an URI. See the #GUri documentation
+ *   for more information.
+ *   Note that due to the OSC syntax, the value string must not contain
+ *   semicolons (';') nor any C0 or C1 control characters.  Instead,
+ *   use percent-encoding.  Also, any non-UTF-8 characters must be
+ *   percent-encoded as well. However, the data after percent-decoding
+ *   is not required to be UTF-8.
+ *   Note that data: URIs are not permitted; use a %VTE_PROPERTY_DATA
+ *   termprop instead.
+ *   The maximum size of an URI is limited only by the length limit of
+ *   the OSC control string.
+ *   Note that currently termprops of this type cannot be created
+ *   via the API, and not set via OSC 666; only built-in termprops of this
+ *   type are available and can only be set via their own special
+ *   OSC numbers.
+ *
  * Note that any values any termprop has must be treated as *untrusted*.
  *
- * Note that %VTE_PROPERTY_STRING and %VTE_PROPERTY_DATA types are not
- * intended to transfer arbitrary data, and may not be used to either tranfer
- * image data, file upload of arbitrary file data, clipboard data, as a general
- * free-form protocol, or for textual user notifications.  Also you must never
- * feed the data received back to the terminal, in full or in part.
+ * Note that %VTE_PROPERTY_STRING, %VTE_PROPERTY_DATA, and
+ * %VTE_PROPERTY_URI types are not intended to transfer arbitrary binary
+ * data, and may not be used to either transfer image data, file upload of
+ * arbitrary file data, clipboard data, as a general free-form protocol,
+ * or for textual user notifications.  Also you must never feed the data
+ * received, or any derivation thereof, back to the terminal, in full or
+ * in part.
  *
  * If you do perform any further parsing on the contents of a termprop value,
  * you must do so in the strictest way possible, and treat any errors by
@@ -8778,7 +8802,7 @@ vte_terminal_get_termprop_data(VteTerminal* terminal,
 }
 
 /**
- * vte_terminal_ref_termprop_qdata_bytes_by_id:
+ * vte_terminal_ref_termprop_data_bytes_by_id:
  * @terminal: a #VteTerminal
  * @prop: a termprop ID
  *
@@ -8905,6 +8929,69 @@ vte_terminal_dup_termprop_uuid(VteTerminal* terminal,
 }
 
 /**
+ * vte_terminal_ref_termprop_uri_by_id:
+ * @terminal: a #VteTerminal
+ * @prop: a termprop ID
+ *
+ * Like vte_terminal_ref_termprop_uri() except that it takes the termprop
+ * by ID. See that function for more information.
+ *
+ * Returns: (transfer full): the property's value as a #GUri, or %NULL
+ *
+ * Since: 0.78
+ */
+GUri*
+vte_terminal_ref_termprop_uri_by_id(VteTerminal* terminal,
+                                    int prop) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
+        g_return_val_if_fail(prop >= 0, nullptr);
+
+        auto const widget = WIDGET(terminal);
+        auto const info = widget->get_termprop_info(prop);
+        if (!info)
+                return nullptr;
+
+        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::URI, nullptr);
+
+        auto const value = widget->get_termprop(*info);
+        if (value &&
+            std::holds_alternative<vte::Freeable<GUri>>(*value)) {
+                return g_uri_ref(std::get<vte::Freeable<GUri>>(*value).get());
+        }
+
+        return nullptr;
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
+ * vte_terminal_ref_termprop_uri:
+ * @terminal: a #VteTerminal
+ * @prop: a termprop name
+ *
+ * Returns the value of a %VTE_PROPERTY_URI termprop as a #GUri, or %NULL if
+ *   @prop is unset, or @prop is not a registered property.
+ *
+ * Returns: (transfer full): the property's value as a #GUri, or %NULL
+ *
+ * Since: 0.78
+ */
+GUri*
+vte_terminal_ref_termprop_uri(VteTerminal* terminal,
+                              char const* prop) noexcept
+{
+        g_return_val_if_fail(prop != nullptr, nullptr);
+
+        return vte_terminal_ref_termprop_uri_by_id(terminal,
+                                                   vte::terminal::get_termprop_id(prop));
+}
+
+/**
  * vte_terminal_get_termprop_value_by_id:
  * @terminal: a #VteTerminal
  * @prop: a termprop ID
@@ -9011,6 +9098,14 @@ try
                 }
                 break;
 
+        case vte::terminal::TermpropType::URI:
+                if (std::holds_alternative<vte::Freeable<GUri>>(*value)) {
+                        rv = true;
+                        g_value_init(gvalue, G_TYPE_URI);
+                        g_value_set_boxed(gvalue, std::get<vte::Freeable<GUri>>(*value).get());
+                }
+                break;
+
         default:
                 __builtin_unreachable(); break;
         }
@@ -9046,6 +9141,7 @@ catch (...)
  * * A %VTE_PROPERTY_STRING termprop stores a %G_TYPE_STRING value.
  * * A %VTE_PROPERTY_DATA termprop stores a boxed #GBytes value.
  * * A %VTE_PROPERTY_UUID termprop stores a boxed #VteUuid value.
+ * * A %VTE_PROPERTY_URI termprop stores a boxed #GUri value.
  *
  * Returns: %TRUE iff the property has a value, with @gvalue containig
  *   the property's value.
@@ -9063,7 +9159,6 @@ vte_terminal_get_termprop_value(VteTerminal* terminal,
                                                      vte::terminal::get_termprop_id(prop),
                                                      gvalue);
 }
-
 
 /**
  * vte_terminal_ref_termprop_variant_by_id:
@@ -9154,6 +9249,12 @@ try
                 }
                 break;
 
+        case vte::terminal::TermpropType::URI:
+                if (std::holds_alternative<vte::Freeable<GUri>>(*value)) {
+                        return g_variant_new_string(vte::glib::take_string(g_uri_to_string(std::get<vte::Freeable<GUri>>(*value).get())).get());
+                }
+                break;
+
         default:
                 __builtin_unreachable(); break;
         }
@@ -9187,6 +9288,8 @@ catch (...)
  * * A %VTE_PROPERTY_DATA termprop returns a "ay" variant (which is *not* a bytestring!).
  * * A %VTE_PROPERTY_UUID termprop returns a %G_VARIANT_TYPE_STRING variant
  *   containing a string representation of the UUID in simple form.
+ * * A %VTE_PROPERTY_URI termprop returns a %G_VARIANT_TYPE_STRING variant
+ *   containing a string representation of the URI
  *
  * Returns: (transfer full): a floating #GVariant, or %NULL
  *
