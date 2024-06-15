@@ -39,6 +39,7 @@ enum class Command : uint8_t {
         DECGRA = 0x22, // DEC Set Raster Attributes
         DECGCI = 0x23, // DEC Graphics Color Introducer
         DECGCR = 0x24, // DEC Graphics Carriage Return
+        DECGCH = 0x2b, // DEC Graphics Cursor Home
         DECGNL = 0x2d, // DEC Graphics Next Line
         RESERVED_2_05 = 0x25,
         RESERVED_2_06 = 0x26,
@@ -46,7 +47,6 @@ enum class Command : uint8_t {
         RESERVED_2_08 = 0x28,
         RESERVED_2_09 = 0x29,
         RESERVED_2_10 = 0x2a,
-        RESERVED_2_11 = 0x2b,
         RESERVED_2_12 = 0x2c,
         RESERVED_2_14 = 0x2e,
         RESERVED_2_15 = 0x2f,
@@ -329,6 +329,7 @@ private:
                 case Command::DECGRA: return delegate.DECGRA(m_seq);
                 case Command::DECGCI: return delegate.DECGCI(m_seq);
                 case Command::DECGCR: return delegate.DECGCR(m_seq);
+                case Command::DECGCH: return delegate.DECGCH(m_seq);
                 case Command::DECGNL: return delegate.DECGNL(m_seq);
                 case Command::NONE:   return;
                 case Command::RESERVED_2_05:
@@ -337,7 +338,6 @@ private:
                 case Command::RESERVED_2_08:
                 case Command::RESERVED_2_09:
                 case Command::RESERVED_2_10:
-                case Command::RESERVED_2_11:
                 case Command::RESERVED_2_12:
                 case Command::RESERVED_2_14:
                 case Command::RESERVED_2_15:

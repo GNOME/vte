@@ -418,6 +418,7 @@ private:
                 case vte::sixel::Command::DECGRA: m_str.append("DECGRA"); break;
                 case vte::sixel::Command::DECGCI: m_str.append("DECGCI"); break;
                 case vte::sixel::Command::DECGCR: m_str.append("DECGCR"); break;
+                case vte::sixel::Command::DECGCH: m_str.append("DECGCH"); break;
                 case vte::sixel::Command::DECGNL: m_str.append("DECGNL"); break;
                 default:
                         print_format("%d/%d",
@@ -472,6 +473,7 @@ public:
                 switch (seq.command()) {
                 case vte::sixel::Command::DECGCR:
                 case vte::sixel::Command::DECGNL:
+                case vte::sixel::Command::DECGCH:
                         printout();
                         break;
                 default:
@@ -871,6 +873,10 @@ public:
                         break;
 
                 case vte::sixel::Command::DECGNL:
+                        break;
+
+                case vte::sixel::Command::DECGCH:
+                        warn("DECGCH not supported");
                         break;
 
                 default:

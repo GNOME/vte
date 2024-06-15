@@ -54,6 +54,7 @@ cmd_to_str(Command command)
         case Command::DECGRA: return "DECGRA";
         case Command::DECGCI: return "DECGCI";
         case Command::DECGCR: return "DECGCR";
+        case Command::DECGCH: return "DECGCH";
         case Command::DECGNL: return "DECGNL";
         case Command::NONE:   return "NONE";
         default:
@@ -387,6 +388,12 @@ inline auto
 DECGCR() noexcept
 {
         return Sequence{Command::DECGCR};
+}
+
+inline auto
+DECGCH() noexcept
+{
+        return Sequence{Command::DECGCH};
 }
 
 inline auto

@@ -441,6 +441,26 @@ private:
         }
 
         void
+        DECGCH(vte::sixel::Sequence const& seq) noexcept
+        {
+                /* DECGCH - DEC Graphics Cursor Home
+                 * Moves the active position to the left margin and top.
+                 *
+                 * This is apparently only supported on VT240, not on VT340.
+                 *
+                 * So don't bother trying to support this in VTE.
+                 *
+                 * References: vt340test/j4james/xor_and_home.sh
+                 */
+
+                /* This is not compatible with the way we store the scanlines,
+                 * so we can't really support this. But let's at least do a
+                 * DECGNL instead of just a NOP.
+                 */
+                DECGNL(seq);
+        }
+
+        void
         DECGNL(vte::sixel::Sequence const& seq) noexcept
         {
                 /* DECGNL - DEC Graphics Next Line
