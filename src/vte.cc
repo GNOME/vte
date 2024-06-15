@@ -11018,30 +11018,22 @@ Terminal::emit_pending_signals()
                 m_window_title_pending.clear();
 	}
 
-	if (m_pending_changes & vte::to_integral(PendingChanges::CWD)) {
-                if (m_current_directory_uri != m_current_directory_uri_pending) {
-                        m_current_directory_uri.swap(m_current_directory_uri_pending);
+        if (!m_no_legacy_signals) {
+                // Emit deprecated signals and notify:: for deprecated properties,
 
+                if (m_pending_changes & vte::to_integral(PendingChanges::CWD)) {
                         _vte_debug_print(VTE_DEBUG_SIGNALS,
                                          "Emitting `current-directory-uri-changed'.\n");
                         g_signal_emit(freezer.get(), signals[SIGNAL_CURRENT_DIRECTORY_URI_CHANGED], 0);
                         g_object_notify_by_pspec(freezer.get(), pspecs[PROP_CURRENT_DIRECTORY_URI]);
                 }
 
-                m_current_directory_uri_pending.clear();
-        }
-
-        if (m_pending_changes & vte::to_integral(PendingChanges::CWF)) {
-                if (m_current_file_uri != m_current_file_uri_pending) {
-                        m_current_file_uri.swap(m_current_file_uri_pending);
-
+                if (m_pending_changes & vte::to_integral(PendingChanges::CWF)) {
                         _vte_debug_print(VTE_DEBUG_SIGNALS,
                                          "Emitting `current-file-uri-changed'.\n");
                         g_signal_emit(freezer.get(), signals[SIGNAL_CURRENT_FILE_URI_CHANGED], 0);
                         g_object_notify_by_pspec(freezer.get(), pspecs[PROP_CURRENT_FILE_URI]);
                 }
-
-                m_current_file_uri_pending.clear();
         }
 
         m_pending_changes = 0;

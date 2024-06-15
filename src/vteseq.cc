@@ -1434,21 +1434,28 @@ Terminal::set_current_directory_uri(vte::parser::Sequence const& seq,
                                               vte::parser::StringTokeniser::const_iterator& token,
                                               vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
 {
-        std::string uri;
-        if (token != endtoken && token.size_remaining() > 0) {
-                uri = token.string_remaining();
+        auto const info = get_termprop_info(VTE_TERMPROP_CURRENT_DIRECTORY_URI);
+        assert(info);
 
-                auto filename = g_filename_from_uri(uri.data(), nullptr, nullptr);
-                if (filename != nullptr) {
-                        g_free(filename);
+        if (token != endtoken && token.size_remaining() > 0) {
+                if (auto uri = vte::take_freeable(g_uri_parse(token.string_remaining().c_str(),
+                                                              GUriFlags(G_URI_FLAGS_ENCODED),
+                                                              nullptr));
+                    uri &&
+                    g_strcmp0(g_uri_get_scheme(uri.get()), "file") == 0) {
+
+                        m_termprops_dirty.at(info->id()) = true;
+                        m_termprop_values.at(info->id()) = std::move(uri);
                 } else {
-                        /* invalid URI */
-                        uri.clear();
+                        // invalid URI, or not a file: URI
+                        reset_termprop(*info);
                 }
+        } else {
+                reset_termprop(*info);
         }
 
-        m_current_directory_uri_pending.swap(uri);
-        m_pending_changes |= vte::to_integral(PendingChanges::CWD);
+        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS) |
+                vte::to_integral(PendingChanges::CWD);
 }
 
 void
@@ -1457,21 +1464,28 @@ Terminal::set_current_file_uri(vte::parser::Sequence const& seq,
                                          vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
 
 {
-        std::string uri;
-        if (token != endtoken && token.size_remaining() > 0) {
-                uri = token.string_remaining();
+        auto const info = get_termprop_info(VTE_TERMPROP_CURRENT_FILE_URI);
+        assert(info);
 
-                auto filename = g_filename_from_uri(uri.data(), nullptr, nullptr);
-                if (filename != nullptr) {
-                        g_free(filename);
+        if (token != endtoken && token.size_remaining() > 0) {
+                if (auto uri = vte::take_freeable(g_uri_parse(token.string_remaining().c_str(),
+                                                              GUriFlags(G_URI_FLAGS_ENCODED),
+                                                              nullptr));
+                    uri &&
+                    g_strcmp0(g_uri_get_scheme(uri.get()), "file") == 0) {
+
+                        m_termprops_dirty.at(info->id()) = true;
+                        m_termprop_values.at(info->id()) = std::move(uri);
                 } else {
-                        /* invalid URI */
-                        uri.clear();
+                        // invalid URI, or not a file: URI
+                        reset_termprop(*info);
                 }
+        } else {
+                reset_termprop(*info);
         }
 
-        m_current_file_uri_pending.swap(uri);
-        m_pending_changes |= vte::to_integral(PendingChanges::CWF);
+        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS) |
+                vte::to_integral(PendingChanges::CWF);
 }
 
 void

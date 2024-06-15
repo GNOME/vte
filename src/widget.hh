@@ -773,6 +773,17 @@ public:
                 terminal()->reset_termprop(info);
         }
 
+        void set_no_legacy_signals() noexcept
+        {
+                m_no_legacy_signals = true;
+                terminal()->set_no_legacy_signals();
+        }
+
+        bool get_no_legacy_signals() const noexcept
+        {
+                return m_no_legacy_signals;
+        }
+
 public: // FIXMEchpe
         void im_preedit_changed() noexcept;
         void vadjustment_value_changed();
@@ -841,6 +852,8 @@ private:
         VteAlign m_yalign{VTE_ALIGN_START};
         bool m_xfill{true};
         bool m_yfill{true};
+
+        bool m_no_legacy_signals{false};
 
 #if VTE_GTK == 4
         GdkToplevelState m_root_surface_state{GdkToplevelState(0)};

@@ -77,4 +77,32 @@ gboolean vte_query_termprop_by_id(int prop,
                                   VtePropertyType* type,
                                   VtePropertyFlags* flags) _VTE_CXX_NOEXCEPT;
 
+/**
+ * VTE_TERMPROP_CURRENT_DIRECTORY_URI:
+ *
+ * A %VTE_PROPERTY_URI termprop that stores the current directory
+ * URI as set by OSC 7.
+ * Use this with vte_terminal_ref_termprop_uri() instead of using
+ * vte_terminal_get_current_directory_uri().
+ *
+ * Note that this termprop is not settable via the termprop OSC.
+ *
+ * Since: 0.78
+ */
+#define VTE_TERMPROP_CURRENT_DIRECTORY_URI "vte.cwd"
+
+/**
+ * VTE_TERMPROP_CURRENT_FILE_URI:
+ *
+ * A %VTE_PROPERTY_URI termprop that stores the current file URI
+ * as set by OSC 6.
+ * Use this with vte_terminal_ref_termprop_uri() instead of using
+ * vte_terminal_get_current_file_uri().
+ *
+ * Note that this termprop is not settable via the termprop OSC.
+ *
+ * Since: 0.78
+ */
+#define VTE_TERMPROP_CURRENT_FILE_URI "vte.cwf"
+
 G_END_DECLS
