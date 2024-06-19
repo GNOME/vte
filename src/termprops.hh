@@ -93,7 +93,7 @@ public:
         constexpr auto id() const noexcept { return m_id; }
         constexpr auto quark() const noexcept { return m_quark; }
         constexpr auto type() const noexcept { return m_type; }
-        constexpr unsigned flags() const noexcept { return unsigned(m_flags); }
+        constexpr auto flags() const noexcept { return m_flags; }
 
 }; // class TermpropInfo
 

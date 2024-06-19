@@ -1600,7 +1600,7 @@ try
 {
         auto const pos = str.find_first_of("=?!"); // possibly str.npos
         auto const info = vte::terminal::get_termprop_info(str.substr(0, pos));
-        if (!info || (info->flags() & unsigned(vte::terminal::TermpropFlags::NO_OSC))) {
+        if (!info || (unsigned(info->flags()) & unsigned(vte::terminal::TermpropFlags::NO_OSC))) {
                 // Set query even for unknown termprops, for forward compatibility
                 if (pos != str.npos && str[pos] == '?' && (pos + 1) == str.size())
                         query = true;

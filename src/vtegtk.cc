@@ -1395,14 +1395,14 @@ constexpr bool check_enum_value<VtePropertyType>(VtePropertyType value) noexcept
 
 static bool
 check_termprop_wellknown(char const* name,
-                         VtePropertyType* type,
-                         VtePropertyFlags* flags) noexcept
+                         vte::terminal::TermpropType* type,
+                         vte::terminal::TermpropFlags* flags) noexcept
 {
 #if 0 // remove this when adding the first well-known termprop
         static constinit struct {
                 char const* name;
-                VtePropertyType type;
-                VtePropertyFlags flags;
+                vte::terminal::TermpropType type;
+                vte::terminal::TermpropFlags flags;
         } const well_known_termprops[] = {
         };
 
@@ -2994,14 +2994,36 @@ vte_terminal_class_init(VteTerminalClass *klass)
 #endif
 
         // Install built-in termprops
-        auto id =_vte_install_termprop(VTE_TERMPROP_CURRENT_DIRECTORY_URI,
-                                       vte::terminal::TermpropType::URI,
-                                       vte::terminal::TermpropFlags::NO_OSC);
-        vte_assert_cmpint(id, ==, VTE_PROPERTY_ID_CURRENT_DIRECTORY_URI);
-        id = _vte_install_termprop(VTE_TERMPROP_CURRENT_FILE_URI,
-                                   vte::terminal::TermpropType::URI,
-                                   vte::terminal::TermpropFlags::NO_OSC);
-        vte_assert_cmpint(id, ==, VTE_PROPERTY_ID_CURRENT_FILE_URI);
+        {
+                static constinit struct {
+                        char const* name;
+                        vte::terminal::TermpropType type;
+                        vte::terminal::TermpropFlags flags;
+                        int id;
+                } const builtin_termprops[] = {
+                        { VTE_TERMPROP_CURRENT_DIRECTORY_URI,
+                          vte::terminal::TermpropType::URI,
+                          vte::terminal::TermpropFlags::NO_OSC,
+                          VTE_PROPERTY_ID_CURRENT_DIRECTORY_URI },
+                        { VTE_TERMPROP_CURRENT_FILE_URI,
+                          vte::terminal::TermpropType::URI,
+                          vte::terminal::TermpropFlags::NO_OSC,
+                        VTE_PROPERTY_ID_CURRENT_FILE_URI },
+                };
+
+
+                for (auto i = 0u; i < G_N_ELEMENTS(builtin_termprops); ++i) {
+#if VTE_DEBUG
+                        auto const id =
+#endif
+                        _vte_install_termprop(builtin_termprops[i].name,
+                                              builtin_termprops[i].type,
+                                              builtin_termprops[i].flags);
+#if VTE_DEBUG
+                        vte_assert_cmpint(id, ==,  builtin_termprops[i].id);
+#endif
+                }
+        }
 }
 
 /* public API */
@@ -3222,14 +3244,17 @@ try
         g_return_val_if_fail(check_enum_value(type), -1);
         g_return_val_if_fail(flags == VTE_PROPERTY_FLAG_NONE, -1);
 
+        auto const itype = vte::terminal::TermpropType(type);
+        auto const iflags = vte::terminal::TermpropFlags(flags);
+
         name = g_intern_string(name);
 
         // Cannot install an existing termprop but with a different type
         // than the existing one; and installing the termprop with the same
         // type/flags as before is a no-op.
         if (auto const info = vte::terminal::get_termprop_info(name)) {
-                if (info->type() != vte::terminal::TermpropType(type) ||
-                    info->flags() != flags) [[unlikely]] {
+                if (info->type() != itype ||
+                    info->flags() != iflags) [[unlikely]] {
                         g_warning("Termprop \"%s\" already installed with different type or flags",
                                   name);
                 }
@@ -3240,8 +3265,8 @@ try
         // Cannot install more termprops after a VteTerminal instance has been created.
         g_return_val_if_fail(vte_terminal_class_n_instances == 0, -1);
 
-        auto wkt_type = VtePropertyType{};
-        auto wkt_flags = VtePropertyFlags{};
+        auto wkt_type = vte::terminal::TermpropType{};
+        auto wkt_flags = vte::terminal::TermpropFlags{};
         auto const well_known = check_termprop_wellknown(name, &wkt_type, &wkt_flags);
 
         // only allow non-well-known termprops when in test mode for now
@@ -3251,7 +3276,7 @@ try
         }
 
         // Check type
-        if (well_known && (type != wkt_type || flags != wkt_flags)) [[unlikely]] {
+        if (well_known && (itype != wkt_type || iflags != wkt_flags)) [[unlikely]] {
                 g_warning("Denying to install well-known termprop \"%s\" with incorrect type or flags", name);
                 return -1;
         }
@@ -3263,8 +3288,8 @@ try
 
         return vte::terminal::register_termprop(name,
                                                 g_quark_from_string(name),
-                                                vte::terminal::TermpropType(type),
-                                                vte::terminal::TermpropFlags(flags));
+                                                itype,
+                                                iflags);
 }
 catch (...)
 {
