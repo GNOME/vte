@@ -1592,8 +1592,41 @@ Terminal::set_current_shell_integration_mode(vte::parser::Sequence const& seq,
         }
 }
 
+#if VTE_DEBUG
+
 void
-Terminal::parse_termprop(std::string_view const& str,
+Terminal::reply_termprop_query(vte::parser::Sequence const& seq,
+                               vte::terminal::TermpropInfo const* info)
+{
+        // Since this is only used in test mode, we just send one
+        // OSC reply per query, instead of trying to consolidate
+        // multiple replies into as few OSCs as possible.
+
+        auto str = std::string{info->name()};
+        switch (info->type()) {
+                using enum vte::terminal::TermpropType;
+        case VALUELESS:
+                if (m_termprops_dirty.at(info->id()))
+                        str.push_back('!');
+                break;
+
+        default:
+                if (auto const vstr =
+                    vte::terminal::unparse_termprop_value(info->type(),
+                                                          m_termprop_values.at(info->id()))) {
+                        str.push_back('=');
+                        str.append(*vstr);
+                }
+        }
+
+        reply(seq, VTE_REPLY_OSC, {}, "%d;%s", VTE_OSC_VTE_TERMPROP,str.c_str());
+}
+
+#endif // VTE_DEBUG
+
+void
+Terminal::parse_termprop(vte::parser::Sequence const& seq,
+                         std::string_view const& str,
                          bool& set,
                          bool& query) noexcept
 try
@@ -1632,6 +1665,13 @@ try
         } else if (str[pos] == '?') {
                 if ((pos + 1) == str.size()) {
                         // Query
+                        // In test mode, do reply to the query. In non-test mode,
+                        // just set a flag and send a single dummy reply afterwards.
+#if VTE_DEBUG
+                        if (g_test_flags & VTE_TEST_FLAG_TERMPROP) {
+                                reply_termprop_query(seq, info);
+                        } else
+#endif
                         query = true;
                 }
         } else if (str[pos] == '!') {
@@ -1651,6 +1691,7 @@ void
 Terminal::vte_termprop(vte::parser::Sequence const& seq,
                        vte::parser::StringTokeniser::const_iterator& token,
                        vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
+try
 {
         // This is a new and vte-only feature, so reject BEL-terminated OSC.
         if (seq.is_st_bel()) {
@@ -1659,8 +1700,9 @@ Terminal::vte_termprop(vte::parser::Sequence const& seq,
         }
 
         auto set = false, query = false;
+        auto queries = std::vector<int>{};
         while (token != endtoken) {
-                parse_termprop(*token, set, query);
+                parse_termprop(seq, *token, set, query);
                 ++token;
         }
 
@@ -1683,6 +1725,10 @@ Terminal::vte_termprop(vte::parser::Sequence const& seq,
 
                 reply(seq, VTE_REPLY_OSC, {}, "%d", VTE_OSC_VTE_TERMPROP);
         }
+}
+catch (...)
+{
+        // nothing to do here
 }
 
 // collect_rect:

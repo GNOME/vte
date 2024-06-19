@@ -36,6 +36,7 @@
 #include <glib.h>
 
 using namespace vte;
+using namespace std::literals;
 
 using rgba = color::rgba_base<float>;
 
@@ -47,7 +48,7 @@ enum class color_format {
 template<class Color = rgba>
 static std::optional<Color>
 parse(std::string const& spec,
-      color_format fmt)
+      color_format fmt = color_format::CSSLIKE)
 {
         switch(fmt) {
                 using enum color_format;
@@ -160,47 +161,29 @@ test_color_parse_nothing(void)
         assert_color_parse_nothing("rgbi:0.0/0.0/0.0", color_format::X11LIKE);
 }
 
-#if 0
 static void
 test_color_to_string (void)
 {
-        rgba rgba;
-        rgba out;
-        char *res;
-        char *res_de;
-        char *res_en;
-        char *orig;
+        auto test = [](std::string str,
+                       bool alpha = false) constexpr noexcept -> void
+        {
+                auto const value = parse<rgba>(str);
+                assert(value);
 
-        /* Using /255. values for the r, g, b components should
-         * make sure they round-trip exactly without rounding
-         * from the double => integer => double conversions */
-        rgba.red = 1.0;
-        rgba.green = 128/255.;
-        rgba.blue = 64/255.;
-        rgba.alpha = 0.5;
+                auto tstr = color::to_string(*value, alpha);
+                g_assert_true(g_ascii_strcasecmp(str.c_str(), tstr.c_str()) == 0);
+        };
 
-        orig = g_strdup (setlocale (LC_ALL, nullptr));
-        res = gdk_rgba_to_string (&rgba);
-        gdk_rgba_parse (&out, res);
-        g_assert_true (gdk_rgba_equal (&rgba, &out));
+        test("#000000"s);
+        test("#00000000"s, true);
 
-        setlocale (LC_ALL, "de_DE.utf-8");
-        res_de = gdk_rgba_to_string (&rgba);
-        g_assert_cmpstr (res, ==, res_de);
+        test("#123456"s);
+        test("#12345678"s, true);
 
-        setlocale (LC_ALL, "en_US.utf-8");
-        res_en = gdk_rgba_to_string (&rgba);
-        g_assert_cmpstr (res, ==, res_en);
-
-        g_free (res);
-        g_free (res_de);
-        g_free (res_en);
-
-        setlocale (LC_ALL, orig);
-        g_free (orig);
+        test("#ffffff"s);
+        test("#ffffffff"s, true);
 }
 
-#endif // 0
 int
 main(int argc,
      char *argv[])
@@ -211,7 +194,7 @@ main(int argc,
         g_test_add_func("/vte/color/parse/x11", test_color_parse_x11);
         g_test_add_func("/vte/color/parse/named", test_color_parse_named);
         g_test_add_func("/vte/color/parse/nothing", test_color_parse_nothing);
-        // g_test_add_func("/vte/color/to-string", test_color_to_string);
+        g_test_add_func("/vte/color/to-string", test_color_to_string);
 
         return g_test_run();
 }

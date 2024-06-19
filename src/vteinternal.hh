@@ -1758,9 +1758,14 @@ public:
                              osc_colors::OSCColorIndex index,
                              int osc) noexcept;
         auto resolve_reported_color(osc_colors::OSCColorIndex index) const noexcept -> std::optional<vte::color::rgb>;
-        void parse_termprop(std::string_view const& str,
+        void parse_termprop(vte::parser::Sequence const& seq,
+                            std::string_view const& str,
                             bool& set,
                             bool& query) noexcept;
+        #if VTE_DEBUG
+        void reply_termprop_query(vte::parser::Sequence const& seq,
+                                  vte::terminal::TermpropInfo const* info);
+        #endif
 
         /* OSC handlers */
         void set_color(vte::parser::Sequence const& seq,
@@ -1839,5 +1844,6 @@ _vte_double_equal(double a,
 }
 
 #define VTE_TEST_FLAG_DECRQCRA (G_GUINT64_CONSTANT(1) << 0)
+#define VTE_TEST_FLAG_TERMPROP (G_GUINT64_CONSTANT(1) << 1)
 
 extern uint64_t g_test_flags;

@@ -17,12 +17,12 @@
 
 #pragma once
 
+#include <charconv>
 #include <concepts>
 #include <optional>
 #include <tuple>
 
 #include <cstdint>
-#include <string>
 
 #include "fwd.hh"
 
@@ -97,10 +97,7 @@ template<typename Color>
 class traits;
 
 template<typename Color>
-inline constexpr auto has_alpha_component_v() -> auto
-{
-        return traits<Color>::has_alpha;
-}
+inline constexpr auto has_alpha_component_v = traits<Color>::has_alpha;
 
 template<typename Color>
 using component_type_t = typename traits<Color>::component_type;
@@ -129,7 +126,7 @@ from_tuple(color_tuple const& v) noexcept
 {
         auto [r, g, b, a] = v;
 
-        if constexpr (has_alpha_component_v<Color>())
+        if constexpr (has_alpha_component_v<Color>)
                 return Color(r, g, b, a);
         else
                 return Color(r, g, b);

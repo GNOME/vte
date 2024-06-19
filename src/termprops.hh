@@ -35,6 +35,7 @@
 
 namespace vte::terminal {
 
+using namespace std::literals::string_literals;
 using namespace std::literals::string_view_literals;
 
 // Termprops. Make sure the enum values are the same as in the
@@ -94,6 +95,8 @@ public:
         constexpr auto quark() const noexcept { return m_quark; }
         constexpr auto type() const noexcept { return m_type; }
         constexpr auto flags() const noexcept { return m_flags; }
+
+        auto name() const noexcept { return g_quark_to_string(quark()); }
 
 }; // class TermpropInfo
 
@@ -284,6 +287,15 @@ parse_termprop_base64(std::string_view const& str) noexcept
         return buf;
 }
 
+inline std::optional<std::string>
+unparse_termprop_base64(std::string_view const& str)
+{
+        return std::make_optional<std::string>
+                (vte::glib::take_string
+                 (g_base64_encode(reinterpret_cast<unsigned char const*>(str.data()),
+                                  str.size())).get());
+}
+
 inline std::optional<TermpropValue>
 parse_termprop_bool(std::string_view const& str) noexcept
 {
@@ -301,6 +313,12 @@ parse_termprop_bool(std::string_view const& str) noexcept
                 return std::nullopt;
 }
 
+inline std::optional<std::string>
+unparse_termprop_bool(bool v)
+{
+        return std::make_optional(v ? "1"s : "0"s);
+}
+
 inline std::optional<TermpropValue>
 parse_termprop_color(std::string_view const& str_view,
                      bool with_alpha) noexcept
@@ -314,6 +332,13 @@ parse_termprop_color(std::string_view const& str_view,
         }
 
         return std::nullopt;
+}
+
+inline std::optional<std::string>
+unparse_termprop_color(termprop_rgba const& v,
+                       bool alpha)
+{
+        return std::make_optional(vte::color::to_string(v, alpha, vte::color::color_output_format::HEX));
 }
 
 template<std::integral T>
@@ -335,6 +360,21 @@ parse_termprop_integral(std::string_view const& str) noexcept
         return std::nullopt;
 }
 
+template<std::integral T>
+inline std::optional<std::string>
+unparse_termprop_integral(T v)
+{
+        char buf[64];
+        if (auto [ptr, err] = std::to_chars(buf,
+                                            buf + sizeof(buf),
+                                            v);
+            err == std::errc()) {
+                return std::make_optional<std::string>(buf, ptr);
+        }
+
+        return std::nullopt;
+}
+
 template<std::floating_point T>
 inline std::optional<TermpropValue>
 parse_termprop_floating(std::string_view const& str) noexcept
@@ -348,6 +388,22 @@ parse_termprop_floating(std::string_view const& str) noexcept
             ptr == std::end(str) &&
             std::isfinite(v)) {
                 return double(v);
+        }
+
+        return std::nullopt;
+}
+
+template<std::floating_point T>
+inline std::optional<std::string>
+unparse_termprop_floating(T v)
+{
+        char buf[64];
+        if (auto [ptr, err] = std::to_chars(buf,
+                                            buf + sizeof(buf),
+                                            v,
+                                            std::chars_format::scientific);
+            err == std::errc()) {
+                return std::make_optional<std::string>(buf, ptr);
         }
 
         return std::nullopt;
@@ -415,6 +471,34 @@ parse_termprop_string(std::string_view str)
         return std::nullopt;
 }
 
+inline std::optional<std::string>
+unparse_termprop_string(std::string_view str)
+{
+        static constinit auto const needle = ";\n\\"sv;
+
+        auto ostr = std::string{};
+        while (str.size() != 0) {
+                auto run = str.find_first_of(needle, 0);
+
+                ostr.append(str, 0, run);
+                if (run == str.npos)
+                        break;
+
+                ostr.push_back('\\');
+                switch (str[run]) {
+                case '\n': ostr.push_back('n');  break;
+                case '\\': ostr.push_back('\\'); break;
+                case ';':  ostr.push_back('s');  break;
+                default: __builtin_unreachable(); break;
+                }
+
+                ++run;
+                str = str.substr(run);
+        }
+
+        return std::make_optional(std::move(ostr));
+}
+
 inline std::optional<TermpropValue>
 parse_termprop_uuid(std::string_view str)
 {
@@ -423,6 +507,12 @@ parse_termprop_uuid(std::string_view str)
         } catch (...) {
                 return std::nullopt;
         }
+}
+
+inline std::optional<std::string>
+unparse_termprop_uuid(vte::uuid const& u)
+{
+        return std::make_optional(u.str());
 }
 
 inline std::optional<TermpropValue>
@@ -438,6 +528,12 @@ parse_termprop_uri(std::string_view str)
         }
 
         return std::nullopt;
+}
+
+inline std::optional<std::string>
+unparse_termprop_uri(vte::Freeable<GUri> const& uri)
+{
+        return std::make_optional<std::string>(vte::glib::take_string(g_uri_to_string(uri.get())).get());
 }
 
 } // namespace impl
@@ -483,6 +579,79 @@ parse_termprop_value(TermpropType type,
                 __builtin_unreachable();
                 return std::nullopt;
         }
+}
+
+inline std::optional<std::string>
+unparse_termprop_value(TermpropType type,
+                       TermpropValue const& value)
+{
+        switch (type) {
+                using enum vte::terminal::TermpropType;
+        case VALUELESS:
+                break;
+
+        case BOOL:
+                if (std::holds_alternative<bool>(value)) {
+                        return impl::unparse_termprop_bool(std::get<bool>(value));
+                }
+                break;
+
+        case INT:
+                if (std::holds_alternative<int64_t>(value)) {
+                        return impl::unparse_termprop_integral(std::get<int64_t>(value));
+                }
+                break;
+
+        case UINT:
+                if (std::holds_alternative<uint64_t>(value)) {
+                        return impl::unparse_termprop_integral(std::get<uint64_t>(value));
+                }
+                break;
+
+        case DOUBLE:
+                if (std::holds_alternative<double>(value)) {
+                        return impl::unparse_termprop_floating(std::get<double>(value));
+                }
+                break;
+
+        case RGB:
+        case RGBA:
+                if (std::holds_alternative<vte::terminal::termprop_rgba>(value)) {
+                        return impl::unparse_termprop_color(std::get<vte::terminal::termprop_rgba>(value),
+                                                            type == RGBA);
+                }
+                break;
+
+        case STRING:
+                if (std::holds_alternative<std::string>(value)) {
+                        return impl::unparse_termprop_string(std::get<std::string>(value));
+                }
+                break;
+
+        case DATA:
+                if (std::holds_alternative<std::string>(value)) {
+                        return impl::unparse_termprop_base64(std::get<std::string>(value));
+                }
+                break;
+
+        case UUID:
+                if (std::holds_alternative<vte::uuid>(value)) {
+                        return impl::unparse_termprop_uuid(std::get<vte::uuid>(value));
+                }
+                break;
+
+        case URI:
+                if (std::holds_alternative<vte::Freeable<GUri>>(value)) {
+                        return impl::unparse_termprop_uri(std::get<vte::Freeable<GUri>>(value));
+                }
+                break;
+
+        default:
+                __builtin_unreachable();
+                break;
+        }
+
+        return std::nullopt;
 }
 
 } // namespace vte::terminal

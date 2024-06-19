@@ -18,16 +18,26 @@
 #pragma once
 
 #include <optional>
+#include <string>
 
 #include "color.hh"
 
 namespace vte::color {
+
+
+enum class color_output_format {
+        HEX,
+};
 
 namespace impl {
 
 std::optional<color_tuple> parse_csslike(std::string const& spec) noexcept;
 
 std::optional<color_tuple> parse_x11like(std::string const& spec) noexcept;
+
+std::string to_string(color_tuple const&,
+                      bool alpha = false,
+                      color_output_format fmt = color_output_format::HEX);
 
 } // namespace impl
 
@@ -63,6 +73,17 @@ std::optional<Color> parse_any(std::string const& spec) noexcept
         }
 
         return std::nullopt;
+}
+
+template<class Color>
+std::string
+to_string(Color const& color,
+          bool alpha = false,
+          color_output_format fmt = color_output_format::HEX)
+{
+        return impl::to_string(std::make_tuple(color.red(), color.green(), color.blue(), color.alpha()),
+                               alpha,
+                               fmt);
 }
 
 } // namespace vte::color

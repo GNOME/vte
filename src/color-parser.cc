@@ -474,4 +474,51 @@ parse_x11like(std::string const& spec) noexcept
 
 // END code copied/adapted from gtk+ and pango
 
-} // namespace vte::color
+// Color to RGB(A) packed (BE)
+inline constexpr uint64_t
+to_bits(color_tuple const& tuple,
+        int bits,
+        bool alpha)
+{
+        auto to_bits = [bits](float v) constexpr noexcept -> uint64_t {
+                return uint64_t(v * 65535.) >> (16 - bits);
+        };
+
+        auto [r, g, b, a] = tuple;
+
+        auto v = to_bits(r);
+        v <<= bits;
+        v |= to_bits(g);
+        v <<= bits;
+        v |= to_bits(b);
+        if (alpha) {
+                v <<= bits;
+                v |= to_bits(a);
+        }
+
+        return v;
+}
+
+std::string
+to_string(color_tuple const& tuple,
+          bool alpha,
+          color_output_format fmt)
+{
+        switch (fmt) {
+                using enum color_output_format;
+        case HEX: {
+                char buf[32];
+                auto const len = g_snprintf(buf,
+                                            sizeof(buf),
+                                            alpha ? "#%08X" : "#%06X",
+                                            unsigned(impl::to_bits(tuple, 8, alpha)));
+                return {buf, size_t(len)};
+        }
+
+        default:
+                __builtin_unreachable();
+                break;
+        }
+}
+
+} // namespace vte::color::impl
