@@ -122,6 +122,15 @@ assert_termprop_parse_value(TermpropType type,
 #pragma GCC diagnostic ignored "-Wfloat-equal"
         assert(std::get<T>(*value) == expected_value);
 #pragma GCC diagnostic pop
+
+        auto tstr = unparse_termprop_value(type, *value);
+        assert(tstr);
+        auto const tvalue = parse_termprop_value(type, *tstr);
+        assert(tvalue);
+        assert(!tvalue->valueless_by_exception());
+        assert(std::holds_alternative<T>(*tvalue));
+        assert(value == tvalue);
+        assert(*value == *tvalue);
 }
 
 template<std::integral T>
