@@ -4777,6 +4777,15 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
                 break;
         }
 
+        // Image ID is a nonstandard RLogin extension. Vte doesn't support
+        // image IDs for regular SIXEL images, but uses a special 65535 (-1)
+        // image ID to set the %VTE_TERMPROP_ICON_IMAGE termprop.
+        auto const id = seq.collect1(3);
+        if (id != -1 && // defaulted param
+            id != vte::sixel::Context::k_termprop_icon_image_id) {
+                process_sixel = false;
+        }
+
         /* Ignore the whole sequence */
         if (!process_sixel || seq.is_ripe() /* that shouldn't happen */) {
                 m_parser.ignore_until_st();
@@ -4791,7 +4800,8 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
                 if (!m_sixel_context)
                         m_sixel_context = std::make_unique<vte::sixel::Context>();
 
-                m_sixel_context->prepare(seq.introducer(),
+                m_sixel_context->prepare(id,
+                                         seq.introducer(),
                                          fg.red >> 8, fg.green >> 8, fg.blue >> 8,
                                          bg.red >> 8, bg.green >> 8, bg.blue >> 8,
                                          back == VTE_DEFAULT_BG || transparent_bg,

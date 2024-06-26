@@ -3050,6 +3050,14 @@ vte_terminal_class_init(VteTerminalClass *klass)
                           vte::terminal::TermpropType::VALUELESS,
                           vte::terminal::TermpropFlags::NONE,
                           VTE_PROPERTY_ID_SHELL_POSTEXEC },
+                        { VTE_TERMPROP_ICON_COLOR,
+                          vte::terminal::TermpropType::RGB,
+                          vte::terminal::TermpropFlags::NONE,
+                          VTE_PROPERTY_ID_ICON_COLOR },
+                        { VTE_TERMPROP_ICON_IMAGE,
+                          vte::terminal::TermpropType::IMAGE,
+                          vte::terminal::TermpropFlags::NONE,
+                          VTE_PROPERTY_ID_ICON_IMAGE },
                 };
 
                 for (auto i = 0u; i < G_N_ELEMENTS(builtin_termprops); ++i) {
@@ -3219,9 +3227,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
  *
  * * A termprop of type %VTE_PROPERTY_IMAGE is an image.
  *   Note that currently termprops of this type cannot be created
- *   via the API, and not set via OSC 666; only built-in termprops of this
- *   type are available, and they can only be set via their own special
- *   sequence.
+ *   via the API, and not set, but can be reset, via OSC 666, only
+ *   built-in termprops of this type are available, and they can
+ *   only be set via their own special sequence.
  *
  * Note that any values any termprop has must be treated as *untrusted*.
  *

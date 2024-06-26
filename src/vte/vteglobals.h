@@ -180,4 +180,33 @@ gboolean vte_query_termprop_by_id(int prop,
  */
 #define VTE_TERMPROP_SHELL_POSTEXEC "vte.shell.postexec"
 
+/*
+ * VTE_TERMPROP_ICON_COLOR:
+ *
+ * A %VTE_PROPERTY_RGB termprop to specify a color for use
+ * in a favicon or tab highlight.
+ *
+ * Aapplications should use this if the %VTE_TERMPROP_ICON_IMAGE
+ * termprop is unset.
+ *
+ * Since: 0.78
+ */
+#define VTE_TERMPROP_ICON_COLOR "vte.icon.color"
+
+/**
+ * VTE_TERMPROP_ICON_IMAGE:
+ *
+ * A %VTE_PROPERTY_IMAGE termprop to specify an image for use
+ * as a favicon.
+ *
+ * Applications should prefer to use this termprop, if set, over
+ * the %VTE_TERMPROP_ICON_COLOR color.
+ *
+ * Note that this termprop is not settable via the termprop OSC.
+ * Instead, it is set from a SIXEL image sequence with ID 65535.
+ *
+ * Since: 0.78
+ */
+#define VTE_TERMPROP_ICON_IMAGE "vte.icon.image"
+
 G_END_DECLS

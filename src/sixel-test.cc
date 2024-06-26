@@ -1036,7 +1036,8 @@ parse_image(C& context,
             int line = __builtin_LINE())
 {
         context.reset();
-        context.prepare(0x50 /* C0 DCS */,
+        context.prepare(-1, /* no ID */
+                        0x50 /* C0 DCS */,
                         fg_red, fg_green, fg_blue,
                         bg_red, bg_green, bg_blue,
                         false /* bg transparent */,
