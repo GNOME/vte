@@ -22,6 +22,7 @@
 #include "color.hh"
 #include "color-parser.hh"
 #include "glib-glue.hh"
+#include "cairo-glue.hh"
 
 #include <cmath> // for std::isfinite
 
@@ -53,6 +54,7 @@ enum class TermpropType {
         DATA,
         UUID,
         URI,
+        IMAGE,
         INVALID = -1,
 };
 
@@ -264,7 +266,8 @@ using TermpropValue = std::variant<std::monostate,
                                    termprop_rgba,
                                    vte::uuid,
 				   std::string,
-                                   TermpropURIValue>;
+                                   TermpropURIValue,
+                                   vte::Freeable<cairo_surface_t>>;
 
 namespace impl {
 
@@ -578,6 +581,9 @@ parse_termprop_value(TermpropType type,
         case TermpropType::URI:
                 return impl::parse_termprop_uri(value);
 
+        case TermpropType::IMAGE: // not settable this way
+                return std::nullopt;
+
         default:
                 __builtin_unreachable();
                 return std::nullopt;
@@ -647,6 +653,9 @@ unparse_termprop_value(TermpropType type,
                 if (std::holds_alternative<TermpropURIValue>(value)) {
                         return impl::unparse_termprop_uri(std::get<TermpropURIValue>(value));
                 }
+                break;
+
+        case IMAGE: // not serialisable
                 break;
 
         default:

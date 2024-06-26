@@ -275,6 +275,7 @@ typedef enum {
         VTE_PROPERTY_DATA,
         VTE_PROPERTY_UUID,
         VTE_PROPERTY_URI,
+        VTE_PROPERTY_IMAGE,
 } VtePropertyType;
 
 /**
