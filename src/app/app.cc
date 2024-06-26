@@ -2150,6 +2150,8 @@ vteapp_terminal_init(VteappTerminal *terminal)
         terminal->has_backdrop = false;
         terminal->use_backdrop = options.backdrop;
 
+        vte_terminal_set_suppress_legacy_signals(VTE_TERMINAL(terminal));
+
 #if VTE_GTK == 3
         if (options.background_pixbuf != nullptr)
                 vte_terminal_set_clear_background(VTE_TERMINAL(terminal), false);
@@ -3003,9 +3005,12 @@ window_iconify_window_cb(VteTerminal* terminal,
 
 static void
 window_window_title_changed_cb(VteTerminal* terminal,
+                               char const* prop,
                                VteappWindow* window)
 {
-        auto const title = vte_terminal_get_window_title(window->terminal);
+        auto const title = vte_terminal_get_termprop_string_by_id(window->terminal,
+                                                                  VTE_PROPERTY_ID_XTERM_TITLE,
+                                                                  nullptr);
         gtk_window_set_title(GTK_WINDOW(window), title && title[0] ? title : "Terminal");
 }
 
@@ -3313,7 +3318,7 @@ vteapp_window_constructed(GObject *object)
         g_signal_connect(window->terminal, "restore-window", G_CALLBACK(window_restore_window_cb), window);
         g_signal_connect(window->terminal, "selection-changed", G_CALLBACK(window_selection_changed_cb), window);
         g_signal_connect(window->terminal, "termprop-changed", G_CALLBACK(window_termprop_changed_cb), window);
-        g_signal_connect(window->terminal, "window-title-changed", G_CALLBACK(window_window_title_changed_cb), window);
+        g_signal_connect(window->terminal, "termprop-changed::" VTE_TERMPROP_XTERM_TITLE, G_CALLBACK(window_window_title_changed_cb), window);
         if (options.object_notifications)
                 g_signal_connect(window->terminal, "notify", G_CALLBACK(window_notify_cb), window);
 
