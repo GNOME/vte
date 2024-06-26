@@ -151,11 +151,13 @@ assert_termprop_parse_uri(std::string_view const& str,
         auto const value = parse_termprop_value(TermpropType::URI, str);
         assert(value);
         assert(!value->valueless_by_exception());
-        assert(std::holds_alternative<vte::Freeable<GUri>>(*value));
+        assert(std::holds_alternative<vte::terminal::TermpropURIValue>(*value));
 
-        auto u = vte::glib::take_string(g_uri_to_string(std::get<vte::Freeable<GUri>>(*value).get()));
-        assert(u);
-        assert(str == u.get());
+        assert(str == std::get<vte::terminal::TermpropURIValue>(*value).second);
+
+        auto ustr = vte::glib::take_string(g_uri_to_string(std::get<vte::terminal::TermpropURIValue>(*value).first.get()));
+        assert(ustr);
+        assert(str == ustr.get());
 }
 
 static void

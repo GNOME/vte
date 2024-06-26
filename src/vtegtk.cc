@@ -129,18 +129,6 @@ sanitise_widget_size_request(int* minimum,
         *natural = std::clamp(*natural, *minimum, limit);
 }
 
-#define VTE_CACHE_KEY_CWD (g_quark_from_static_string("Vte::Cache::CWD"))
-#define VTE_CACHE_KEY_CWF (g_quark_from_static_string("Vte::Cache::CWF"))
-
-static char const*
-cache_string_data(VteTerminal* terminal,
-                  GQuark key,
-                  char* str) noexcept
-{
-        g_object_set_qdata_full(G_OBJECT(terminal), key, str, GDestroyNotify(g_free));
-        return str;
-}
-
 struct _VteTerminalClassPrivate {
         GtkStyleProvider *style_provider;
 };
@@ -6324,12 +6312,11 @@ try
 
         if (auto const value = widget->get_termprop(*info);
             value &&
-            std::holds_alternative<vte::Freeable<GUri>>(*value)) {
-                return cache_string_data(terminal, VTE_CACHE_KEY_CWD,
-                                         g_uri_to_string(std::get<vte::Freeable<GUri>>(*value).get()));
+            std::holds_alternative<vte::terminal::TermpropURIValue>(*value)) {
+                return std::get<vte::terminal::TermpropURIValue>(*value).second.c_str();
         }
 
-        return cache_string_data(terminal, VTE_CACHE_KEY_CWD, nullptr);
+        return nullptr;
 }
 catch (...)
 {
@@ -6359,12 +6346,11 @@ try
 
         if (auto const value = widget->get_termprop(*info);
             value &&
-            std::holds_alternative<vte::Freeable<GUri>>(*value)) {
-                return cache_string_data(terminal, VTE_CACHE_KEY_CWF,
-                                         g_uri_to_string(std::get<vte::Freeable<GUri>>(*value).get()));
+            std::holds_alternative<vte::terminal::TermpropURIValue>(*value)) {
+                return std::get<vte::terminal::TermpropURIValue>(*value).second.c_str();
         }
 
-        return cache_string_data(terminal, VTE_CACHE_KEY_CWF, nullptr);
+        return nullptr;
 }
 catch (...)
 {
@@ -9060,8 +9046,8 @@ try
 
         auto const value = widget->get_termprop(*info);
         if (value &&
-            std::holds_alternative<vte::Freeable<GUri>>(*value)) {
-                return g_uri_ref(std::get<vte::Freeable<GUri>>(*value).get());
+            std::holds_alternative<vte::terminal::TermpropURIValue>(*value)) {
+                return g_uri_ref(std::get<vte::terminal::TermpropURIValue>(*value).first.get());
         }
 
         return nullptr;
@@ -9202,10 +9188,10 @@ try
                 break;
 
         case vte::terminal::TermpropType::URI:
-                if (std::holds_alternative<vte::Freeable<GUri>>(*value)) {
+                if (std::holds_alternative<vte::terminal::TermpropURIValue>(*value)) {
                         rv = true;
                         g_value_init(gvalue, G_TYPE_URI);
-                        g_value_set_boxed(gvalue, std::get<vte::Freeable<GUri>>(*value).get());
+                        g_value_set_boxed(gvalue, std::get<vte::terminal::TermpropURIValue>(*value).first.get());
                 }
                 break;
 
@@ -9353,8 +9339,8 @@ try
                 break;
 
         case vte::terminal::TermpropType::URI:
-                if (std::holds_alternative<vte::Freeable<GUri>>(*value)) {
-                        return g_variant_new_string(vte::glib::take_string(g_uri_to_string(std::get<vte::Freeable<GUri>>(*value).get())).get());
+                if (std::holds_alternative<vte::terminal::TermpropURIValue>(*value)) {
+                        return g_variant_new_string(std::get<vte::terminal::TermpropURIValue>(*value).second.c_str());
                 }
                 break;
 

@@ -1430,62 +1430,58 @@ Terminal::reset_color(vte::parser::Sequence const& seq,
 }
 
 void
-Terminal::set_current_directory_uri(vte::parser::Sequence const& seq,
-                                              vte::parser::StringTokeniser::const_iterator& token,
-                                              vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
+Terminal::set_termprop_uri(vte::parser::Sequence const& seq,
+                           vte::parser::StringTokeniser::const_iterator& token,
+                           vte::parser::StringTokeniser::const_iterator const& endtoken,
+                           int termprop_id,
+                           PendingChanges legacy_pending_change) noexcept
 {
-        auto const info = get_termprop_info(VTE_TERMPROP_CURRENT_DIRECTORY_URI);
+        auto const info = get_termprop_info(termprop_id);
         assert(info);
 
+        auto set = false;
         if (token != endtoken && token.size_remaining() > 0) {
-                if (auto uri = vte::take_freeable(g_uri_parse(token.string_remaining().c_str(),
-                                                              GUriFlags(G_URI_FLAGS_ENCODED),
-                                                              nullptr));
-                    uri &&
-                    g_strcmp0(g_uri_get_scheme(uri.get()), "file") == 0) {
+                auto const str = token.string_remaining();
 
-                        m_termprops_dirty.at(info->id()) = true;
-                        m_termprop_values.at(info->id()) = std::move(uri);
-                } else {
-                        // invalid URI, or not a file: URI
-                        reset_termprop(*info);
+                // Only parse the URI if the termprop doesn't already have the
+                // same string value
+                if (auto const old_value = get_termprop(*info);
+                    !old_value ||
+                    !std::holds_alternative<vte::terminal::TermpropURIValue>(*old_value) ||
+                    std::get<vte::terminal::TermpropURIValue>(*old_value).second != str) {
+
+                        if (auto uri = vte::take_freeable(g_uri_parse(str.c_str(),
+                                                                      GUriFlags(G_URI_FLAGS_ENCODED),
+                                                                      nullptr));
+                            uri &&
+                            g_strcmp0(g_uri_get_scheme(uri.get()), "file") == 0) {
+
+                                set = true;
+                                m_termprops_dirty.at(info->id()) = true;
+                                m_termprop_values.at(info->id()) =
+                                        vte::terminal::TermpropValue{std::in_place_type<vte::terminal::TermpropURIValue>,
+                                                                     std::move(uri),
+                                                                     str};
+                        } else {
+                                // invalid URI, or not a file: URI
+                                set = true;
+                                reset_termprop(*info);
+                        }
                 }
         } else {
-                reset_termprop(*info);
-        }
-
-        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS) |
-                vte::to_integral(PendingChanges::CWD);
-}
-
-void
-Terminal::set_current_file_uri(vte::parser::Sequence const& seq,
-                                         vte::parser::StringTokeniser::const_iterator& token,
-                                         vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
-
-{
-        auto const info = get_termprop_info(VTE_TERMPROP_CURRENT_FILE_URI);
-        assert(info);
-
-        if (token != endtoken && token.size_remaining() > 0) {
-                if (auto uri = vte::take_freeable(g_uri_parse(token.string_remaining().c_str(),
-                                                              GUriFlags(G_URI_FLAGS_ENCODED),
-                                                              nullptr));
-                    uri &&
-                    g_strcmp0(g_uri_get_scheme(uri.get()), "file") == 0) {
-
-                        m_termprops_dirty.at(info->id()) = true;
-                        m_termprop_values.at(info->id()) = std::move(uri);
-                } else {
-                        // invalid URI, or not a file: URI
+                // Only reset the termprop if it's not already reset
+                if (auto const old_value = get_termprop(*info);
+                    !old_value ||
+                    !std::holds_alternative<std::monostate>(*old_value)) {
+                        set = true;
                         reset_termprop(*info);
                 }
-        } else {
-                reset_termprop(*info);
         }
 
-        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS) |
-                vte::to_integral(PendingChanges::CWF);
+        if (set) {
+                m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS) |
+                        vte::to_integral(legacy_pending_change);
+        }
 }
 
 void
@@ -6847,11 +6843,15 @@ Terminal::OSC(vte::parser::Sequence const& seq)
 
         switch (osc) {
         case VTE_OSC_VTECWF:
-                set_current_file_uri(seq, it, cend);
+                set_termprop_uri(seq, it, cend,
+                                 VTE_PROPERTY_ID_CURRENT_FILE_URI,
+                                 PendingChanges::CWF);
                 break;
 
         case VTE_OSC_VTECWD:
-                set_current_directory_uri(seq, it, cend);
+                set_termprop_uri(seq, it, cend,
+                                 VTE_PROPERTY_ID_CURRENT_DIRECTORY_URI,
+                                 PendingChanges::CWF);
                 break;
 
         case VTE_OSC_VTEHYPER:

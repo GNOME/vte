@@ -1782,12 +1782,11 @@ public:
                          vte::parser::StringTokeniser::const_iterator& token,
                          vte::parser::StringTokeniser::const_iterator const& endtoken,
                          osc_colors::OSCValuedColorSequenceKind osc_kind) noexcept;
-        void set_current_directory_uri(vte::parser::Sequence const& seq,
-                                       vte::parser::StringTokeniser::const_iterator& token,
-                                       vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
-        void set_current_file_uri(vte::parser::Sequence const& seq,
-                                  vte::parser::StringTokeniser::const_iterator& token,
-                                  vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+        void set_termprop_uri(vte::parser::Sequence const& seq,
+                              vte::parser::StringTokeniser::const_iterator& token,
+                              vte::parser::StringTokeniser::const_iterator const& endtoken,
+                              int termprop_id,
+                              PendingChanges legacy_pending_change) noexcept;
         void set_current_hyperlink(vte::parser::Sequence const& seq,
                                    vte::parser::StringTokeniser::const_iterator& token,
                                    vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;

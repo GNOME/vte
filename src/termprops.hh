@@ -30,6 +30,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 #include <version>
 
@@ -253,6 +254,8 @@ using termprop_rgba = vte::color::rgba_base<float>;
 using termprop_rgba = vte::color::rgba_base<double>;
 #endif
 
+using TermpropURIValue = std::pair<vte::Freeable<GUri>, std::string>;
+
 using TermpropValue = std::variant<std::monostate,
                                    bool,
                                    int64_t,
@@ -261,7 +264,7 @@ using TermpropValue = std::variant<std::monostate,
                                    termprop_rgba,
                                    vte::uuid,
 				   std::string,
-                                   vte::Freeable<GUri>>;
+                                   TermpropURIValue>;
 
 namespace impl {
 
@@ -524,16 +527,16 @@ parse_termprop_uri(std::string_view str)
             uri &&
             g_uri_get_scheme(uri.get()) &&
             !g_str_equal(g_uri_get_scheme(uri.get()), "data")) {
-                return std::make_optional<TermpropValue>(std::move(uri));
+                return std::make_optional<TermpropValue>(std::in_place_type<TermpropURIValue>, std::move(uri), str);
         }
 
         return std::nullopt;
 }
 
 inline std::optional<std::string>
-unparse_termprop_uri(vte::Freeable<GUri> const& uri)
+unparse_termprop_uri(TermpropURIValue const& v)
 {
-        return std::make_optional<std::string>(vte::glib::take_string(g_uri_to_string(uri.get())).get());
+        return std::make_optional<std::string>(v.second);
 }
 
 } // namespace impl
@@ -641,8 +644,8 @@ unparse_termprop_value(TermpropType type,
                 break;
 
         case URI:
-                if (std::holds_alternative<vte::Freeable<GUri>>(value)) {
-                        return impl::unparse_termprop_uri(std::get<vte::Freeable<GUri>>(value));
+                if (std::holds_alternative<TermpropURIValue>(value)) {
+                        return impl::unparse_termprop_uri(std::get<TermpropURIValue>(value));
                 }
                 break;
 
