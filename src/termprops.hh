@@ -207,30 +207,32 @@ inline bool
 validate_termprop_name(std::string_view const& str,
                        int n_components_required = 2) noexcept
 {
-        auto allow_dot_or_digit = false, allow_letter = true;
+        auto allow_dot = false, allow_letter = true, allow_digit = false;
         auto n_dots = 0;
         auto len = 0;
         for (auto const c : str) {
                 ++len;
                 switch (c) {
                 case '0' ... '9':
-                        if (!allow_dot_or_digit)
+                        if (!allow_digit)
                                 return false;
                         allow_letter = false;
+                        allow_dot = true;
                         break;
                 case 'a' ... 'z':
                         if (!allow_letter)
                                 return false;
 
-                        allow_dot_or_digit = true;
+                        allow_dot = allow_digit = true;
                         break;
                 case '.':
                         ++n_dots;
                         [[fallthrough]];
                 case '-':
-                        if (!allow_dot_or_digit)
+                        if (!allow_dot)
                                 return false;
-                        allow_dot_or_digit = false;
+                        allow_dot = false;
+                        allow_digit = (c == '.' && n_dots >= n_components_required);
                         allow_letter = true;
                         len = 0;
                         break;

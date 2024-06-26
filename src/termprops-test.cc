@@ -76,6 +76,11 @@ test_termprops_names(void)
         assert_name_invalid("a--b");
         assert_name_invalid("A.b"sv);
         assert_name_invalid("a.B"sv);
+
+        assert_name_invalid("a.b.0"sv, 3);
+        assert_name_valid("a.b.0"sv, 2);
+
+        assert_name_invalid("a.b.0-1"sv, 2);
 }
 
 static void
