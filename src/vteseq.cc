@@ -6866,12 +6866,29 @@ Terminal::OSC(vte::parser::Sequence const& seq)
         case VTE_OSC_XTERM_SET_WINDOW_AND_ICON_TITLE:
         case VTE_OSC_XTERM_SET_WINDOW_TITLE: {
                 /* Only sets window title; icon title is not supported */
-                std::string title;
+                auto const info = get_termprop_info(VTE_PROPERTY_ID_XTERM_TITLE);
+                assert(info);
+
+                auto set = false;
                 if (it != cend &&
-                    it.size_remaining() < VTE_WINDOW_TITLE_MAX_LENGTH)
-                        title = it.string_remaining();
-                m_window_title_pending.swap(title);
-                m_pending_changes |= vte::to_integral(PendingChanges::TITLE);
+                    it.size_remaining() <= vte::terminal::TermpropInfo::k_max_string_len) {
+                        if (auto const old_value = get_termprop(*info);
+                            !old_value ||
+                            !std::holds_alternative<std::string>(*old_value) ||
+                            std::get<std::string>(*old_value) != it.string_view_remaining()) {
+                                set = true;
+                                m_termprops_dirty.at(info->id()) = true;
+                                m_termprop_values.at(info->id()) = std::move(it.string_remaining());
+                        }
+                } else {
+                        set = true;
+                        reset_termprop(*info);
+                }
+
+                if (set) {
+                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS) |
+                                vte::to_integral(PendingChanges::TITLE);
+                }
                 break;
         }
 
@@ -9503,21 +9520,25 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 switch (seq.collect1(1)) {
                 case -1:
                 case VTE_OSC_XTERM_SET_WINDOW_AND_ICON_TITLE:
-                case VTE_OSC_XTERM_SET_WINDOW_TITLE:
+                case VTE_OSC_XTERM_SET_WINDOW_TITLE: {
                         if (m_window_title_stack.size() >= VTE_WINDOW_TITLE_STACK_MAX_DEPTH) {
                                 /* Drop the bottommost item */
                                 m_window_title_stack.erase(m_window_title_stack.cbegin());
                         }
 
-                        if (m_pending_changes & vte::to_integral(PendingChanges::TITLE))
+                        auto const info = get_termprop_info(VTE_PROPERTY_ID_XTERM_TITLE);
+                        auto const value = get_termprop(*info);
+                        if (value &&
+                            std::holds_alternative<std::string>(*value))
                                 m_window_title_stack.emplace(m_window_title_stack.cend(),
-                                                             m_window_title_pending);
+                                                             std::get<std::string>(*value));
                         else
                                 m_window_title_stack.emplace(m_window_title_stack.cend(),
-                                                             m_window_title);
+                                                             std::string{});
 
                         vte_assert_cmpuint(m_window_title_stack.size(), <=, VTE_WINDOW_TITLE_STACK_MAX_DEPTH);
                         break;
+                }
 
                 case VTE_OSC_XTERM_SET_ICON_TITLE:
                 default:
@@ -9529,14 +9550,19 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 switch (seq.collect1(1)) {
                 case -1:
                 case VTE_OSC_XTERM_SET_WINDOW_AND_ICON_TITLE:
-                case VTE_OSC_XTERM_SET_WINDOW_TITLE:
+                case VTE_OSC_XTERM_SET_WINDOW_TITLE: {
                         if (m_window_title_stack.empty())
                                 break;
 
-                        m_pending_changes |= vte::to_integral(PendingChanges::TITLE);
-                        m_window_title_pending.swap(m_window_title_stack.back());
+                        auto const info = get_termprop_info(VTE_PROPERTY_ID_XTERM_TITLE);
+                        m_termprops_dirty.at(info->id()) = true;
+                        m_termprop_values.at(info->id()) = std::move(m_window_title_stack.back());
                         m_window_title_stack.pop_back();
+
+                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS) |
+                                vte::to_integral(PendingChanges::TITLE);
                         break;
+                }
 
                 case VTE_OSC_XTERM_SET_ICON_TITLE:
                 default:

@@ -105,4 +105,18 @@ gboolean vte_query_termprop_by_id(int prop,
  */
 #define VTE_TERMPROP_CURRENT_FILE_URI "vte.cwf"
 
+/**
+ * VTE_TERMPROP_XTERM_TITLE:
+ *
+ * A %VTE_PROPERTY_STRING termprop that stores the xterm window title
+ * as set by OSC 0 and OSC 2.
+ * Use this with vte_terminal_get_termprop_string() instead of using
+ * vte_terminal_get_window_title().
+ *
+ * Note that this termprop is not settable via the termprop OSC.
+ *
+ * Since: 0.78
+ */
+#define VTE_TERMPROP_XTERM_TITLE "vte.xterm.title"
+
 G_END_DECLS

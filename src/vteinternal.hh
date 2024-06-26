@@ -742,15 +742,13 @@ public:
         gboolean m_cursor_moved_pending;
         gboolean m_contents_changed_pending;
 
-        std::string m_window_title{};
-        std::string m_window_title_pending{};
         std::vector<std::string> m_window_title_stack{};
 
         enum class PendingChanges {
                 TERMPROPS = 1u << 0,
-                TITLE = 1u << 1,
 
                 // deprecated but still emitted for now
+                TITLE = 1u << 1,
                 CWD   = 1u << 2,
                 CWF   = 1u << 3,
         };

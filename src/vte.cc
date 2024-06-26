@@ -11005,21 +11005,15 @@ Terminal::emit_pending_signals()
                 widget()->notify_termprops_changed(changed_props, n_changed_props);
         }
 
-	if (m_pending_changes & vte::to_integral(PendingChanges::TITLE)) {
-                if (m_window_title != m_window_title_pending) {
-                        m_window_title.swap(m_window_title_pending);
+        if (!m_no_legacy_signals) {
+                // Emit deprecated signals and notify:: for deprecated properties,
 
+                if (m_pending_changes & vte::to_integral(PendingChanges::TITLE)) {
                         _vte_debug_print(VTE_DEBUG_SIGNALS,
                                          "Emitting `window-title-changed'.\n");
                         g_signal_emit(freezer.get(), signals[SIGNAL_WINDOW_TITLE_CHANGED], 0);
                         g_object_notify_by_pspec(freezer.get(), pspecs[PROP_WINDOW_TITLE]);
                 }
-
-                m_window_title_pending.clear();
-	}
-
-        if (!m_no_legacy_signals) {
-                // Emit deprecated signals and notify:: for deprecated properties,
 
                 if (m_pending_changes & vte::to_integral(PendingChanges::CWD)) {
                         _vte_debug_print(VTE_DEBUG_SIGNALS,

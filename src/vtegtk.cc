@@ -1666,11 +1666,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * @vteterminal: the object which received the signal
          *
          * Emitted when the #VteTerminal:window-title property is modified.
+         *
+         * Deprecated: 0.78: Use the #VteTerminal:termprop-changed signal
+         *   for the %VTE_TERMPROP_TITLE termprop.
          */
         signals[SIGNAL_WINDOW_TITLE_CHANGED] =
                 g_signal_new(I_("window-title-changed"),
                              G_OBJECT_CLASS_TYPE(klass),
-                             G_SIGNAL_RUN_LAST,
+                             GSignalFlags(G_SIGNAL_RUN_LAST |
+                                          G_SIGNAL_DEPRECATED),
                              G_STRUCT_OFFSET(VteTerminalClass, window_title_changed),
                              NULL,
                              NULL,
@@ -2818,11 +2822,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal:window-title:
          *
          * The terminal's title.
+         *
+         * Deprecated: 0.78: Use the %VTE_TERMPROP_TITLE termprop.
          */
         pspecs[PROP_WINDOW_TITLE] =
                 g_param_spec_string ("window-title", NULL, NULL,
                                      NULL,
-                                     (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                     (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_DEPRECATED));
 
         /**
          * VteTerminal:current-directory-uri:
@@ -2997,8 +3003,11 @@ vte_terminal_class_init(VteTerminalClass *klass)
                           vte::terminal::TermpropType::URI,
                           vte::terminal::TermpropFlags::NO_OSC,
                         VTE_PROPERTY_ID_CURRENT_FILE_URI },
+                        { VTE_TERMPROP_XTERM_TITLE,
+                          vte::terminal::TermpropType::STRING,
+                          vte::terminal::TermpropFlags::NO_OSC,
+                          VTE_PROPERTY_ID_XTERM_TITLE },
                 };
-
 
                 for (auto i = 0u; i < G_N_ELEMENTS(builtin_termprops); ++i) {
 #if VTE_DEBUG
@@ -7639,18 +7648,15 @@ catch (...)
  * @terminal: a #VteTerminal
  *
  * Returns: (nullable) (transfer none): the window title, or %NULL
+ *
+ * Deprecated: 0.78: Use the %VTE_TERMPROP_TITLE termprop.
  */
 const char *
 vte_terminal_get_window_title(VteTerminal *terminal) noexcept
-try
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
-	return IMPL(terminal)->m_window_title.data();
-}
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
+        return vte_terminal_get_termprop_string_by_id(terminal,
+                                                      VTE_PROPERTY_ID_XTERM_TITLE,
+                                                      nullptr);
 }
 
 /**

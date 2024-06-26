@@ -428,6 +428,7 @@ public:
 class StringTokeniser {
 public:
         using string_type = std::string;
+        using string_view_type = std::string_view;
         using char_type = std::string::value_type;
 
 private:
@@ -623,6 +624,16 @@ public:
                 inline string_type string_remaining() const noexcept
                 {
                         return m_string->substr(m_position);
+                }
+
+                /*
+                 * string_remaining:
+                 *
+                 * Returns the whole string left, including possibly more separators.
+                 */
+                inline string_view_type string_view_remaining() const noexcept
+                {
+                        return string_view_type{*m_string}.substr(m_position);
                 }
 
                 inline void append(string_type& str) const noexcept
