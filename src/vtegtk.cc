@@ -1110,6 +1110,9 @@ try
                 case PROP_ENABLE_FALLBACK_SCROLLING:
                         g_value_set_boolean (value, vte_terminal_get_enable_fallback_scrolling(terminal));
                         break;
+                case PROP_ENABLE_LEGACY_OSC777:
+                        g_value_set_boolean(value, vte_terminal_get_enable_legacy_osc777(terminal));
+                        break;
                 case PROP_ENABLE_SHAPING:
                         g_value_set_boolean (value, vte_terminal_get_enable_shaping (terminal));
                         break;
@@ -1186,7 +1189,6 @@ try
                 case PROP_YFILL:
                         g_value_set_boolean(value, vte_terminal_get_yfill(terminal));
                         break;
-
                 default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 			return;
@@ -1267,6 +1269,9 @@ try
                         break;
                 case PROP_ENABLE_FALLBACK_SCROLLING:
                         vte_terminal_set_enable_fallback_scrolling (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_ENABLE_LEGACY_OSC777:
+                        vte_terminal_set_enable_legacy_osc777(terminal, g_value_get_boolean(value));
                         break;
                 case PROP_ENABLE_SHAPING:
                         vte_terminal_set_enable_shaping (terminal, g_value_get_boolean (value));
@@ -1405,7 +1410,7 @@ check_termprop_wellknown(char const* name,
                         *flags = wkt->flags;
                 return true;
         }
-#endif
+#endif // 0
 
         return false;
 }
@@ -2935,6 +2940,19 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                      TRUE,
                                      GParamFlags(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
+        /**
+         * VteTerminal:enable-legacy-osc777:
+         *
+         * Whether legacy OSC 777 sequences are translated to
+         * their corresponding termprops.
+         *
+         * Since: 0.78
+         */
+        pspecs[PROP_ENABLE_LEGACY_OSC777] =
+                g_param_spec_boolean("enable-legacy-osc777", nullptr, nullptr,
+                                     false,
+                                     GParamFlags(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
         g_object_class_install_properties(gobject_class, LAST_PROP, pspecs);
 
 #if VTE_GTK == 3
@@ -3007,6 +3025,30 @@ vte_terminal_class_init(VteTerminalClass *klass)
                           vte::terminal::TermpropType::STRING,
                           vte::terminal::TermpropFlags::NO_OSC,
                           VTE_PROPERTY_ID_XTERM_TITLE },
+                        { VTE_TERMPROP_CONTAINER_NAME,
+                          vte::terminal::TermpropType::STRING,
+                          vte::terminal::TermpropFlags::NONE,
+                          VTE_PROPERTY_ID_CONTAINER_NAME },
+                        { VTE_TERMPROP_CONTAINER_RUNTIME,
+                          vte::terminal::TermpropType::STRING,
+                          vte::terminal::TermpropFlags::NONE,
+                          VTE_PROPERTY_ID_CONTAINER_RUNTIME },
+                        { VTE_TERMPROP_CONTAINER_UID,
+                          vte::terminal::TermpropType::UINT,
+                          vte::terminal::TermpropFlags::NONE,
+                          VTE_PROPERTY_ID_CONTAINER_UID },
+                        { VTE_TERMPROP_SHELL_PRECMD,
+                          vte::terminal::TermpropType::VALUELESS,
+                          vte::terminal::TermpropFlags::NONE,
+                          VTE_PROPERTY_ID_SHELL_PRECMD },
+                        { VTE_TERMPROP_SHELL_PREEXEC,
+                          vte::terminal::TermpropType::VALUELESS,
+                          vte::terminal::TermpropFlags::NONE,
+                          VTE_PROPERTY_ID_SHELL_PREEXEC },
+                        { VTE_TERMPROP_SHELL_POSTEXEC,
+                          vte::terminal::TermpropType::VALUELESS,
+                          vte::terminal::TermpropFlags::NONE,
+                          VTE_PROPERTY_ID_SHELL_POSTEXEC },
                 };
 
                 for (auto i = 0u; i < G_N_ELEMENTS(builtin_termprops); ++i) {
@@ -8100,6 +8142,54 @@ try
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), true);
 
         return WIDGET(terminal)->yfill();
+}
+catch (...)
+{
+        vte::log_exception();
+        return true;
+}
+
+/**
+ * vte_terminal_set_enable_legacy_osc777:
+ * @terminal: a #VteTerminal
+ * @enable: whether to enable legacy OSC 777
+ *
+ * Sets whether legacy OSC 777 sequences are translated to
+ * their corresponding termprops.
+ *
+ * Since: 0.78
+ */
+void
+vte_terminal_set_enable_legacy_osc777(VteTerminal* terminal,
+                                      gboolean enable) noexcept
+try
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (WIDGET(terminal)->set_enable_legacy_osc777(enable != false))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_ENABLE_LEGACY_OSC777]);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
+ * vte_terminal_get_enable_legacy_osc777:
+ * @terminal: a #VteTerminal
+ * @enable: whether to enable legacy OSC 777
+ *
+ * Returns: %TRUE iff legacy OSC 777 is enabled
+ *
+ * Since: 0.78
+ */
+gboolean
+vte_terminal_get_enable_legacy_osc777(VteTerminal* terminal) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), true);
+
+        return WIDGET(terminal)->enable_legacy_osc777();
 }
 catch (...)
 {

@@ -2133,6 +2133,10 @@ vteapp_terminal_class_init(VteappTerminalClass *klass)
                                            "vte.ext.vteapp.test.bool");
         }
 
+        { // BEGIN distro patches adding termprops
+
+        } // END distro patches adding termprops
+
         if (options.verbosity > 1) {
                 auto n_termprops = gsize{0};
                 auto termprops = vte::glib::take_free_ptr(vte_get_termprops(&n_termprops));
@@ -2156,6 +2160,8 @@ vteapp_terminal_init(VteappTerminal *terminal)
         if (options.background_pixbuf != nullptr)
                 vte_terminal_set_clear_background(VTE_TERMINAL(terminal), false);
 #endif /* VTE_GTK == 3 */
+
+        vte_terminal_set_enable_legacy_osc777(VTE_TERMINAL(terminal), true);
 }
 
 static GtkWidget *

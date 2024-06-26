@@ -119,4 +119,65 @@ gboolean vte_query_termprop_by_id(int prop,
  */
 #define VTE_TERMPROP_XTERM_TITLE "vte.xterm.title"
 
+/**
+ * VTE_TERMPROP_CONTAINER_NAME:
+ *
+ * A %VTE_PROPERTY_STRING termprop that stores the name of the
+ * container.
+ *
+ * Since: 0.78
+ */
+#define VTE_TERMPROP_CONTAINER_NAME "vte.container.name"
+
+/**
+ * VTE_TERMPROP_CONTAINER_RUNTIME:
+ *
+ * A %VTE_PROPERTY_STRING termprop that stores the runtime of the
+ * container.
+ *
+ * Since: 0.78
+ */
+#define VTE_TERMPROP_CONTAINER_RUNTIME "vte.container.runtime"
+
+/**
+ * VTE_TERMPROP_CONTAINER_UID:
+ *
+ * A %VTE_PROPERTY_UINT termprop that stores the user ID of the
+ * container.
+ *
+ * Since: 0.78
+ */
+#define VTE_TERMPROP_CONTAINER_UID "vte.container.uid"
+
+/**
+ * VTE_TERMPROP_SHELL_PRECMD:
+ *
+ * A %VTE_PROPERTY_VALUELESS termprop that signals that the shell
+ * is going to prompt.
+ *
+ * Since: 0.78
+ */
+#define VTE_TERMPROP_SHELL_PRECMD "vte.shell.precmd"
+
+/**
+ * VTE_TERMPROP_SHELL_PREEXEC:
+ *
+ * A %VTE_PROPERTY_VALUELESS termprop that signals that the shell
+ * is preparing to execute the command entered at the prompt.
+ *
+ * Since: 0.78
+ */
+#define VTE_TERMPROP_SHELL_PREEXEC "vte.shell.preexec"
+
+/**
+ * VTE_TERMPROP_SHELL_POSTEXEC:
+ *
+ * A %VTE_PROPERTY_VALUELESS termprop that signals that the shell
+ * has executed the commands entered at the prompt and these commands
+ * have returned.
+ *
+ * Since: 0.78
+ */
+#define VTE_TERMPROP_SHELL_POSTEXEC "vte.shell.postexec"
+
 G_END_DECLS
