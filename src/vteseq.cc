@@ -1647,7 +1647,8 @@ try
                 // Reset
                 //
                 // Allow reset even for no-OSC termprops
-                if (info) {
+                if (info &&
+                    !std::holds_alternative<std::monostate>(m_termprop_values.at(info->id()))) {
                         set = true;
                         m_termprops_dirty.at(info->id()) = !is_valueless;
                         m_termprop_values.at(info->id()) = {};
@@ -1656,16 +1657,21 @@ try
                    info &&
                    !is_valueless &&
                    !no_osc) {
-                set = true;
-                m_termprops_dirty.at(info->id()) = true;
-
                 if (auto value = vte::terminal::parse_termprop_value(info->type(),
                                                                      str.substr(pos + 1))) {
                         // Set
-                        m_termprop_values.at(info->id()) = std::move(*value);
+                        if (value != m_termprop_values.at(info->id())) {
+                                set = true;
+                                m_termprop_values.at(info->id()) = std::move(*value);
+                                m_termprops_dirty.at(info->id()) = true;
+                        }
                 } else {
                         // Reset
-                        m_termprop_values.at(info->id()) = {};
+                        if (!std::holds_alternative<std::monostate>(m_termprop_values.at(info->id()))) {
+                                set = true;
+                                m_termprop_values.at(info->id()) = {};
+                                m_termprops_dirty.at(info->id()) = true;
+                        }
                 }
         } else if (str[pos] == '?') {
                 if ((pos + 1) == str.size()) {
@@ -1687,11 +1693,12 @@ try
                 if ((pos + 1) == str.size() &&
                     info &&
                     is_valueless &&
-                    !no_osc) {
-                        // Set (i.e. raise)
+                    !no_osc &&
+                    !m_termprops_dirty.at(info->id())) {
+                        // Signal
                         set = true;
                         m_termprops_dirty.at(info->id()) = true;
-                        // no need to set a value
+                        // no need to set/reset the value
                 }
         }
 }
