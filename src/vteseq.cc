@@ -1633,24 +1633,29 @@ try
 {
         auto const pos = str.find_first_of("=?!"); // possibly str.npos
         auto const info = vte::terminal::get_termprop_info(str.substr(0, pos));
-        if (!info || (unsigned(info->flags()) & unsigned(vte::terminal::TermpropFlags::NO_OSC))) {
-                // Set query even for unknown termprops, for forward compatibility
-                if (pos != str.npos && str[pos] == '?' && (pos + 1) == str.size())
-                        query = true;
 
-                return;
-        }
-
+        // No-OSC termprops cannot be set via the termprop OSC, but they
+        // can be queried and reset
+        auto const no_osc = info &&
+                (unsigned(info->flags()) & unsigned(vte::terminal::TermpropFlags::NO_OSC)) != 0;
         // Valueless termprops are special in that they can only be
         // emitted or reset, and resetting cancels the emission
-        auto const is_valueless = info->type() == vte::terminal::TermpropType::VALUELESS;
+        auto const is_valueless = info &&
+                info->type() == vte::terminal::TermpropType::VALUELESS;
 
         if (pos == str.npos) {
                 // Reset
-                set = true;
-                m_termprops_dirty.at(info->id()) = !is_valueless;
-                m_termprop_values.at(info->id()) = {};
-        } else if (str[pos] == '=' && !is_valueless) {
+                //
+                // Allow reset even for no-OSC termprops
+                if (info) {
+                        set = true;
+                        m_termprops_dirty.at(info->id()) = !is_valueless;
+                        m_termprop_values.at(info->id()) = {};
+                }
+        } else if (str[pos] == '=' &&
+                   info &&
+                   !is_valueless &&
+                   !no_osc) {
                 set = true;
                 m_termprops_dirty.at(info->id()) = true;
 
@@ -1665,17 +1670,25 @@ try
         } else if (str[pos] == '?') {
                 if ((pos + 1) == str.size()) {
                         // Query
+                        //
                         // In test mode, do reply to the query. In non-test mode,
                         // just set a flag and send a single dummy reply afterwards.
+                        //
+                        // Allow query even for no-OSC termprops and even unregistered
+                        // termprops, for forward compatibility.
 #if VTE_DEBUG
-                        if (g_test_flags & VTE_TEST_FLAG_TERMPROP) {
+                        if (info && (g_test_flags & VTE_TEST_FLAG_TERMPROP) != 0) {
                                 reply_termprop_query(seq, info);
                         } else
 #endif
                         query = true;
                 }
         } else if (str[pos] == '!') {
-                if ((pos + 1) == str.size() && is_valueless) {
+                if ((pos + 1) == str.size() &&
+                    info &&
+                    is_valueless &&
+                    !no_osc) {
+                        // Set (i.e. raise)
                         set = true;
                         m_termprops_dirty.at(info->id()) = true;
                         // no need to set a value
