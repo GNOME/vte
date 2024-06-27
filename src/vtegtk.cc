@@ -3252,15 +3252,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
  * Installs a new terminal property that can be set by the application.
  *
  * @name must follow the rules for termprop names as laid out above; it
- * must have at least 4 components, the first of which must be "vte", and
- * "ext". Use the %VTE_TERMPROP_NAME_PREFIX macro which defines this
+ * must have at least 4 components, the first two of which must be "vte",
+ * and "ext". Use the %VTE_TERMPROP_NAME_PREFIX macro which defines this
  * name prefix.
  *
  * You should use an identifier for your terminal as the first component
  * after the prefix, as a namespace marker.
  *
  * It is a programming error to call this function with a @name that does
- * meet these requirements.
+ * not meet these requirements.
  *
  * It is a programming error to call this function after any #VteTerminal
  * instances have been created.
@@ -3278,8 +3278,6 @@ vte_install_termprop(char const* name,
                      VtePropertyFlags flags) noexcept
 try
 {
-        g_return_val_if_fail(g_str_has_prefix(name, VTE_TERMPROP_NAME_PREFIX), -1);
-        g_return_val_if_fail(vte::terminal::validate_termprop_name(name, 4), -1);
         g_return_val_if_fail(check_enum_value(type), -1);
         g_return_val_if_fail(flags == VTE_PROPERTY_FLAG_NONE, -1);
 
@@ -3308,18 +3306,19 @@ try
         auto wkt_flags = vte::terminal::TermpropFlags{};
         auto const well_known = check_termprop_wellknown(name, &wkt_type, &wkt_flags);
 
-        // only allow non-well-known termprops when in test mode for now
-        if ((g_test_flags != VTE_TEST_FLAGS_ALL) && !well_known) {
-                g_warning("Cannot install non-well-known termprop \"%s\"", name);
-                return -1;
-        }
-
         // Check type
         if (well_known && (itype != wkt_type || iflags != wkt_flags)) [[unlikely]] {
                 g_warning("Denying to install well-known termprop \"%s\" with incorrect type or flags", name);
                 return -1;
         }
 
+        // If not well-known, the name needs to start with "vte.ext."
+        if (!well_known) {
+                g_return_val_if_fail(g_str_has_prefix(name, VTE_TERMPROP_NAME_PREFIX), -1);
+                g_return_val_if_fail(vte::terminal::validate_termprop_name(name, 4), -1);
+        }
+
+        // Name blocklisted?
         if (check_termprop_blocklisted(name)) {
                 g_warning("Denying to install blocklisted termprop \"%s\"", name);
                 return -1;
