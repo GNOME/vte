@@ -850,7 +850,8 @@ public:
         {
                 auto const is_valueless = info.type() == vte::terminal::TermpropType::VALUELESS;
                 auto value = get_termprop(info);
-                if (value) {
+                if (value &&
+                    !std::holds_alternative<std::monostate>(*value)) {
                         *value = {};
                         m_termprops_dirty.at(info.id()) = !is_valueless;
                 } else if (is_valueless) {
