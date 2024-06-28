@@ -7871,10 +7871,9 @@ catch (...)
 /**
  * vte_terminal_set_suppress_legacy_signals:
  * @terminal: a #VteTerminal
- * @version: the minor version
  *
- * Suppress emissions of signals that were deprecated in or
- * before @version.
+ * Suppress emissions of signals and property notifications
+ * that are deprecated.
  *
  * Since: 0.78
  */
