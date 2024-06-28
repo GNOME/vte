@@ -3278,6 +3278,7 @@ vte_install_termprop(char const* name,
                      VtePropertyFlags flags) noexcept
 try
 {
+        g_return_val_if_fail(name, -1);
         g_return_val_if_fail(check_enum_value(type), -1);
         g_return_val_if_fail(flags == VTE_PROPERTY_FLAG_NONE, -1);
 
@@ -3352,7 +3353,7 @@ vte_install_termprop_alias(char const* name,
                            char const* target_name) noexcept
 try
 {
-        g_return_val_if_fail(vte::terminal::validate_termprop_name(name), -1);
+        g_return_val_if_fail(name, -1);
         g_return_val_if_fail(target_name, -1);
 
         if (check_termprop_wellknown(name, nullptr, nullptr)) {
@@ -3373,16 +3374,16 @@ try
 
         auto const wk_target = check_termprop_wellknown_alias(name);
 
-        // only allow non-well-known termprops when in test mode for now
-        if ((g_test_flags != VTE_TEST_FLAGS_ALL) && !wk_target) {
-                g_warning("Cannot install non-well-known termprop alias \"%s\"", name);
-                return -1;
-        }
-
         if (wk_target && !g_str_equal(wk_target, target_name)) {
                 g_warning("Denying to install well-known termprop alias \"%s\" to invalid target \"%s\"",
                           name, target_name);
                 return -1;
+        }
+
+        // If not well-known alias, the name needs to start with "vte.ext."
+        if (!wk_target) {
+                g_return_val_if_fail(g_str_has_prefix(name, VTE_TERMPROP_NAME_PREFIX), -1);
+                g_return_val_if_fail(vte::terminal::validate_termprop_name(name, 4), -1);
         }
 
         if (auto const info = vte::terminal::get_termprop_info(target_name)) {
