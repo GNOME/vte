@@ -117,7 +117,7 @@ gboolean vte_query_termprop_by_id(int prop,
  *
  * Since: 0.78
  */
-#define VTE_TERMPROP_XTERM_TITLE "vte.xterm.title"
+#define VTE_TERMPROP_XTERM_TITLE "xterm.title"
 
 /**
  * VTE_TERMPROP_CONTAINER_NAME:
