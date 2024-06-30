@@ -189,6 +189,20 @@ void _vte_row_data_copy (const VteRowData *src, VteRowData *dst)
         memcpy(dst->cells, src->cells, src->len * sizeof (src->cells[0]));
 }
 
+void _vte_row_data_fill_cells(VteRowData* row,
+                              gulong start_idx,
+                              VteCell const* cells,
+                              gulong len)
+{
+        auto const needlen = start_idx + len;
+        _vte_row_data_ensure(row, needlen);
+        if (row->len < needlen)
+                row->len = needlen;
+        memcpy(_vte_row_data_get_writable(row, start_idx),
+               cells,
+               len * sizeof(cells[0]));
+}
+
 /* Get the length, ignoring trailing empty cells (with a custom background color). */
 guint16 _vte_row_data_nonempty_length (const VteRowData *row)
 {

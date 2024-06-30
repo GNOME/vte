@@ -2683,13 +2683,11 @@ Terminal::reset_color_highlight_foreground()
  * arbitrary rectangles rather than entire rows; we should revise this.
  */
 void
-Terminal::cleanup_fragments(long rownum,
+Terminal::cleanup_fragments(VteRowData* row,
+                            long rownum,
                             long start,
                             long end)
 {
-        VteRowData *row = m_screen->row_data->index_writable(rownum);
-        g_assert(row);
-
         const VteCell *cell_start;
         VteCell *cell_end, *cell_col;
         gboolean cell_start_is_fragment;
@@ -3230,6 +3228,65 @@ Terminal::save_cursor(VteScreen *screen__)
         screen__->saved.character_replacements[0] = m_character_replacements[0];
         screen__->saved.character_replacements[1] = m_character_replacements[1];
         screen__->saved.character_replacement = m_character_replacement;
+}
+
+// [[gnu::always_inline]]
+/* C++23 constexpr */ gunichar
+Terminal::character_replacement(gunichar c) noexcept
+{
+        // DEC Special Character and Line Drawing Set
+        //
+        // References: VT525
+
+        static constinit gunichar const line_drawing_map[32] = {
+                0x0020,  /* _ => blank (space) */
+                0x25c6,  /* ` => diamond */
+                0x2592,  /* a => checkerboard */
+                0x2409,  /* b => HT symbol */
+                0x240c,  /* c => FF symbol */
+                0x240d,  /* d => CR symbol */
+                0x240a,  /* e => LF symbol */
+                0x00b0,  /* f => degree */
+                0x00b1,  /* g => plus/minus */
+                0x2424,  /* h => NL symbol */
+                0x240b,  /* i => VT symbol */
+                0x2518,  /* j => downright corner */
+                0x2510,  /* k => upright corner */
+                0x250c,  /* l => upleft corner */
+                0x2514,  /* m => downleft corner */
+                0x253c,  /* n => cross */
+                0x23ba,  /* o => scan line 1/9 */
+                0x23bb,  /* p => scan line 3/9 */
+                0x2500,  /* q => horizontal line (also scan line 5/9) */
+                0x23bc,  /* r => scan line 7/9 */
+                0x23bd,  /* s => scan line 9/9 */
+                0x251c,  /* t => left t */
+                0x2524,  /* u => right t */
+                0x2534,  /* v => bottom t */
+                0x252c,  /* w => top t */
+                0x2502,  /* x => vertical line */
+                0x2264,  /* y => <= */
+                0x2265,  /* z => >= */
+                0x03c0,  /* { => pi */
+                0x2260,  /* | => not equal */
+                0x00a3,  /* } => pound currency sign */
+                0x00b7,  /* ~ => bullet */
+        };
+
+	/* If we've enabled the special drawing set, map the characters to
+	 * Unicode. */
+        if (*m_character_replacement == VTE_CHARACTER_REPLACEMENT_LINE_DRAWING) [[unlikely]] {
+                if (c >= 95 && c <= 126)
+                        return line_drawing_map[c - 95];
+        }
+
+        [[likely]] return c;
+}
+
+int
+Terminal::character_width(gunichar c) noexcept
+{
+        return _vte_unichar_width(c, m_utf8_ambiguous_width);
 }
 
 /* Insert a single character into the stored data array.
@@ -6811,9 +6868,9 @@ Terminal::get_selected_text(GString *string,
 #if VTE_DEBUG
 unsigned int
 Terminal::checksum_area(vte::grid::row_t start_row,
-                                  vte::grid::column_t start_col,
-                                  vte::grid::row_t end_row,
-                                  vte::grid::column_t end_col)
+                        vte::grid::column_t start_col,
+                        vte::grid::row_t end_row,
+                        vte::grid::column_t end_col)
 {
         unsigned int checksum = 0;
         VteCharAttrList attributes;
