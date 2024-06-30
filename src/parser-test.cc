@@ -1243,6 +1243,157 @@ test_seq_glue_arg(void)
         g_assert_cmpint(seq.collect1(it, 42, 100, 200), ==, 100);
 }
 
+static void
+test_seq_glue_bignum(void)
+{
+        parser.reset();
+
+        // Since this test a convenience function that operates
+        // only on the vte_seq_arg_t's params, we can speed up
+        // these tests by setting them directly instead of
+        // building a string, parsing it and then testing the
+        // params.
+        auto raw_seq = *seq.seq_ptr();
+        auto& n_args = raw_seq->n_args;
+        auto& args = raw_seq->args;
+        raw_seq->n_final_args = 1;
+
+        auto test = [&](std::initializer_list<int> params,
+                        bool ok = true) noexcept -> void
+        {
+                n_args = 0;
+                for (auto p : params) {
+                        args[n_args] = vte_seq_arg_init(p);
+                        vte_seq_arg_finish(&args[n_args], (n_args + 1) < params.size());
+                        ++n_args;
+                }
+
+                auto const idx = 0;
+                auto v = seq.collect_number(idx);
+
+                if (ok) {
+                        g_assert_true(v);
+
+                        auto expected_v = uint64_t{0};
+                        for (auto ev : params) {
+                                expected_v <<= 16;
+                                expected_v += ev != -1 ? ev : 0;
+                        }
+
+                        g_assert_cmphex(*v, ==, expected_v);
+                } else {
+                        g_assert_false(v);
+                }
+        };
+
+        test({}); // ""
+        test({0}); // "0"
+        test({11}); // "11"
+
+        test({1, 0}); // "1:0"
+        test({31, 0}); // "31:0"
+        test({1, 65535}); // "1:65535"
+        test({65535, 0}); // "65535:0"
+        test({65535, 65535}); // "65535:65535"
+
+        test({2, -1}); // "2:"
+        test({3, -1, -1}); // "3::"
+        test({5, -1, -1, -1}); // "5:::"
+        test({1, -1, 1, -1}); // "1::1:"
+        test({2, 3, 5, 7}); // "2:3:5:7"
+        test({65535, 65535, 65535, 65535}); // "65535:65535:65535:65535", max
+
+        test({1, -1, -1, -1, -1}, false); // "1::::", too many components
+        test({-1, 1}, false); // ":1", leading default param
+        test({0, 1}); // "0:1" // however this is ok
+}
+
+static void
+test_seq_glue_uchar(void)
+{
+        parser.reset();
+
+        // Since this test a convenience function that operates
+        // only on the vte_seq_arg_t's params, we can speed up
+        // these tests by setting them directly instead of
+        // building a string, parsing it and then testing the
+        // params.
+        auto raw_seq = *seq.seq_ptr();
+        auto& n_args = raw_seq->n_args;
+        auto& args = raw_seq->args;
+        raw_seq->n_final_args = 1;
+
+        auto test = [&](uint32_t c,
+                        bool valid = true) noexcept -> void
+        {
+                if (c < 0x10000u) {
+                        n_args = 1;
+                        args[0] = vte_seq_arg_init(c);
+                        vte_seq_arg_finish(&args[0]); // final
+                } else {
+                        n_args = 2;
+                        args[0] = vte_seq_arg_init(c >> 16);
+                        vte_seq_arg_finish(&args[0], true); // nonfinal
+                        args[1] = vte_seq_arg_init(c & 0xffffu);
+                        vte_seq_arg_finish(&args[1]); // final
+                }
+
+                auto const rc = seq.collect_char(0);
+                if (valid) {
+                        g_assert_true(rc);
+                        g_assert_cmphex(*rc, ==, c);
+                } else {
+                        g_assert_false(rc);
+                }
+        };
+
+        auto test_surrogates = [&](char32_t c) noexcept -> void
+        {
+                auto const sc = c - 0x10000u;
+
+                n_args = 2;
+                args[0] = vte_seq_arg_init((sc >> 10) + 0xd800u);
+                vte_seq_arg_finish(&args[0], true); // nonfinal
+                args[1] = vte_seq_arg_init((sc & 0x3ffu) + 0xdc00u);
+                vte_seq_arg_finish(&args[1]); // final
+
+                auto const rc = seq.collect_char(0);
+                g_assert_true(rc);
+                g_assert_cmphex(*rc, ==, c);
+        };
+
+        for (auto c = 0u; c < 0x20u; ++c)
+                test(c, false);
+        for (auto c = 0x20u; c < 0x7fu; ++c)
+                test(c);
+        for (auto c = 0x7fu; c < 0xa0u; ++c)
+                test(c, false);
+        for (auto c = 0xa0u; c < 0xd800u; ++c)
+                test(c);
+        for (auto c = 0xd800; c < 0xe000; ++c)
+                test(c, false);
+        for (auto c = 0xe000; c < 0x10000; ++c)
+                test(c);
+
+        for (auto c = 0x10000u; c < 0x110000u; ++c) {
+                test(c);
+                test_surrogates(c);
+        }
+
+        test(0x110000, false);
+
+        // Test default value
+        {
+                n_args = 1;
+                args[0] = vte_seq_arg_init(-1);
+                vte_seq_arg_finish(&args[0]); // final
+
+                auto const rc = seq.collect_char(0);
+                g_assert_true(rc);
+                g_assert_cmphex(*rc, ==, 0x20); // ' '
+        }
+}
+
 static int
 feed_parser_st(vte_seq_builder& b,
                bool c1 = false,
@@ -1495,6 +1646,8 @@ main(int argc,
         g_test_add_func("/vte/parser/sequences/arg", test_seq_arg);
         g_test_add_func("/vte/parser/sequences/string", test_seq_string);
         g_test_add_func("/vte/parser/sequences/glue/arg", test_seq_glue_arg);
+        g_test_add_func("/vte/parser/sequences/glue/bignum", test_seq_glue_bignum);
+        g_test_add_func("/vte/parser/sequences/glue/uchar", test_seq_glue_uchar);
         g_test_add_func("/vte/parser/sequences/glue/string", test_seq_glue_string);
         g_test_add_func("/vte/parser/sequences/glue/string-tokeniser", test_seq_glue_string_tokeniser);
         g_test_add_func("/vte/parser/sequences/glue/sequence-builder", test_seq_glue_sequence_builder);
