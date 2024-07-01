@@ -352,3 +352,12 @@ sys.stdout.write(' ' + '\u2500' + '\U0001cc1b' + '\n')
 sys.stdout.write('\n')
 sys.stdout.write(' \U0001cc1d\u23ba \U0001cc1e\u23bd\n')
 sys.stdout.write('\n')
+
+sys.stdout.write('Circles:\n')
+
+for i in range(0x1cc30, 0x1cc40):
+    if i % 4 == 0:
+        sys.stdout.write('\n ')
+    sys.stdout.write(chr(i))
+
+sys.stdout.write('\n')
