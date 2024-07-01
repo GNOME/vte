@@ -20,7 +20,7 @@
 
 #include <cmath>
 
-#include <cairo.h>
+#include "cairo-glue.hh"
 
 #if VTE_GTK == 4
 #include <gdk/gdk.h>
@@ -275,6 +275,30 @@ rectangle(cairo_t* cr,
         cairo_fill (cr);
 }
 
+inline void
+quadrant(cairo_t* cr,
+         uint8_t value,
+         int x,
+         int y,
+         int width,
+         int height) noexcept
+{
+        auto const width_half = std::max(width / 2, 1);
+        auto const height_half = std::max(height / 2, 1);
+
+        cairo_set_line_width(cr, 0);
+        if (value & 0b0001u)
+                cairo_rectangle(cr, x, y, width_half, height_half);
+        if (value & 0b0010u)
+                cairo_rectangle(cr, x + width_half, y, width - width_half, height_half);
+        if (value & 0b0100u)
+                cairo_rectangle(cr, x, y + height_half, width_half, height - height_half);
+        if (value & 0b1000u)
+                cairo_rectangle(cr, x + width_half, y + height_half, width - width_half, height - height_half);
+
+        cairo_fill(cr);
+}
+
 static void
 polygon(cairo_t* cr,
         double x,
@@ -311,6 +335,74 @@ pattern(cairo_t* cr,
         cairo_fill(cr);
         cairo_pop_group_to_source(cr);
         cairo_mask(cr, pattern);
+}
+
+/* Create separated mosaic patterns.
+ * Transparent pixels will not be drawn; opaque pixels will draw that part of the
+ * mosaic onto the target surface.
+ */
+
+inline vte::Freeable<cairo_pattern_t>
+create_quadrant_separation_pattern(int width,
+                                   int height,
+                                   int line_thickness)
+{
+        auto surface = vte::take_freeable(cairo_image_surface_create(CAIRO_FORMAT_A1, width, height));
+        // or CAIRO_FORMAT_A8, whichever is better/faster?
+
+        auto cr = vte::take_freeable(cairo_create(surface.get()));
+
+        /* It's not quite clear how the separated quadrants should be drawn.
+         *
+         * The L2/21-235 Sources document shows the separation being drawn as
+         * blanking a line on the left and top parts of each 2x2 block.
+         *
+         * Here, we blank a line on the left and *bottom* of each 2x2 block,
+         * for consistency with how we draw the separated sextants / mosaics,
+         * see below.
+         */
+
+        /* First, fill completely with transparent pixels */
+        cairo_set_source_rgba(cr.get(), 0., 0., 0., 0.);
+        cairo_rectangle(cr.get(), 0, 0, width, height);
+        cairo_fill(cr.get());
+
+        /* Now, fill the reduced blocks with opaque pixels */
+
+        auto const pel = line_thickness; /* see the separated sextants below */
+
+        cairo_set_source_rgba(cr.get(), 0., 0., 0., 1.);
+
+        if (width > 2 * pel && height > 2 * pel) {
+
+                auto const width_half = width / 2;
+                auto const height_half = height / 2;
+
+                int const y[3] = { 0, height_half, height };
+                int const x[3] = { 0, width_half, width };
+                // FIXMEchpe: or use 2 * width_half instead of width, so that for width odd,
+                // the extra row of pixels is unlit, and the lit blocks have equal width?
+                // and similar for height?
+
+                for (auto yi = 0; yi < 2; ++yi) {
+                        for (auto xi = 0; xi < 2; xi++) {
+                                cairo_rectangle(cr.get(),
+                                                x[xi] + pel,
+                                                y[yi],
+                                                x[xi+1] - x[xi] - pel,
+                                                y[yi+1] - y[yi] - pel);
+                        }
+                }
+        }
+
+        cairo_fill(cr.get());
+
+        auto pattern = vte::take_freeable(cairo_pattern_create_for_surface(surface.get()));
+
+        cairo_pattern_set_extend(pattern.get(), CAIRO_EXTEND_REPEAT);
+        cairo_pattern_set_filter(pattern.get(), CAIRO_FILTER_NEAREST);
+
+        return pattern;
 }
 
 #include "box-drawing.hh"
@@ -1308,6 +1400,14 @@ Minifont::draw_graphic(cairo_t* cr,
                         cairo_line_to(cr, xcenter + adjust, ybottom);
                         cairo_stroke(cr);
                 }
+                break;
+        }
+
+        case 0x1cc21 ... 0x1cc2f: { /* separated block quadrant-* */
+                cairo_push_group(cr);
+                quadrant(cr, c - 0x1cc10, x, y, width, height);
+                cairo_pop_group_to_source(cr);
+                cairo_mask(cr, create_quadrant_separation_pattern(width, height, light_line_width).get());
                 break;
         }
 
