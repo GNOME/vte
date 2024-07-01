@@ -26,6 +26,10 @@ separated_quadrants = [u'\u00a0',     u'\U0001cc21', u'\U0001cc22', u'\U0001cc23
                        u'\U0001cc28', u'\U0001cc29', u'\U0001cc2a', u'\U0001cc2b',
                        u'\U0001cc2c', u'\U0001cc2d', u'\U0001cc2e', u'\U0001cc2f',]
 
+sextants = [0xa0] + list(range(0x1fb00, 0x1fb13 + 1, 1)) + [0x258c] + list(range(0x1fb14, 0x1fb27 + 1, 1)) + [0x2590] + list(range(0x1fb28, 0x1fb3b + 1, 1)) + [0x2588]
+
+separated_sextants = [0xA0] + list(range(0x1ce51, 0x1ce8f + 1, 1))
+
 sys.stdout.write('Quadrants:\n')
 
 sys.stdout.write('  contiguous:')
@@ -39,3 +43,24 @@ for q in separated_quadrants:
     sys.stdout.write(f' {q}')
 
 sys.stdout.write('\n\n')
+
+
+sys.stdout.write('Sextants:\n')
+
+sys.stdout.write('  contiguous:')
+n=0
+for q in sextants:
+    sys.stdout.write(f' {chr(q)}')
+    n=n+1
+    if n % 16 == 0:
+        sys.stdout.write('\n\n             ')
+
+sys.stdout.write('\n\n')
+
+sys.stdout.write('  separated: ')
+n=0
+for s in separated_sextants:
+    sys.stdout.write(f' {chr(s)}')
+    n=n+1
+    if n % 16 == 0:
+        sys.stdout.write('\n\n             ')
