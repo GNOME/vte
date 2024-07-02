@@ -8812,6 +8812,8 @@ try
 catch (...)
 {
         vte::log_exception();
+        if (size)
+               *size = 0;
         return nullptr;
 }
 
@@ -8883,6 +8885,8 @@ try
 catch (...)
 {
         vte::log_exception();
+        if (size)
+               *size = 0;
         return nullptr;
 }
 
