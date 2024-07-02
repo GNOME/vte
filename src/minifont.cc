@@ -383,6 +383,70 @@ octant(cairo_t* cr,
         cairo_fill(cr);
 }
 
+inline void
+sixteenth(cairo_t* cr,
+          uint16_t value,
+          int x,
+          int y,
+          int width,
+          int height) noexcept
+{
+        if (width < 4 || height < 4) [[unlikely]]
+                return; // don't draw anything
+
+        auto const width_quarter = width / 4;
+        auto const extra_width = width & 3;
+        auto const height_quarter = height / 4;
+        auto const extra_height = height & 3;
+
+        // Note! Some of these sixteenths are used to draw octants, i.e.
+        // BLOCK OCTANT-8 = U+1CEA0 RIGHT HALF LOWER ONE QUARTER BLOCK
+        // BLOCK OCTANT-7 = U+1CEA3 LEFT HALF LOWER ONE QUARTER BLOCK
+        // BLOCK OCTANT-1 = U+1CEA8 LEFT HALF UPPER ONE QUARTER BLOCK
+        // BLOCK OCTANT-2 = U+1CEAB RIGHT HALF UPPER ONE QUARTER BLOCK
+        // and so this code must absolutely draw them as if drawn by
+        // octant() above.
+
+        // If width isn't divisibly by 4, distribute the extra pixels to
+        // the 3rd column first, then the 2nd, then the 4th.
+        // FIXME: make sure this connects correctly with the one-eights
+        // as well as the sextants and octants.
+        int const widths[4] = {
+                width_quarter,
+                width_quarter + (extra_width > 2 ? 1 : 0),
+                width_quarter + (extra_width ? 1 : 0),
+                width_quarter + (extra_width > 1 ? 1 : 0)
+        };
+
+        // If height isn't divisibly by 4, distribute the extra pixels to
+        // the 3rd row first, then the 2nd, then the 4th.
+        // FIXME: make sure this connects correctly with the one-eights
+        // as well as the quadrants, sextants and octants.
+        int const heights[4] = {
+                height_quarter,
+                height_quarter + (extra_height > 2 ? 1 : 0),
+                height_quarter + (extra_height ? 1 : 0),
+                height_quarter + (extra_height > 1 ? 1 : 0)
+        };
+
+        cairo_set_line_width(cr, 0);
+
+        auto y0 = y;
+        for (auto i = 0; i < 4; ++i) {
+                auto x0 = x;
+                for (auto j = 0; j < 4; ++j) {
+                        if (value & 0b1u)
+                                cairo_rectangle(cr, x0, y0, widths[j], heights[i]);
+                        value >>= 1;
+                        x0 += widths[j];
+                }
+
+                y0 += heights[i];
+        }
+
+        cairo_fill(cr);
+}
+
 inline constexpr int
 scanline_y(int value,
            int height,
@@ -1945,21 +2009,44 @@ Minifont::draw_graphic(cairo_t* cr,
                 break;
         }
 
-        case 0x1cea0: /* U+1CEA0 RIGHT HALF LOWER ONE QUARTER BLOCK */
-                octant(cr, 0b1000'0000, x, y, width, height);
+        case 0x1ce90 ... 0x1ceaf: { /* sixteenths */
+                static constinit uint16_t const sixteenth_value [] = {
+                        0b0000'0000'0000'0001, /* U+1CE90 UPPER LEFT ONE SIXTEENTH BLOCK */
+                        0b0000'0000'0000'0010, /* U+1CE91 UPPER CENTRE LEFT ONE SIXTEENTH BLOCK */
+                        0b0000'0000'0000'0100, /* U+1CE92 UPPER CENTRE RIGHT ONE SIXTEENTH BLOCK */
+                        0b0000'0000'0000'1000, /* U+1CE93 UPPER RIGHT ONE SIXTEENTH BLOCK */
+                        0b0000'0000'0001'0000, /* U+1CE94 UPPER MIDDLE LEFT ONE SIXTEENTH BLOCK */
+                        0b0000'0000'0010'0000, /* U+1CE95 UPPER MIDDLE CENTRE LEFT ONE SIXTEENTH BLOCK */
+                        0b0000'0000'0100'0000, /* U+1CE96 UPPER MIDDLE CENTRE RIGHT ONE SIXTEENTH BLOCK */
+                        0b0000'0000'1000'0000, /* U+1CE97 UPPER MIDDLE RIGHT ONE SIXTEENTH BLOCK */
+                        0b0000'0001'0000'0000, /* U+1CE98 LOWER MIDDLE LEFT ONE SIXTEENTH BLOCK */
+                        0b0000'0010'0000'0000, /* U+1CE99 LOWER MIDDLE CENTRE LEFT ONE SIXTEENTH BLOCK */
+                        0b0000'0100'0000'0000, /* U+1CE9A LOWER MIDDLE CENTRE RIGHT ONE SIXTEENTH BLOCK */
+                        0b0000'1000'0000'0000, /* U+1CE9B LOWER MIDDLE RIGHT ONE SIXTEENTH BLOCK */
+                        0b0001'0000'0000'0000, /* U+1CE9C LOWER LEFT ONE SIXTEENTH BLOCK */
+                        0b0010'0000'0000'0000, /* U+1CE9D LOWER CENTRE LEFT ONE SIXTEENTH BLOCK */
+                        0b0100'0000'0000'0000, /* U+1CE9E LOWER CENTRE RIGHT ONE SIXTEENTH BLOCK */
+                        0b1000'0000'0000'0000, /* U+1CE9F LOWER RIGHT ONE SIXTEENTH BLOCK */
+                        0b1100'0000'0000'0000, /* U+1CEA0 RIGHT HALF LOWER ONE QUARTER BLOCK */ /* Note: must draw as if BLOCK OCTANT-8 */
+                        0b1110'0000'0000'0000, /* U+1CEA1 RIGHT THREE QUARTERS LOWER ONE QUARTER BLOCK */
+                        0b0111'0000'0000'0000, /* U+1CEA2 LEFT THREE QUARTERS LOWER ONE QUARTER BLOCK */
+                        0b0011'0000'0000'0000, /* U+1CEA3 LEFT HALF LOWER ONE QUARTER BLOCK */ /* Note: must draw as if BLOCK OCTANT-7 */
+                        0b0001'0001'0000'0000, /* U+1CEA4 LOWER HALF LEFT ONE QUARTER BLOCK */
+                        0b0001'0001'0001'0000, /* U+1CEA5 LOWER THREE QUARTERS LEFT ONE QUARTER BLOCK */
+                        0b0000'0001'0001'0001, /* U+1CEA6 UPPER THREE QUARTERS LEFT ONE QUARTER BLOCK */
+                        0b0000'0000'0001'0001, /* U+1CEA7 UPPER HALF LEFT ONE QUARTER BLOCK */
+                        0b0000'0000'0000'0011, /* U+1CEA8 LEFT HALF UPPER ONE QUARTER BLOCK */ /* Note: must draw as if BLOCK OCTANT-1 */
+                        0b0000'0000'0000'0111, /* U+1CEA9 LEFT THREE QUARTERS UPPER ONE QUARTER BLOCK */
+                        0b0000'0000'0000'1110, /* U+1CEAA RIGHT THREE QUARTERS UPPER ONE QUARTER BLOCK */
+                        0b0000'0000'0000'1100, /* U+1CEAB RIGHT HALF UPPER ONE QUARTER BLOCK */ /* Note: must draw as if BLOCK OCTANT-2 */
+                        0b0000'0000'1000'1000, /* U+1CEAC UPPER HALF RIGHT ONE QUARTER BLOCK */
+                        0b0000'1000'1000'1000, /* U+1CEAD UPPER THREE QUARTERS RIGHT ONE QUARTER BLOCK */
+                        0b1000'1000'1000'0000, /* U+1CEAE LOWER THREE QUARTERS RIGHT ONE QUARTER BLOCK */
+                        0b1000'1000'0000'0000, /* U+1CEAF LOWER HALF RIGHT ONE QUARTER BLOCK */
+                };
+                sixteenth(cr, sixteenth_value[c - 0x1ce90], x, y, width, height);
                 break;
-
-        case 0x1cea3: /* U+1CEA3 LEFT HALF LOWER ONE QUARTER BLOCK */
-                octant(cr, 0b0100'0000, x, y, width, height);
-                break;
-
-        case 0x1cea8: /* U+1CEA8 LEFT HALF UPPER ONE QUARTER BLOCK */
-                octant(cr, 0b0000'0001, x, y, width, height);
-                break;
-
-        case 0x1ceab: /* U+1CEAB RIGHT HALF UPPER ONE QUARTER BLOCK */
-                octant(cr, 0b0000'0010, x, y, width, height);
-                break;
+        }
 
         case 0x1fbe6 ... 0x1fbe7: {
                 static constinit uint8_t const octant_value[] = {
@@ -2057,7 +2144,6 @@ Minifont::draw_graphic(cairo_t* cr,
                                2 - (v & 0x3), 2 - (v >> 2), 2);
                 break;
         }
-
 
         case 0x1cc35: // UPPER LEFT QUARTER CIRCLE
         case 0x1cc36: // UPPER RIGHT QUARTER CIRCLE
