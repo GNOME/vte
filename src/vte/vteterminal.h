@@ -799,14 +799,6 @@ _VTE_PUBLIC
 GVariant* vte_terminal_ref_termprop_variant_by_id(VteTerminal* terminal,
                                                   int prop) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
-_VTE_PUBLIC
-void vte_terminal_reset_termprop(VteTerminal* terminal,
-                                 char const* prop) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
-
-_VTE_PUBLIC
-void vte_terminal_reset_termprop_by_id(VteTerminal* terminal,
-                                       int prop) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
-
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VteTerminal, g_object_unref)
 
 G_END_DECLS
