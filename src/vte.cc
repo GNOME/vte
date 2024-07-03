@@ -4909,7 +4909,7 @@ Terminal::reply(vte::parser::Sequence const& seq,
                           char const* format,
                           ...) noexcept
 {
-        char buf[128];
+        char buf[8192];
         va_list vargs;
 
         va_start(vargs, format);
