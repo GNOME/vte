@@ -141,10 +141,13 @@ uuid::uuid(std::string_view str,
                 g_assert(j <= 36);
         }
 
-        if (auto const v = version(); v == 0 || v > 5)
+        if (is_nil()) [[unlikely]] // special exception, don't check version/variant
+                return;
+
+        if (auto const v = version(); v == 0 || v > 5) [[unlikely]]
                 throw std::invalid_argument{"Invalid version"};
 
-        if (auto const v = variant(); v != 2)
+        if (auto const v = variant(); v != 2) [[unlikely]]
                 throw std::invalid_argument{"Invalid variant"};
 }
 
@@ -155,7 +158,7 @@ uuid_string_is_valid(std::string_view const& str,
         try {
                 uuid{str, fmt};
                 return true;
-        } catch (std::exception const& e) {
+        } catch (...) {
                 return false;
         }
 }

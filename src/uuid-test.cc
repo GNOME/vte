@@ -71,6 +71,7 @@ test_uuid_string(void)
         g_assert_false(uuid_string_is_valid(" 6079c6d3-ffe3-42ac-a3cf-7137b101b6ca "));
         g_assert_false(uuid_string_is_valid("urn:uuid:{6079c6d3-ffe3-42ac-a3cf-7137b101b6ca}"));
 
+        g_assert_true(uuid_string_is_valid("00000000-0000-0000-0000-000000000000"));
         g_assert_true(uuid_string_is_valid("6079c6d3-ffe3-42ac-a3cf-7137b101b6ca"));
         g_assert_true(uuid_string_is_valid("{6079c6d3-ffe3-42ac-a3cf-7137b101b6ca}"));
         g_assert_true(uuid_string_is_valid("urn:uuid:6079c6d3-ffe3-42ac-a3cf-7137b101b6ca"));
@@ -78,6 +79,14 @@ test_uuid_string(void)
         try {
                 auto u = uuid("00000001-0002-1003-8004-000000000005");
                 g_assert_true(dummy_uuid == u);
+        } catch (...) {
+                g_assert_not_reached();
+        }
+
+        try {
+                auto u = uuid("00000000-0000-0000-0000-000000000000");
+                g_assert_true(nil == u);
+                g_assert_true(u.is_nil());
         } catch (...) {
                 g_assert_not_reached();
         }
