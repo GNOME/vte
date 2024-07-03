@@ -1379,6 +1379,7 @@ constexpr bool check_enum_value<VtePropertyType>(VtePropertyType value) noexcept
 
                 // These are not installable via the public API
         case VTE_PROPERTY_URI:
+        case VTE_PROPERTY_IMAGE:
                 return false;
 
         default:
@@ -3215,6 +3216,12 @@ vte_terminal_class_init(VteTerminalClass *klass)
  *   via the API, and not set via OSC 666; only built-in termprops of this
  *   type are available and can only be set via their own special
  *   OSC numbers.
+ *
+ * * A termprop of type %VTE_PROPERTY_IMAGE is an image.
+ *   Note that currently termprops of this type cannot be created
+ *   via the API, and not set via OSC 666; only built-in termprops of this
+ *   type are available, and they can only be set via their own special
+ *   sequence.
  *
  * Note that any values any termprop has must be treated as *untrusted*.
  *
@@ -9180,6 +9187,250 @@ vte_terminal_ref_termprop_uri(VteTerminal* terminal,
 }
 
 /**
+ * vte_terminal_ref_termprop_image_surface_by_id:
+ * @terminal: a #VteTerminal
+ * @prop: a termprop ID
+ *
+ * Like vte_terminal_ref_termprop_image_surface() except that it takes the
+ * termprop by ID. See that function for more information.
+ *
+ * Returns: (transfer full): the property's value as a #cairo_surface_t, or %NULL
+ *
+ * Since: 0.78
+ */
+cairo_surface_t*
+vte_terminal_ref_termprop_image_surface_by_id(VteTerminal* terminal,
+                                              int prop) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
+        g_return_val_if_fail(prop >= 0, nullptr);
+
+        auto const widget = WIDGET(terminal);
+        auto const info = widget->get_termprop_info(prop);
+        if (!info)
+                return nullptr;
+
+        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::IMAGE, nullptr);
+
+        auto const value = widget->get_termprop(*info);
+        if (value &&
+            std::holds_alternative<vte::Freeable<cairo_surface_t>>(*value)) {
+                return cairo_surface_reference(std::get<vte::Freeable<cairo_surface_t>>(*value).get());
+        }
+
+        return nullptr;
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
+ * vte_terminal_ref_termprop_image_surface:
+ * @terminal: a #VteTerminal
+ * @prop: a termprop name
+ *
+ * Returns the value of a %VTE_PROPERTY_IMAGE termprop as a #cairo_surface_t,
+ *   or %NULL if @prop is unset, or @prop is not a registered property.
+ *
+ * The surface will be a %CAIRO_SURFACE_TYPE_IMAGE with format
+ * %CAIRO_FORMAT_ARGB32 or %CAIRO_FORMAT_RGB24.
+ *
+ * Note that the returned surface is owned by @terminal and its contents
+ * must not be modified.
+ *
+ * Returns: (transfer full): the property's value as a #cairo_surface_t, or %NULL
+ *
+ * Since: 0.78
+ */
+cairo_surface_t*
+vte_terminal_ref_termprop_image_surface(VteTerminal* terminal,
+                                        char const* prop) noexcept
+{
+        g_return_val_if_fail(prop != nullptr, nullptr);
+
+        return vte_terminal_ref_termprop_image_surface_by_id(terminal,
+                                                             vte::terminal::get_termprop_id(prop));
+}
+
+#if VTE_GTK == 3
+
+/**
+ * vte_terminal_ref_termprop_image_pixbuf_by_id:
+ * @terminal: a #VteTerminal
+ * @prop: a termprop ID
+ *
+ * Like vte_terminal_ref_termprop_image_pixbuf() except that it takes the
+ * termprop by ID. See that function for more information.
+ *
+ * Returns: (transfer full): the property's value as a #GdkPixbuf, or %NULL
+ *
+ * Since: 0.78
+ */
+GdkPixbuf*
+vte_terminal_ref_termprop_image_pixbuf_by_id(VteTerminal* terminal,
+                                             int prop) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
+        g_return_val_if_fail(prop >= 0, nullptr);
+
+        auto const widget = WIDGET(terminal);
+        auto const info = widget->get_termprop_info(prop);
+        if (!info)
+                return nullptr;
+
+        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::IMAGE, nullptr);
+
+        auto const value = widget->get_termprop(*info);
+        if (value &&
+            std::holds_alternative<vte::Freeable<cairo_surface_t>>(*value)) {
+                auto const surface = std::get<vte::Freeable<cairo_surface_t>>(*value).get();
+                if (cairo_surface_get_type(surface) == CAIRO_SURFACE_TYPE_IMAGE) {
+                        return gdk_pixbuf_get_from_surface(surface,
+                                                           0, 0,
+                                                           cairo_image_surface_get_width(surface),
+                                                           cairo_image_surface_get_height(surface));
+                }
+        }
+
+        return nullptr;
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
+ * vte_terminal_ref_termprop_image_pixbuf:
+ * @terminal: a #VteTerminal
+ * @prop: a termprop name
+ *
+ * Returns the value of a %VTE_PROPERTY_IMAGE termprop as a #GImage, or %NULL if
+ *   @prop is unset, or @prop is not a registered property.
+ *
+ * Returns: (transfer full): the property's value as a #GImage, or %NULL
+ *
+ * Since: 0.78
+ */
+GdkPixbuf*
+vte_terminal_ref_termprop_image_pixbuf(VteTerminal* terminal,
+                                       char const* prop) noexcept
+{
+        g_return_val_if_fail(prop != nullptr, nullptr);
+
+        return vte_terminal_ref_termprop_image_pixbuf_by_id(terminal,
+                                                            vte::terminal::get_termprop_id(prop));
+}
+
+#elif VTE_GTK == 4
+
+/**
+ * vte_terminal_ref_termprop_image_texture_by_id:
+ * @terminal: a #VteTerminal
+ * @prop: a termprop ID
+ *
+ * Like vte_terminal_ref_termprop_image_texture() except that it takes the
+ * termprop by ID. See that function for more information.
+ *
+ * Returns: (transfer full): the property's value as a #GdkTexture, or %NULL
+ *
+ * Since: 0.78
+ */
+GdkTexture*
+vte_terminal_ref_termprop_image_texture_by_id(VteTerminal* terminal,
+                                              int prop) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
+        g_return_val_if_fail(prop >= 0, nullptr);
+
+        auto const widget = WIDGET(terminal);
+        auto const info = widget->get_termprop_info(prop);
+        if (!info)
+                return nullptr;
+
+        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::IMAGE, nullptr);
+
+        auto const value = widget->get_termprop(*info);
+        if (value &&
+            std::holds_alternative<vte::Freeable<cairo_surface_t>>(*value)) {
+
+                auto const surface = std::get<vte::Freeable<cairo_surface_t>>(*value).get();
+                if (cairo_surface_get_type(surface) != CAIRO_SURFACE_TYPE_IMAGE)
+                        return nullptr;
+
+                auto const format = cairo_image_surface_get_format(surface);
+                if (format != CAIRO_FORMAT_ARGB32 &&
+                    format != CAIRO_FORMAT_RGB24)
+                        return nullptr;
+
+                auto const bytes = vte::take_freeable
+                        (g_bytes_new_with_free_func(cairo_image_surface_get_data(surface),
+                                                    size_t(cairo_image_surface_get_height(surface)) *
+                                                    size_t(cairo_image_surface_get_stride(surface)),
+                                                    GDestroyNotify(cairo_surface_destroy),
+                                                    cairo_surface_reference(surface)));
+
+                auto memory_format = [](auto fmt) constexpr noexcept -> auto
+                {
+                        if constexpr (std::endian::native == std::endian::little) {
+                                return fmt == CAIRO_FORMAT_ARGB32
+                                        ? GDK_MEMORY_B8G8R8A8_PREMULTIPLIED
+                                        : GDK_MEMORY_B8G8R8;
+                        } else if constexpr (std::endian::native == std::endian::big) {
+                                return fmt == CAIRO_FORMAT_ARGB32
+                                        ? GDK_MEMORY_A8R8G8B8_PREMULTIPLIED
+                                        : GDK_MEMORY_R8G8B8;
+                        } else {
+                                __builtin_unreachable();
+                        }
+
+                };
+
+                return gdk_memory_texture_new(cairo_image_surface_get_width(surface),
+                                              cairo_image_surface_get_height(surface),
+                                              memory_format(format),
+                                              bytes.get(),
+                                              cairo_image_surface_get_stride(surface));
+        }
+
+        return nullptr;
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
+ * vte_terminal_ref_termprop_image_texture:
+ * @terminal: a #VteTerminal
+ * @prop: a termprop name
+ *
+ * Returns the value of a %VTE_PROPERTY_IMAGE termprop as a #GImage, or %NULL if
+ *   @prop is unset, or @prop is not a registered property.
+ *
+ * Returns: (transfer full): the property's value as a #GImage, or %NULL
+ *
+ * Since: 0.78
+ */
+GdkTexture*
+vte_terminal_ref_termprop_image_texture(VteTerminal* terminal,
+                                        char const* prop) noexcept
+{
+        g_return_val_if_fail(prop != nullptr, nullptr);
+
+        return vte_terminal_ref_termprop_image_texture_by_id(terminal,
+                                                             vte::terminal::get_termprop_id(prop));
+}
+
+#endif /* VTE_GTK == 4*/
+
+/**
  * vte_terminal_get_termprop_value_by_id:
  * @terminal: a #VteTerminal
  * @prop: a termprop ID
@@ -9294,6 +9545,13 @@ try
                 }
                 break;
 
+        case vte::terminal::TermpropType::IMAGE:
+                if (std::holds_alternative<vte::Freeable<cairo_surface_t>>(*value)) {
+                        rv = true;
+                        g_value_init(gvalue, CAIRO_GOBJECT_TYPE_SURFACE);
+                        g_value_set_boxed(gvalue, std::get<vte::Freeable<cairo_surface_t>>(*value).get());
+                }
+                break;
         default:
                 __builtin_unreachable(); break;
         }
@@ -9330,6 +9588,7 @@ catch (...)
  * * A %VTE_PROPERTY_DATA termprop stores a boxed #GBytes value.
  * * A %VTE_PROPERTY_UUID termprop stores a boxed #VteUuid value.
  * * A %VTE_PROPERTY_URI termprop stores a boxed #GUri value.
+ * * A %VTE_PROPERTY_IMAGE termprop stores a boxed #cairo_surface_t value.
  *
  * Returns: %TRUE iff the property has a value, with @gvalue containig
  *   the property's value.
@@ -9443,6 +9702,10 @@ try
                 }
                 break;
 
+        case vte::terminal::TermpropType::IMAGE:
+                // no variant representation
+                break;
+
         default:
                 __builtin_unreachable(); break;
         }
@@ -9478,6 +9741,8 @@ catch (...)
  *   containing a string representation of the UUID in simple form.
  * * A %VTE_PROPERTY_URI termprop returns a %G_VARIANT_TYPE_STRING variant
  *   containing a string representation of the URI
+ * * A %VTE_PROPERTY_IMAGE termprop returns %NULL since an image has no
+ *   variant representation.
  *
  * Returns: (transfer full): a floating #GVariant, or %NULL
  *

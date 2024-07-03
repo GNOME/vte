@@ -29,6 +29,10 @@ a11y_gtk4_sources = files(
   'vteaccess-gtk4.h',
 )
 
+cairo_glue_sources = files(
+  'cairo-glue.hh',
+)
+
 color_sources = files(
   'color.hh',
   'color-names.hh',
@@ -198,13 +202,12 @@ vte_glue_sources = files(
   'vte-glue.hh',
 )
 
-libvte_common_sources = color_sources + config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + termprop_sources + utf8_sources + uuid_sources + vte_uuid_sources + vte_glue_sources + files(
+libvte_common_sources = cairo_glue_sources + color_sources + config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + termprop_sources + utf8_sources + uuid_sources + vte_uuid_sources + vte_glue_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
   'box-drawing.hh',
   'buffer.h',
-  'cairo-glue.hh',
   'caps.hh',
   'cell.hh',
   'chunk.cc',
@@ -715,13 +718,17 @@ test_tabstops = executable(
   install: false,
 )
 
-test_termprops_sources = color_sources + config_sources + debug_sources + glib_glue_sources + termprop_sources + uuid_sources + files(
+test_termprops_sources = cairo_glue_sources + color_sources + config_sources + debug_sources + glib_glue_sources + termprop_sources + uuid_sources + files(
   'termprops-test.cc',
 )
 
 test_termprops = executable(
   'test-termprops',
-  dependencies: [glib_dep],
+  dependencies: [
+    glib_dep,
+    cairo_dep,
+    cairo_gobject_dep,
+  ],
   include_directories: top_inc,
   install: false,
   sources: test_termprops_sources,
