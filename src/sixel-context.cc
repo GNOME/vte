@@ -297,7 +297,8 @@ Context::reset_colors() noexcept
 }
 
 void
-Context::prepare(uint32_t introducer,
+Context::prepare(int id,
+                 uint32_t introducer,
                  unsigned fg_red,
                  unsigned fg_green,
                  unsigned fg_blue,
@@ -308,6 +309,7 @@ Context::prepare(uint32_t introducer,
                  bool private_color_registers,
                  double pixel_aspect) noexcept
 {
+        m_id = id;
         m_introducer = introducer;
         m_st = 0;
         m_width = m_height = 0;

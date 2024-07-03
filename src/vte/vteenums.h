@@ -289,6 +289,8 @@ typedef enum {
  * @VTE_PROPERTY_ID_SHELL_PRECMD: the ID of the %VTE_TERMPROP_SHELL_PRECMD termprop
  * @VTE_PROPERTY_ID_SHELL_PREEXEC: the ID of the %VTE_TERMPROP_SHELL_PREEXEC termprop
  * @VTE_PROPERTY_ID_SHELL_POSTEXEC: the ID of the %VTE_TERMPROP_SHELL_POSTEXEC termprop
+ * @VTE_PROPERTY_ID_ICON_COLOR: the ID of the %VTE_TERMPROP_ICON_COLOR termprop
+ * @VTE_PROPERTY_ID_ICON_IMAGE: the ID of the %VTE_TERMPROP_ICON_IMAGE termprop
  *
  * An enum containing the IDs of the always-installed termprops.
  *
@@ -304,6 +306,8 @@ typedef enum {
         VTE_PROPERTY_ID_SHELL_PRECMD,
         VTE_PROPERTY_ID_SHELL_PREEXEC,
         VTE_PROPERTY_ID_SHELL_POSTEXEC,
+        VTE_PROPERTY_ID_ICON_COLOR,
+        VTE_PROPERTY_ID_ICON_IMAGE,
 	_VTE_PROPERTY_ID_MAX = 0x7ffffff, /*< skip >*/
 } VtePropertyId;
 

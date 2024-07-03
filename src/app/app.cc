@@ -34,6 +34,14 @@
 #include <cairo/cairo-gobject.h>
 #include <vte/vte.h>
 
+#ifdef GDK_WINDOWING_X11
+#if VTE_GTK == 3
+#include <gdk/gdkx.h>
+#elif VTE_GTK == 4
+#include <gdk/x11/gdkx.h>
+#endif
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -1822,12 +1830,21 @@ vteapp_search_popover_new(VteTerminal* terminal,
 typedef struct _VteappTerminal       VteappTerminal;
 typedef struct _VteappTerminalClass  VteappTerminalClass;
 
+#if VTE_GTK == 3
+using vteapp_image_type = GdkPixbuf*;
+#elif VTE_GTK == 4
+using vteapp_image_type = GdkTexture*;
+#endif
+
 struct _VteappTerminal {
         VteTerminal parent;
 
         cairo_pattern_t* background_pattern;
         bool has_backdrop;
         bool use_backdrop;
+
+        vteapp_image_type icon_from_icon_color;
+        vteapp_image_type icon_from_icon_image;
 };
 
 struct _VteappTerminalClass {
@@ -1836,9 +1853,112 @@ struct _VteappTerminalClass {
 
 static GType vteapp_terminal_get_type(void);
 
+enum {
+        VTEAPP_TERMINAL_PROP_ICON = 1,
+        VTEAPP_TERMINAL_N_PROPS
+};
+
+static GParamSpec* vteapp_terminal_pspecs[VTEAPP_TERMINAL_N_PROPS];
+
 G_DEFINE_TYPE(VteappTerminal, vteapp_terminal, VTE_TYPE_TERMINAL)
 
 #define BACKDROP_ALPHA (0.2)
+
+static vteapp_image_type
+vteapp_terminal_get_icon(VteappTerminal* terminal) noexcept
+{
+        g_return_val_if_fail(VTEAPP_IS_TERMINAL(terminal), nullptr);
+
+        if (terminal->icon_from_icon_image)
+                return terminal->icon_from_icon_image;
+        else if (terminal->icon_from_icon_color)
+                return terminal->icon_from_icon_color;
+        else
+                return nullptr;
+}
+
+static vteapp_image_type
+make_icon_from_surface(cairo_surface_t* surface)
+{
+        auto const format = cairo_image_surface_get_format(surface);
+        if (format != CAIRO_FORMAT_ARGB32 &&
+            format != CAIRO_FORMAT_RGB24)
+                return nullptr;
+
+#if VTE_GTK == 3
+        return gdk_pixbuf_get_from_surface(surface,
+                                           0,
+                                           0,
+                                           cairo_image_surface_get_width(surface),
+                                           cairo_image_surface_get_height(surface));
+
+#elif VTE_GTK == 4
+
+        auto const bytes = vte::take_freeable
+                (g_bytes_new_with_free_func(cairo_image_surface_get_data(surface),
+                                            size_t(cairo_image_surface_get_height(surface)) *
+                                            size_t(cairo_image_surface_get_stride(surface)),
+                                            GDestroyNotify(cairo_surface_destroy),
+                                            cairo_surface_reference(surface)));
+
+        return gdk_memory_texture_new(cairo_image_surface_get_width(surface),
+                                      cairo_image_surface_get_height(surface),
+                                      format == CAIRO_FORMAT_ARGB32
+                                      ? GDK_MEMORY_A8R8G8B8_PREMULTIPLIED
+                                      : GDK_MEMORY_R8G8B8,
+                                      bytes.get(),
+                                      cairo_image_surface_get_stride(surface));
+
+#endif // VTE_GTK
+
+        return nullptr;
+}
+
+static void
+vteapp_terminal_icon_color_changed_cb(VteappTerminal* terminal,
+                                      char const* prop,
+                                      void* user_data)
+{
+        g_clear_object(&terminal->icon_from_icon_color);
+
+        auto color = GdkRGBA{};
+        if (vte_terminal_get_termprop_rgba_by_id(VTE_TERMINAL(terminal),
+                                                 VTE_PROPERTY_ID_ICON_COLOR,
+                                                 &color)) {
+                auto surface = vte::take_freeable
+                        (cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 16, 16));
+                auto cr = vte::take_freeable(cairo_create(surface.get()));
+                cairo_set_source_rgb(cr.get(), color.red, color.green, color.blue);
+                cairo_rectangle(cr.get(), 0, 0, 16, 16);
+                cairo_fill(cr.get());
+
+                terminal->icon_from_icon_color = make_icon_from_surface(surface.get());
+        }
+
+        g_object_notify_by_pspec(G_OBJECT(terminal),
+                                 vteapp_terminal_pspecs[VTEAPP_TERMINAL_PROP_ICON]);
+}
+
+static void
+vteapp_terminal_icon_image_changed_cb(VteappTerminal* terminal,
+                                      char const* prop,
+                                      void* user_data)
+{
+        g_clear_object(&terminal->icon_from_icon_image);
+
+#if VTE_GTK == 3
+        terminal->icon_from_icon_image =
+                vte_terminal_ref_termprop_image_pixbuf_by_id(VTE_TERMINAL(terminal),
+                                                             VTE_PROPERTY_ID_ICON_IMAGE);
+#elif VTE_GTK == 4
+        terminal->icon_from_icon_image =
+                vte_terminal_ref_termprop_image_texture_by_id(VTE_TERMINAL(terminal),
+                                                              VTE_PROPERTY_ID_ICON_IMAGE);
+#endif // VTE_GTK
+
+        g_object_notify_by_pspec(G_OBJECT(terminal),
+                                 vteapp_terminal_pspecs[VTEAPP_TERMINAL_PROP_ICON]);
+}
 
 static void
 vteapp_terminal_realize(GtkWidget* widget)
@@ -2083,8 +2203,40 @@ vteapp_terminal_system_setting_changed(GtkWidget* widget,
 #endif /* VTE_GTK == 4 */
 
 static void
+vteapp_terminal_get_property(GObject* object,
+                             guint property_id,
+                             GValue* value,
+                             GParamSpec* pspec)
+{
+        auto const terminal = VTEAPP_TERMINAL(object);
+
+        switch (property_id) {
+        case VTEAPP_TERMINAL_PROP_ICON:
+                g_value_set_object(value, vteapp_terminal_get_icon(terminal));
+                break;
+        default:
+                G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+        }
+}
+
+static void
+vteapp_terminal_dispose(GObject* object)
+{
+        auto const terminal = VTEAPP_TERMINAL(object);
+
+        g_clear_object(&terminal->icon_from_icon_image);
+        g_clear_object(&terminal->icon_from_icon_color);
+
+        G_OBJECT_CLASS(vteapp_terminal_parent_class)->dispose(object);
+}
+
+static void
 vteapp_terminal_class_init(VteappTerminalClass *klass)
 {
+        auto const gobject_class = G_OBJECT_CLASS(klass);
+        gobject_class->get_property = vteapp_terminal_get_property;
+        gobject_class->dispose = vteapp_terminal_dispose;
+
         auto widget_class = GTK_WIDGET_CLASS(klass);
         widget_class->realize = vteapp_terminal_realize;
         widget_class->unrealize = vteapp_terminal_unrealize;
@@ -2098,6 +2250,17 @@ vteapp_terminal_class_init(VteappTerminalClass *klass)
         widget_class->state_flags_changed = vteapp_terminal_state_flags_changed;
         widget_class->system_setting_changed = vteapp_terminal_system_setting_changed;
 #endif
+
+        vteapp_terminal_pspecs[VTEAPP_TERMINAL_PROP_ICON] =
+                g_param_spec_object("icon", nullptr, nullptr,
+                                    G_TYPE_ICON,
+                                    GParamFlags(G_PARAM_READABLE |
+                                                G_PARAM_STATIC_STRINGS |
+                                                G_PARAM_EXPLICIT_NOTIFY));
+
+        g_object_class_install_properties(gobject_class,
+                                          VTEAPP_TERMINAL_N_PROPS,
+                                          vteapp_terminal_pspecs);
 
         // Test termprops
         if (options.test_mode) {
@@ -2153,6 +2316,11 @@ vteapp_terminal_class_init(VteappTerminalClass *klass)
 static void
 vteapp_terminal_init(VteappTerminal *terminal)
 {
+        g_signal_connect(terminal, "termprop-changed::" VTE_TERMPROP_ICON_COLOR,
+                         G_CALLBACK(vteapp_terminal_icon_color_changed_cb), nullptr);
+        g_signal_connect(terminal, "termprop-changed::" VTE_TERMPROP_ICON_IMAGE,
+                         G_CALLBACK(vteapp_terminal_icon_image_changed_cb), nullptr);
+
         terminal->background_pattern = nullptr;
         terminal->has_backdrop = false;
         terminal->use_backdrop = options.backdrop;
@@ -3195,6 +3363,35 @@ window_find_button_toggled_cb(GtkToggleButton* button,
                 gtk_widget_set_visible(GTK_WIDGET(window->search_popover), active);
 }
 
+static void
+window_icon_changed_cb(GObject* object,
+                       GParamSpec* pspec,
+                       VteappWindow* window)
+{
+        auto const icon = vteapp_terminal_get_icon(VTEAPP_TERMINAL(window->terminal));
+
+#if VTE_GTK == 3
+        gtk_window_set_icon(GTK_WINDOW(window), icon);
+
+#elif VTE_GTK == 4
+        // FIXME: Apparently gdk_toplevel_set_icon_list doesn't work at all?
+        (void)icon;
+#if 0
+        // gdk_toplevel_set_icon_list is not implemented on
+        // wayland, so only do this on X11.
+        if (GDK_IS_X11_DISPLAY(gtk_widget_get_display(GTK_WIDGET(window)))) {
+                auto const toplevel = GDK_TOPLEVEL(gtk_native_get_surface(GTK_NATIVE(window)));
+                if (icon) {
+                        GList list = {.data = icon, .next = nullptr, .prev = nullptr};
+                        gdk_toplevel_set_icon_list(toplevel, &list);
+                } else {
+                        gdk_toplevel_set_icon_list(toplevel, nullptr);
+                }
+        }
+#endif // 0
+#endif // VTE_GTK
+}
+
 G_DEFINE_TYPE(VteappWindow, vteapp_window, GTK_TYPE_APPLICATION_WINDOW)
 
 static void
@@ -3330,6 +3527,7 @@ vteapp_window_constructed(GObject *object)
         g_signal_connect(window->terminal, "termprop-changed::" VTE_TERMPROP_XTERM_TITLE, G_CALLBACK(window_window_title_changed_cb), window);
         if (options.object_notifications)
                 g_signal_connect(window->terminal, "notify", G_CALLBACK(window_notify_cb), window);
+        g_signal_connect(window->terminal, "notify::icon", G_CALLBACK(window_icon_changed_cb), window);
 
         /* Settings */
 #if VTE_GTK == 3
