@@ -2113,6 +2113,9 @@ vteapp_terminal_class_init(VteappTerminalClass *klass)
                 vte_install_termprop("vte.ext.vteapp.test.uint",
                                      VTE_PROPERTY_UINT,
                                      VTE_PROPERTY_FLAG_NONE);
+                vte_install_termprop("vte.ext.vteapp.test.double",
+                                     VTE_PROPERTY_DOUBLE,
+                                     VTE_PROPERTY_FLAG_NONE);
                 vte_install_termprop("vte.ext.vteapp.test.rgb",
                                      VTE_PROPERTY_RGB,
                                      VTE_PROPERTY_FLAG_NONE);
