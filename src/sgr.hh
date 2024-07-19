@@ -294,4 +294,39 @@ collect_sgr(Sequence const& seq,
         }
 }
 
+template<class P>
+inline constexpr auto
+collect_decsgr(Sequence const& seq,
+               unsigned idx,
+               P&& pen) noexcept -> void
+{
+        auto const n_params = seq.size();
+
+        // If we had no SGR parameters, default to the defaults
+        if (idx >= n_params) {
+                pen.reset_sgr_attributes();
+                return;
+        }
+
+        for (auto i = idx;
+             i < n_params;
+             i = seq.next(i)) {
+                auto const param = seq.param(i);
+                switch (param) {
+                case -1:
+                case VTE_DECSGR_RESET_ALL:
+                        pen.reset_sgr_attributes();
+                        break;
+                case VTE_DECSGR_SET_OVERLINE:
+                        pen.set_overline(true);
+                        break;
+                case VTE_DECSGR_RESET_OVERLINE:
+                        pen.set_overline(false);
+                        break;
+                default: // not supported
+                        break;
+                }
+        }
+}
+
 } // namespace vte::parser

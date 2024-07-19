@@ -757,6 +757,19 @@ append_attr_sgr_params(VteCellAttr const& attr,
                      4, 5, 5);
 }
 
+template<class B>
+static void
+append_attr_decsgr_params(VteCellAttr const& attr,
+                          B&& builder)
+{
+        // The VT520/525 manual shows an example response from DECRQSS SGR,
+        // which start with 0 (reset-all); do the same for DECSGR.
+        builder.append_param(VTE_DECSGR_RESET_ALL);
+
+        if (attr.overline())
+                builder.append_param(VTE_DECSGR_SET_OVERLINE);
+}
+
 /* Clear from the cursor position (inclusive!) to the beginning of the line. */
 void
 Terminal::clear_to_bol()
@@ -4582,6 +4595,13 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
         case VTE_CMD_DECSCUSR:
                 return reply(seq, VTE_REPLY_DECRPSS, {1}, {VTE_REPLY_DECSCUSR, {int(m_cursor_style)}});
 
+        case VTE_CMD_DECSGR: {
+                auto builder = vte::parser::ReplyBuilder(VTE_REPLY_DECSGR, {});
+                append_attr_decsgr_params(m_defaults.attr, builder);
+                return reply(seq, VTE_REPLY_DECRPSS, {1},
+                             std::move(builder));
+        }
+
         case VTE_CMD_DECSTBM:
                 return reply(seq, VTE_REPLY_DECRPSS, {1},
                              {VTE_REPLY_DECSTBM, {m_scrolling_region.top() + 1,
@@ -4620,7 +4640,6 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
         case VTE_CMD_DECSDPT:
         case VTE_CMD_DECSEST:
         case VTE_CMD_DECSFC:
-        case VTE_CMD_DECSGR:
         case VTE_CMD_DECSKCV:
         case VTE_CMD_DECSLCK:
         case VTE_CMD_DECSMBV:
@@ -5223,6 +5242,11 @@ Terminal::DECSGR(vte::parser::Sequence const& seq)
          *             DEC LJ250
          */
         /* TODO: consider implementing sub/superscript? */
+
+        vte::parser::collect_decsgr(seq, 0, m_defaults.attr);
+
+        // Since DECSGR doesn't change any colours, no need to
+        // copy them from m_defaults to m_color_defaults
 }
 
 bool
