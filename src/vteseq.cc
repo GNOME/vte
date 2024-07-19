@@ -4205,7 +4205,7 @@ Terminal::DECRARA(vte::parser::Sequence const& seq)
                              // value correctly.
 
                              auto& attr = cell->attr;
-                             if (attr.underline())
+                             if (attr.underline() && (mask.attr & VTE_ATTR_UNDERLINE_MASK))
                                      attr.set_underline(VTE_ATTR_UNDERLINE_VALUE_MASK);
 
                              attr.attr ^= mask.attr;
