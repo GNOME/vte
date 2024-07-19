@@ -141,7 +141,7 @@ public:
         }
 
         /*
-         * append_parms:
+         * append_params:
          * @params:
          *
          * Appends the parameters from @params to @this. Parameter values must be
@@ -176,9 +176,9 @@ public:
 
                         int* arg = &m_seq.args[m_seq.n_args++];
                         *arg = vte_seq_arg_init(std::min(p, 0xffff));
-                        vte_seq_arg_finish(arg, false);
+                        vte_seq_arg_finish(arg, true);
                 }
-                vte_seq_arg_refinish(&m_seq.args[m_seq.n_args - 1], true);
+                vte_seq_arg_refinish(&m_seq.args[m_seq.n_args - 1], false);
         }
 
         inline void set_string(string_type const& str) noexcept
@@ -270,14 +270,14 @@ private:
                         auto n_args = m_seq.n_args;
                         for (unsigned int n = 0; n < n_args; n++) {
                                 auto arg = vte_seq_arg_value(m_seq.args[n]);
-                                if (n > 0) {
-                                        s.push_back(";:"[vte_seq_arg_nonfinal(m_seq.args[n])]);
-                                }
-                                if (arg >= 0) {
+                                if (arg != -1) {
                                         char buf[16];
                                         int l = g_snprintf(buf, sizeof(buf), "%d", arg);
                                         for (int j = 0; j < l; j++)
                                                 s.push_back(buf[j]);
+                                }
+                                if (n + 1 < n_args) {
+                                        s.push_back(vte_seq_arg_nonfinal(m_seq.args[n]) ? ':' : ';');
                                 }
                         }
                         break;
