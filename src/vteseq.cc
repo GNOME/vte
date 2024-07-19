@@ -2030,8 +2030,19 @@ catch (...)
 // order, the coordinates of the top, left, bottom, and right edges of the
 // rectangle, and are clamped to the number of lines for top, and bottom; and
 // to the number of columns for left, and right.
-// The coordinates are affected by DEC_ORIGIN_MODE, but not affected
-// by the margins (DECSTBM, DECSLRM).
+//
+// The documentation says that
+// "The coordinates of the rectangular area are affected by the setting of
+// Origin Mode. This control is not otherwise affected by the margins."
+// which one might interpret as the rectangle not being clipped by the
+// scrolling margins; however a different interpretation (and one that is
+// confirmed by testing an actual VT420 terminal) is that "otherwise" refers
+// to DECOM, i.e. the function is unaffected by the margins iff DECOM is reset.
+// In origin mode, the coordinates are clamped to the scrolling region, so that
+// a rectangle completely outside the scrolling region is brought inside the
+// scrolling region as a single line and/or column. See the discussion in
+// https://gitlab.gnome.org/GNOME/vte/-/issues/2783 .
+//
 // The parameters admit default values, which are 1 for the top and left
 // parameters, the number of lines in the current page for the bottom parameter,
 // and the number of columns for the right parameter.
@@ -3134,9 +3145,8 @@ Terminal::DECCARA(vte::parser::Sequence const& seq)
          *
          * If the top > bottom or left > right, the command is ignored.
          *
-         * These coordinates are interpreted according to origin mode (DECOM),
-         * but unaffected by the page margins (DECSLRM?). Current SGR defaults
-         * and cursor position are unchanged.
+         * These coordinates are interpreted according to origin mode (DECOM).
+         * Current SGR defaults and cursor position are unchanged.
          * If no parameters after arg[3] are set, clears all attributes (like SGR 0).
          *
          * Note: DECSACE selects whether this function operates on the
@@ -3205,9 +3215,8 @@ Terminal::DECCRA(vte::parser::Sequence const& seq)
          * If the top > bottom or left > right for either of the rectangles,
          * the command is ignored.
          *
-         * These coordinates are interpreted according to origin mode (DECOM),
-         * but unaffected by the page margins (DECSLRM?). Current SGR defaults
-         * and cursor position are unchanged.
+         * These coordinates are interpreted according to origin mode (DECOM).
+         * Current SGR defaults and cursor position are unchanged.
          *
          * References: DEC STD 070 page 5-169
          *             VT525
@@ -3446,9 +3455,8 @@ Terminal::DECERA(vte::parser::Sequence const& seq)
          *
          * If the top > bottom or left > right, the command is ignored.
          *
-         * These coordinates are interpreted according to origin mode (DECOM),
-         * but unaffected by the page margins (DECSLRM?). Current SGR defaults
-         * and cursor position are unchanged.
+         * These coordinates are interpreted according to origin mode (DECOM).
+         * Current SGR defaults and cursor position are unchanged.
          *
          * References: DEC STD 070 page 5-171
          *             VT525
@@ -3947,9 +3955,8 @@ Terminal::DECRARA(vte::parser::Sequence const& seq)
          *
          * If the top > bottom or left > right, the command is ignored.
          *
-         * These coordinates are interpreted according to origin mode (DECOM),
-         * but unaffected by the page margins (DECSLRM?). Current SGR defaults
-         * and cursor position are unchanged.
+         * These coordinates are interpreted according to origin mode (DECOM).
+         * Current SGR defaults and cursor position are unchanged.
          *
          * Note: DECSACE selects whether this function operates on the
          * rectangular area or the data stream between the start and end
