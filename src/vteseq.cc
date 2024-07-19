@@ -2062,6 +2062,8 @@ Terminal::collect_rect(vte::parser::Sequence const& seq,
                 left += m_scrolling_region.left();
                 right += m_scrolling_region.left();
 
+                top = std::min(top, m_scrolling_region.bottom());
+                left = std::min(left, m_scrolling_region.right());
                 bottom = std::min(bottom, m_scrolling_region.bottom());
                 right = std::min(right, m_scrolling_region.right());
         }
