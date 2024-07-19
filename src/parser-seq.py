@@ -816,7 +816,7 @@ sequences = [
             comment='set lock key style'),
     seq_CSI('DECRQDE', 'v', intermediates=(Intermediate.DQUOTE,), flags=Flags.NOP,
             comment='request display extent'),
-    seq_CSI('DECCRA', 'v', intermediates=(Intermediate.CASH,), flags=Flags.NOP,
+    seq_CSI('DECCRA', 'v', intermediates=(Intermediate.CASH,),
             comment='copy rectangular area'),
     seq_CSI('DECRPKT', 'v', intermediates=(Intermediate.COMMA,), flags=Flags.NOP,
             comment='report key type'),

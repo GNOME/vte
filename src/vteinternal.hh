@@ -1836,6 +1836,10 @@ public:
         std::optional<ParamRect> collect_rect(vte::parser::Sequence const&,
                                               unsigned&) noexcept;
 
+        void copy_rect(ParamRect srect,
+                       int dest_top,
+                       int dest_left) noexcept;
+
         void fill_rect(ParamRect rect,
                        char32_t c,
                        VteCellAttr attr) noexcept;
