@@ -968,9 +968,19 @@ public:
                 ensure_row();
                 cleanup_fragments(m_screen->cursor.row, start, end);
         }
-        void cleanup_fragments(long rownum,
+        void cleanup_fragments(VteRowData* row,
+                               long rownum,
                                long start,
                                long end);
+        void cleanup_fragments(long rownum,
+                               long start,
+                               long end) {
+                auto const row = m_screen->row_data->index_writable(rownum);
+                if (!row)
+                        return;
+
+                cleanup_fragments(row, rownum, start, end);
+        }
 
         void scroll_text_up(scrolling_region const& scrolling_region,
                             vte::grid::row_t amount, bool fill);
@@ -989,6 +999,9 @@ public:
 
         void restore_cursor(VteScreen *screen__);
         void save_cursor(VteScreen *screen__);
+
+        /* [[gnu::always_inline]] */ /* C++23 constexpr */ gunichar character_replacement(gunichar c) noexcept;
+        int character_width(gunichar c) noexcept;
 
         void insert_char(gunichar c,
                          bool invalidate_now);
@@ -1817,6 +1830,9 @@ public:
                              vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
 
         // helpers
+
+        // ParamRect is a rectangle as used in DECERA, DECFRA etc.
+        // Values are 0-based.
         struct ParamRect {
                 int top;
                 int left;
@@ -1826,6 +1842,15 @@ public:
 
         std::optional<ParamRect> collect_rect(vte::parser::Sequence const&,
                                               unsigned&) noexcept;
+
+        void fill_rect(ParamRect rect,
+                       char32_t c,
+                       VteCellAttr attr) noexcept;
+
+        template<class P>
+        void rewrite_rect(ParamRect rect,
+                          bool as_rectangle,
+                          P const& pen) noexcept;
 
         // ringview
         void ringview_update();
