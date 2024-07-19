@@ -9606,16 +9606,41 @@ Terminal::XTERM_REPORTSGR(vte::parser::Sequence const& seq)
          * These coordinates are interpreted according to origin mode (DECOM),
          * but unaffected by the page margins (DECSLRM?).
          *
-         * Note: DECSACE selects whether this function operates on the
-         * rectangular area or the data stream between the start and end
-         * positions.
-         *
          * References: XTERM 334
          *
          * Note: The {PUSH,POP,REPORT}SGR protocol is poorly thought-out, and has
-         * no real use case. See the discussion at issue vte#23.
-         * Probably won't implement.
+         * no real use case except for REPORTSGR which is used for esctest.
+         * See the discussion at issue vte#23.
          */
+
+#if VTE_DEBUG
+        // Send a dummy reply unless in test mode (reuse DECRQCRA test flag)
+        if ((g_test_flags & VTE_TEST_FLAG_DECRQCRA) == 0)
+                return reply(seq, VTE_REPLY_SGR, {});
+
+        auto idx = 0u;
+        auto const rect = collect_rect(seq, idx);
+        if (!rect)
+                return; // ignore
+
+        // This function is only exposed to esctest which will query
+        // the attributes one cell at a time; don't bother trying to
+        // gather the common attributes in a larger rect.
+        if (rect.width() > 1 || rect.height() > 1)
+                return reply(seq, VTE_REPLY_SGR, {});
+
+        auto attr = VteCellAttr{};
+        if (auto rowdata =
+            m_screen->row_data->index_writable(m_screen->insert_delta + rect.top())) {
+                if (auto const cell = _vte_row_data_get(rowdata, rect.left())) {
+                        attr = cell->attr;
+                }
+        }
+
+        auto builder = vte::parser::ReplyBuilder(VTE_REPLY_SGR, {});
+        append_attr_sgr_params(attr, builder);
+        return send(seq, builder);
+#endif // VTE_DEBUG
 }
 
 void
