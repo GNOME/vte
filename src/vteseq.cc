@@ -4169,11 +4169,7 @@ Terminal::DECRQPSR(vte::parser::Sequence const& seq)
                 break;
 
         case 2:
-                /* Cursor information report. This contains:
-                 *   - the cursor position, including character attributes and
-                 *     character protection attribute,
-                 *   - origin mode (DECOM),
-                 *   - the character sets designated to the G0, G1, G2, and G3 sets.
+                /* Tabulation Stop information report.
                  *
                  * Reply: DECTABSR
                  *   DATA: report in the format specified in DEC STD 070 p5–204
