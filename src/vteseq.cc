@@ -1013,12 +1013,16 @@ template<class P>
 void
 Terminal::rewrite_rect(ParamRect rect,
                        bool as_rectangle,
+                       bool only_attrs,
                        P const& pen) noexcept
 try
 {
         // Visit the rectangle of cells (either as a rectangle, or a stream
         // of cells) denoted by @rect and calls @pen on each cell.
         // Note that the bottom and right parameters in @rect are inclusive.
+
+        // If the pen will only write visual attrs, we don't need to cleanup
+        // fragments.
 
         auto visit_row = [&](auto rownum,
                              auto left /* inclusive */,
@@ -1036,7 +1040,8 @@ try
 
                 _vte_row_data_fill(rowdata, &m_defaults, right + 1);
 
-                cleanup_fragments(rowdata, rownum, left, right);
+                if (!only_attrs)
+                        cleanup_fragments(rowdata, rownum, left, right);
 
                 auto cell = &rowdata->cells[left];
                 for (auto col = left; col < right; ++col)
@@ -1051,7 +1056,7 @@ try
                 }
         } else { // as stream (see DECSACE)
                 auto row = m_screen->insert_delta + rect.top;
-                visit_row(row, rect.left, m_column_count);
+                visit_row(row++, rect.left, m_column_count);
                 for (; row < m_screen->insert_delta + rect.bottom; ++row)
                         visit_row(row, 0, m_column_count);
                 visit_row(row, 0, rect.right + 1);
@@ -2995,14 +3000,29 @@ Terminal::DECCARA(vte::parser::Sequence const& seq)
          * If no parameters after arg[3] are set, clears all attributes (like SGR 0).
          *
          * Note: DECSACE selects whether this function operates on the
-         * rectangular area or the data stream between the star and end
+         * rectangular area or the data stream between the start and end
          * positions.
          *
          * References: DEC STD 070 page 5-173 f
          *             VT525
-         *
-         * Probably not worth implementing.
          */
+
+        auto idx = 0u;
+        auto const rect = collect_rect(seq, idx);
+        if (!rect)
+                return;
+
+        auto changes = VteCellAttrAndMask{};
+        vte::parser::collect_sgr(seq, idx, changes);
+        if (!changes)
+                return; // nothing to do
+
+        rewrite_rect(*rect,
+                     m_decsace_is_rectangle,
+                     true, // only writing attrs
+                     [&](VteCell* cell) constexpr noexcept -> void {
+                             cell->attr.apply(changes);
+                     });
 }
 
 void
@@ -3050,7 +3070,7 @@ Terminal::DECCRA(vte::parser::Sequence const& seq)
          * and cursor position are unchanged.
          *
          * Note: DECSACE selects whether this function operates on the
-         * rectangular area or the data stream between the star and end
+         * rectangular area or the data stream between the start and end
          * positions.
          *
          * References: DEC STD 070 page 5-169
@@ -3278,11 +3298,13 @@ Terminal::DECERA(vte::parser::Sequence const& seq)
         if (!rect)
                 return; // ignore
 
+        // Like in other erase operations, only use the colours not the other attrs
+        auto const erased_cell = m_color_defaults;
         rewrite_rect(*rect,
                      true, // as rectangle
-                     [attr = m_defaults.attr](VteCell* cell) constexpr noexcept -> void {
-                             cell->c = 0;
-                             cell->attr = attr;
+                     false, // not only writing attrs
+                     [&](VteCell* cell) constexpr noexcept -> void {
+                             *cell = erased_cell;
                      });
 }
 
@@ -3720,14 +3742,34 @@ Terminal::DECRARA(vte::parser::Sequence const& seq)
          * and cursor position are unchanged.
          *
          * Note: DECSACE selects whether this function operates on the
-         * rectangular area or the data stream between the star and end
+         * rectangular area or the data stream between the start and end
          * positions.
          *
          * References: DEC STD 070 page 5-175 f
          *             VT525
-         *
-         * Probably not worth implementing.
          */
+
+        auto idx = 0u;
+        auto const rect = collect_rect(seq, idx);
+        if (!rect)
+                return;
+
+        // Without SGR params this is a no-op (instead of setting all attributes!)
+        if (idx >= seq.size())
+                return;
+
+        auto changes = VteCellAttrAndMask{};
+        vte::parser::collect_sgr(seq, idx, changes);
+        if (!changes)
+                return; // nothing to do
+
+        changes.normalise();
+        rewrite_rect(*rect,
+                     m_decsace_is_rectangle,
+                     true, // only writing attrs
+                     [&](VteCell* cell) constexpr noexcept -> void {
+                             cell->attr.reverse_apply(changes);
+                     });
 }
 
 void
@@ -9113,7 +9155,7 @@ Terminal::XTERM_REPORTSGR(vte::parser::Sequence const& seq)
          * but unaffected by the page margins (DECSLRM?).
          *
          * Note: DECSACE selects whether this function operates on the
-         * rectangular area or the data stream between the star and end
+         * rectangular area or the data stream between the start and end
          * positions.
          *
          * References: XTERM 334

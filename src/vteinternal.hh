@@ -1843,6 +1843,7 @@ public:
         template<class P>
         void rewrite_rect(ParamRect rect,
                           bool as_rectangle,
+                          bool only_attrs,
                           P const& pen) noexcept;
 
         // ringview
