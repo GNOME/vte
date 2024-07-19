@@ -252,19 +252,6 @@ Terminal::unset_widget() noexcept
         m_widget = nullptr;
 }
 
-/* Reset defaults for character insertion. */
-void
-Terminal::reset_default_attributes(bool reset_osc)
-{
-        auto const hyperlink_idx_save = m_defaults.attr.hyperlink_idx;
-        auto const shell_integration_save = m_defaults.attr.shellintegration();
-        m_defaults = m_color_defaults = basic_cell;
-        if (!reset_osc) {
-                m_defaults.attr.hyperlink_idx = hyperlink_idx_save;
-                m_defaults.attr.set_shellintegration(shell_integration_save);
-        }
-}
-
 //FIXMEchpe this function is bad
 inline vte::view::coord_t
 Terminal::scroll_delta_pixel() const
@@ -8395,7 +8382,7 @@ Terminal::Terminal(vte::platform::Widget* w,
 
         m_match_contents = g_string_new(nullptr);
 
-        reset_default_attributes(true);
+        m_defaults = m_color_defaults = basic_cell;
 
 	/* Set up the desired palette. */
 	set_colors_default();
@@ -10834,7 +10821,7 @@ Terminal::reset(bool clear_tabstops,
 		m_palette[i].sources[vte::to_integral(color_palette::ColorSource::Escape)].is_set = false;
 	/* Reset the default attributes.  Reset the alternate attribute because
 	 * it's not a real attribute, but we need to treat it as one here. */
-        reset_default_attributes(true);
+        m_defaults = m_color_defaults = basic_cell;
         /* Reset charset modes. */
         m_character_replacements[0] = VTE_CHARACTER_REPLACEMENT_NONE;
         m_character_replacements[1] = VTE_CHARACTER_REPLACEMENT_NONE;

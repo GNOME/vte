@@ -122,6 +122,10 @@ enum ShellIntegrationMode {
                                         VTE_ATTR_BLINK_MASK | \
                                         VTE_ATTR_INVISIBLE_MASK)
 
+/* All SGR settable attributes */
+#define VTE_ATTR_ALL_SGR_MASK          (VTE_ATTR_ALL_MASK | \
+                                        VTE_ATTR_DIM_MASK)
+
 #define VTE_ATTR_NONE                  (0U)
 #define VTE_ATTR_DEFAULT               (VTE_ATTR_COLUMNS(1))
 
