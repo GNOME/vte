@@ -10803,6 +10803,7 @@ Terminal::reset(bool clear_tabstops,
         m_modes_ecma.reset();
         m_modes_private.clear_saved();
         m_modes_private.reset();
+        m_decsace_is_rectangle = false; // DECSACE defaults to STREAM
 
         /* Reset tabstops */
         if (clear_tabstops) {

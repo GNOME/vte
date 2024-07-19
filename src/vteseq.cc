@@ -4126,6 +4126,10 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
 
         switch (request.command()) {
 
+        case VTE_CMD_DECSACE:
+                return reply(seq, VTE_REPLY_DECRPSS, {1},
+                             {VTE_REPLY_DECSACE, {m_decsace_is_rectangle ? 2 : 0 /* or 1 */}});
+
         case VTE_CMD_DECSCUSR:
                 return reply(seq, VTE_REPLY_DECRPSS, {1}, {VTE_REPLY_DECSCUSR, {int(m_cursor_style)}});
 
@@ -4150,7 +4154,6 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
         case VTE_CMD_DECATC:
         case VTE_CMD_DECCRTST:
         case VTE_CMD_DECDLDA:
-        case VTE_CMD_DECSACE:
         case VTE_CMD_DECSASD:
         case VTE_CMD_DECSCA:
         case VTE_CMD_DECSCL:
@@ -4326,9 +4329,20 @@ Terminal::DECSACE(vte::parser::Sequence const& seq)
          *
          * References: DEC STD 070 page 5-177 f
          *             VT525
-         *
-         * Not worth implementing unless we implement all the rectangle functions.
          */
+
+        switch (seq.collect1(0)) {
+        case -1:
+        case 0:
+        case 1:
+                m_decsace_is_rectangle = false;
+                break;
+        case 2:
+                m_decsace_is_rectangle = true;
+                break;
+        default:
+                break;
+        }
 }
 
 void
