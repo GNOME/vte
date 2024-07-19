@@ -1283,7 +1283,10 @@ try
         // Note that the bottom and right parameters in @rect are inclusive.
 
         // If the pen will only write visual attrs, we don't need to cleanup
-        // fragments.
+        // fragments. However we do need to make sure it's not writing only
+        // the attrs for half a double-width character. If the pen does write
+        // character data, it may only write width 1 characters (unless this
+        // function is fixed to allow for that).
 
         auto visit_row = [&](auto rownum,
                              int left /* inclusive */,
@@ -1305,7 +1308,7 @@ try
                         if (!_vte_row_data_ensure_len(rowdata, right))
                                 return;
 
-                        _vte_row_data_fill(rowdata, &m_defaults, right + 1);
+                        _vte_row_data_fill(rowdata, &m_defaults, right);
                 } else {
                         if (!rowdata->len)
                                 return; // nothing to do
@@ -1318,14 +1321,25 @@ try
 
                 auto cell = &rowdata->cells[left];
                 if (as_rectangle) {
-                        for (auto col = left; col < right; ++col)
-                                pen(cell++);
+                        for (auto col = left; col < right; ++col, ++cell) {
+                                if (only_attrs &&
+                                    !cell->attr.fragment() &&
+                                    (col + int(cell->attr.columns()) > right)) [[unlikely]]
+                                        break;
+
+                                pen(cell);
+                        }
                 } else {
-                        for (auto col = left; col < right; ++col) {
+                        for (auto col = left; col < right; ++col, ++cell) {
                                 if (cell->c == 0) // erased? skip this cell
                                         continue;
 
-                                pen(cell++);
+                                if (only_attrs &&
+                                    !cell->attr.fragment() &&
+                                    (col + int(cell->attr.columns()) > right)) [[unlikely]] 
+                                        break;
+
+                                pen(cell);
                         }
                 }
         };
@@ -1339,8 +1353,11 @@ try
         } else { // as stream (see DECSACE)
                 auto row = m_screen->insert_delta + rect.top();
                 visit_row(row++, rect.left(), m_column_count);
-                for (; row < m_screen->insert_delta + rect.bottom(); ++row)
+                for (;
+                     row < m_screen->insert_delta + rect.bottom();
+                     ++row) {
                         visit_row(row, 0, m_column_count);
+                }
                 visit_row(row, 0, rect.right() + 1);
         }
 
