@@ -229,6 +229,7 @@ libvte_common_sources = color_sources + config_sources + debug_sources + glib_gl
   'osc-colors.cc',
   'reaper.cc',
   'reaper.hh',
+  'rect.hh',
   'ring.cc',
   'ring.hh',
   'ringview.cc',

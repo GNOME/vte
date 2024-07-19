@@ -934,39 +934,33 @@ Terminal::erase_image_rect(vte::grid::row_t rows,
 
 
 void
-Terminal::copy_rect(ParamRect source_rect,
-                    int dest_top,
-                    int dest_left) noexcept
+Terminal::copy_rect(grid_rect source_rect,
+                    grid_point dest) noexcept
 try
 {
-        // Note that @srect bottom/right is inclusive
-        // @source_rect, dest_top, dest_left are 0-based
-
         // Copies the rectangle of cells denoted by @source_rect to the
         // destination rect which is @source_rect translatecd to
         // dest_top, dest_left. If the destination rect is partially
         // off-screen, the operation is clipped.
+        //
+        // @source_rect is inclusive, @source_rect and @dest are 0-based
+        //
+        // @source_rect and @dest_dect must be entirely inside the screen.
 
-        if (dest_top >= m_row_count || dest_left >= m_column_count)
+        auto dest_rect = source_rect.clone().move_to(dest);
+        if (dest_rect.empty())
                 return;
 
-        auto const dest_bottom = std::min(dest_top + source_rect.bottom - source_rect.top,
-                                          int(m_row_count - 1));
-        auto const dest_right = std::min(dest_left + source_rect.right - source_rect.left,
-                                         int(m_column_count - 1));
-
-        if (dest_top > dest_bottom || dest_left > dest_right)
+        auto const screen_rect = grid_rect{0, 0, int(m_column_count) - 1, int(m_row_count) - 1};
+        if (!screen_rect.contains(source_rect) ||
+            !screen_rect.contains(dest_rect))
                 return;
 
-        // Clip source rect
-        source_rect.bottom = source_rect.top + dest_bottom - dest_top;
-        source_rect.right = source_rect.left + dest_right - dest_left;
-
-        auto const dest_width = dest_right - dest_left + 1;
+        auto const dest_width = dest_rect.right() - dest_rect.left() + 1;
 
         // Ensure all used rows exist
-        auto const first_row = std::min(source_rect.top, dest_top);
-        auto const last_row = std::max(source_rect.bottom, dest_bottom);
+        auto const first_row = std::min(source_rect.top(), dest_rect.top());
+        auto const last_row = std::max(source_rect.bottom(), dest_rect.bottom());
         auto new_rows = 0;
         for (auto row = first_row; row <= last_row; ++row) {
                 while (long(m_screen->row_data->next()) <= row) {
@@ -989,17 +983,17 @@ try
                 if (!srowdata)
                         return;
 
-                if (!_vte_row_data_ensure_len(srowdata, source_rect.right + 1))
+                if (!_vte_row_data_ensure_len(srowdata, source_rect.right() + 1))
                         return;
 
                 vec.clear();
-                auto col = source_rect.left;
+                auto col = source_rect.left();
                 if (auto cell = _vte_row_data_get(srowdata, col)) {
                         // there is at least some data in this row to copy
 
                         // If we start with a fragment, need to fill with defaults first
                         while (col < int(srowdata->len) &&
-                               col <= source_rect.right &&
+                               col <= source_rect.right() &&
                                cell->attr.fragment()) {
                                 vec.push_back(m_defaults);
                                 ++cell;
@@ -1008,7 +1002,7 @@ try
 
                         // Now copy non-fragment cells, if any
                         while (col < int(srowdata->len) &&
-                               col + int(cell->attr.columns()) <= source_rect.right + 1) {
+                               col + int(cell->attr.columns()) <= source_rect.right() + 1) {
                                 auto const cols = cell->attr.columns();
                                 for (auto j = 0u; j < cols; ++j)
                                         vec.push_back(*(cell++));
@@ -1018,7 +1012,7 @@ try
                 }
 
                 // Fill left-over space (if any) with erased default attributes
-                for (; col <= source_rect.right; ++col)
+                for (; col <= source_rect.right(); ++col)
                         vec.push_back(m_defaults);
 
                 assert(vec.size() == size_t(dest_width));
@@ -1027,32 +1021,33 @@ try
                 if (!drowdata)
                         return;
 
-                if (!_vte_row_data_ensure_len(drowdata, dest_right + 1))
+                if (!_vte_row_data_ensure_len(drowdata, dest_rect.right() + 1))
                         return;
 
-                cleanup_fragments(drowdata, drow, dest_left, dest_right + 1);
+                cleanup_fragments(drowdata, drow, dest_rect.left(), dest_rect.right() + 1);
                 _vte_row_data_fill_cells(drowdata,
-                                         dest_left,
+                                         dest_rect.left(),
                                          &m_defaults,
                                          vec.data(),
                                          vec.size());
         };
 
-        if (dest_top < source_rect.top ||
-            ((dest_top == source_rect.top) && (dest_left < source_rect.left))) {
+        if (dest_rect.top() < source_rect.top() ||
+            ((dest_rect.top() == source_rect.top()) &&
+             (dest_rect.left() < source_rect.left()))) {
                 // Copy from top to bottom and left-to-right
-                auto drow = m_screen->insert_delta + dest_top;
-                for (auto srow = m_screen->insert_delta + source_rect.top;
-                     srow <= m_screen->insert_delta + source_rect.bottom;
+                auto drow = m_screen->insert_delta + dest_rect.top();
+                for (auto srow = m_screen->insert_delta + source_rect.top();
+                     srow <= m_screen->insert_delta + source_rect.bottom();
                      ++srow, ++drow) {
                         copy_row(srow, drow);
                 }
         } else {
                 // Copy from bottom to top (would need to copy right-
                 // to-left if not using the buffer)
-                auto drow = m_screen->insert_delta + dest_bottom;
-                for (auto srow = m_screen->insert_delta + source_rect.bottom;
-                     srow >= m_screen->insert_delta + source_rect.top;
+                auto drow = m_screen->insert_delta + dest_rect.bottom();
+                for (auto srow = m_screen->insert_delta + source_rect.bottom();
+                     srow >= m_screen->insert_delta + source_rect.top();
                      --srow, --drow) {
                         copy_row(srow, drow);
                 }
@@ -1069,7 +1064,7 @@ catch (...)
 }
 
 void
-Terminal::fill_rect(ParamRect rect,
+Terminal::fill_rect(grid_rect rect,
                     char32_t c,
                     VteCellAttr attr) noexcept
 try
@@ -1083,7 +1078,7 @@ try
                 return; // ignore
 
         // Build an array of VteCell to copy to the rows
-        auto const rect_width = rect.right - rect.left + 1;
+        auto const rect_width = rect.right() - rect.left() + 1;
         auto vec = std::vector<VteCell>{};
         vec.reserve(rect_width);
 
@@ -1115,8 +1110,8 @@ try
 
         // Now copy the cells into the ring
 
-        for (auto row = m_screen->insert_delta + rect.top;
-             row <= m_screen->insert_delta + rect.bottom;
+        for (auto row = m_screen->insert_delta + rect.top();
+             row <= m_screen->insert_delta + rect.bottom();
              ++row) {
                 /* Find this row. */
                 while (long(m_screen->row_data->next()) <= row)
@@ -1126,9 +1121,9 @@ try
                 if (!rowdata)
                         continue;
 
-                cleanup_fragments(rowdata, row, rect.left, rect.right + 1);
+                cleanup_fragments(rowdata, row, rect.left(), rect.right() + 1);
                 _vte_row_data_fill_cells(rowdata,
-                                         rect.left,
+                                         rect.left(),
                                          &m_defaults,
                                          vec.data(),
                                          vec.size());
@@ -1147,7 +1142,7 @@ catch (...)
 
 template<class P>
 void
-Terminal::rewrite_rect(ParamRect rect,
+Terminal::rewrite_rect(grid_rect rect,
                        bool as_rectangle,
                        bool only_attrs,
                        P const& pen) noexcept
@@ -1184,18 +1179,18 @@ try
                         pen(cell++);
         };
 
-        if (as_rectangle || rect.top == rect.bottom) { // as rectangle
-                for (auto row = m_screen->insert_delta + rect.top;
-                     row <= m_screen->insert_delta + rect.bottom;
+        if (as_rectangle || rect.top() == rect.bottom()) { // as rectangle
+                for (auto row = m_screen->insert_delta + rect.top();
+                     row <= m_screen->insert_delta + rect.bottom();
                      ++row) {
-                        visit_row(row, rect.left, rect.right + 1);
+                        visit_row(row, rect.left(), rect.right() + 1);
                 }
         } else { // as stream (see DECSACE)
-                auto row = m_screen->insert_delta + rect.top;
-                visit_row(row++, rect.left, m_column_count);
-                for (; row < m_screen->insert_delta + rect.bottom; ++row)
+                auto row = m_screen->insert_delta + rect.top();
+                visit_row(row++, rect.left(), m_column_count);
+                for (; row < m_screen->insert_delta + rect.bottom(); ++row)
                         visit_row(row, 0, m_column_count);
-                visit_row(row, 0, rect.right + 1);
+                visit_row(row, 0, rect.right() + 1);
         }
 
         /* We modified the display, so make a note of it for completeness. */
@@ -2050,12 +2045,12 @@ catch (...)
 // and the number of columns for the right parameter.
 // Top must be less or equal to bottom, and left must be less or equal to right.
 //
-// Returns: the rectangle if these conditions are met, or nullopt otherwise
+// Returns: the (possibly empty) rectangle
 //
 // References: DEC STD 070 page 5-168 ff
 //             DEC VT525
 //
-std::optional<Terminal::ParamRect>
+vte::grid_rect
 Terminal::collect_rect(vte::parser::Sequence const& seq,
                        unsigned& idx) noexcept
 {
@@ -2069,22 +2064,21 @@ Terminal::collect_rect(vte::parser::Sequence const& seq,
         auto right = seq.collect1(idx, m_column_count, 1, m_column_count) - 1;
         idx = seq.next(idx);
 
+        auto rect = grid_rect{left, top, right, bottom};
         if (m_modes_private.DEC_ORIGIN()) {
-                top += m_scrolling_region.top();
-                bottom += m_scrolling_region.top();
-                left += m_scrolling_region.left();
-                right += m_scrolling_region.left();
-
-                top = std::min(top, m_scrolling_region.bottom());
-                left = std::min(left, m_scrolling_region.right());
-                bottom = std::min(bottom, m_scrolling_region.bottom());
-                right = std::min(right, m_scrolling_region.right());
+                // Translate to and intersect with the scrolling region
+                rect += m_scrolling_region.origin();
+                rect.intersect_or_extend(m_scrolling_region.as_rect());
         }
+        #if 0
+        // unnecessary since the coords were already clipped above
+        else {
+                // clip to the whole screen
+                rect &= grid_rect{0, 0, int(m_column_count) - 1, int(m_row_count) - 1};
+        }
+        #endif
 
-        if (top <= bottom && left <= right)
-                return std::make_optional<Terminal::ParamRect>(top, left, bottom, right);
-
-        return std::nullopt;
+        return rect;
 }
 
 /*
@@ -3043,7 +3037,7 @@ Terminal::DECALN(vte::parser::Sequence const& seq)
         m_modes_private.set_DEC_ORIGIN(false);
         home_cursor();
 
-        fill_rect({0, 0, int(m_row_count - 1), int(m_column_count - 1)},
+        fill_rect({0, 0, int(m_column_count) - 1, int(m_row_count) - 1},
                   U'E',
                   m_defaults.attr);
 }
@@ -3169,7 +3163,7 @@ Terminal::DECCARA(vte::parser::Sequence const& seq)
         if (!changes)
                 return; // nothing to do
 
-        rewrite_rect(*rect,
+        rewrite_rect(rect,
                      m_decsace_is_rectangle,
                      true, // only writing attrs
                      [&](VteCell* cell) constexpr noexcept -> void {
@@ -3220,36 +3214,46 @@ Terminal::DECCRA(vte::parser::Sequence const& seq)
          * These coordinates are interpreted according to origin mode (DECOM).
          * Current SGR defaults and cursor position are unchanged.
          *
+         * If a page value is greater than the number of available pages,
+         * it is treated as the last page (instead of ignoring the whole
+         * function).
+         *
          * References: DEC STD 070 page 5-169
          *             VT525
          */
 
         auto idx = 0u;
-        auto const source_rect = collect_rect(seq, idx);
+        auto source_rect = collect_rect(seq, idx);
         if (!source_rect)
                 return;
 
-        auto const source_page = seq.collect1(idx, 1);
+        // auto const source_page = seq.collect1(idx, 1);
         idx = seq.next(idx);
-        if (source_page != 1)
-                return; // vte only has one page
 
-        auto dest_top = seq.collect1(idx, 1, 1, 65535) - 1;
+        auto dest_top = seq.collect1(idx, 1, 1, int(m_row_count)) - 1;
         idx = seq.next(idx);
-        auto dest_left = seq.collect1(idx, 1, 1, 65535) - 1;
+        auto dest_left = seq.collect1(idx, 1, 1, int(m_column_count)) - 1;
         idx = seq.next(idx);
+
+        // auto const dest_page = seq.collect1(idx, 1);
 
         // dest is subject to origin mode
+        auto dest = grid_point{dest_left, dest_top};
         if (m_modes_private.DEC_ORIGIN()) {
-                dest_top += m_scrolling_region.top();
-                dest_left += m_scrolling_region.left();
+                dest += m_scrolling_region.origin();
         }
 
-        auto const dest_page = seq.collect1(idx, 1);
-        if (dest_page != 1)
-                return;
+        // Calculate the destination rect by first moving @source_rect to
+        // @dest then intersecting with the scrolling region (in origin mode)
+        // or clamping to the whole screen (when not in origin mode)
+        auto dest_rect = source_rect.clone().move_to(dest);
+        if (m_modes_private.DEC_ORIGIN()) {
+                dest_rect.intersect_or_extend(m_scrolling_region.as_rect());
+        } else {
+                dest_rect &= grid_rect{0, 0, int(m_column_count - 1), int(m_row_count - 1)};
+        }
 
-        copy_rect(*source_rect, dest_top, dest_left);
+        copy_rect(source_rect.size_to(dest_rect), dest_rect.topleft());
 }
 
 void
@@ -3471,7 +3475,7 @@ Terminal::DECERA(vte::parser::Sequence const& seq)
 
         // Like in other erase operations, only use the colours not the other attrs
         auto const erased_cell = m_color_defaults;
-        rewrite_rect(*rect,
+        rewrite_rect(rect,
                      true, // as rectangle
                      false, // not only writing attrs
                      [&](VteCell* cell) constexpr noexcept -> void {
@@ -3640,7 +3644,7 @@ Terminal::DECFRA(vte::parser::Sequence const& seq)
                 return; // ignore
 
         // Charset invocation applies to the fill character
-        fill_rect(*rect,
+        fill_rect(rect,
                   character_replacement(c),
                   m_defaults.attr);
 }
@@ -3983,7 +3987,7 @@ Terminal::DECRARA(vte::parser::Sequence const& seq)
                 return; // nothing to do
 
         changes.normalise();
-        rewrite_rect(*rect,
+        rewrite_rect(rect,
                      m_decsace_is_rectangle,
                      true, // only writing attrs
                      [&](VteCell* cell) constexpr noexcept -> void {
@@ -4162,10 +4166,7 @@ Terminal::DECRQCRA(vte::parser::Sequence const& seq)
 
         auto checksum = 0u;
         if (auto rect = collect_rect(seq, idx))
-                checksum = checksum_area(rect->top + m_screen->insert_delta,
-                                         rect->left,
-                                         rect->bottom + m_screen->insert_delta,
-                                         rect->right + 1);
+                checksum = checksum_area(rect);
         else
                 checksum = 0; /* empty area */
 
@@ -4957,7 +4958,7 @@ Terminal::DECSERA(vte::parser::Sequence const& seq)
         if (!rect)
                 return; // ignore
 
-        rewrite_rect(*rect,
+        rewrite_rect(rect,
                      true, // as rectangle
                      false, // not only writing attrs
                      [&](VteCell* cell) constexpr noexcept -> void {
