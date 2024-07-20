@@ -1101,9 +1101,6 @@ try
                 }
         }
 
-        if (new_rows)
-                adjust_adjustments();
-
         // Buffer to simplify copying when source and dest overlap
         auto vec = std::vector<VteCell>{};
         vec.reserve(dest_width);
@@ -1188,6 +1185,9 @@ try
         /* We modified the display, so make a note of it for completeness. */
         m_text_modified_flag = true;
 
+        if (new_rows)
+                adjust_adjustments();
+
         emit_text_modified();
         invalidate_all();
 }
@@ -1251,9 +1251,6 @@ try
                 }
         }
 
-        if (new_rows)
-                adjust_adjustments();
-
         // Now copy the cells into the ring
 
         for (auto row = m_screen->insert_delta + rect.top();
@@ -1273,6 +1270,9 @@ try
 
         /* We modified the display, so make a note of it for completeness. */
         m_text_modified_flag = true;
+
+        if (new_rows)
+                adjust_adjustments();
 
         emit_text_modified();
         invalidate_all();
@@ -1303,9 +1303,6 @@ try
                         ++new_rows;
                 }
         }
-
-        if (new_rows)
-                adjust_adjustments();
 
         // If the pen will only write visual attrs, we don't need to cleanup
         // fragments. However we do need to make sure it's not writing only
@@ -1384,6 +1381,9 @@ try
 
         /* We modified the display, so make a note of it for completeness. */
         m_text_modified_flag = true;
+
+        if (new_rows)
+                adjust_adjustments();
 
         emit_text_modified();
         invalidate_all();
