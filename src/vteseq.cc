@@ -1345,7 +1345,15 @@ try
                                     (col + int(cell->attr.columns()) > right)) [[unlikely]]
                                         break;
 
+                                // When not writing character content, need to
+                                // occupy erased cells.
+                                if (cell->c == 0 && only_attrs) {
+                                        cell->c = ' '; // SPACE
+                                        cell->attr.set_fragment(false);
+                                }
+
                                 pen(cell);
+
                         }
                 } else {
                         for (auto col = left; col < right; ++col, ++cell) {
@@ -1354,7 +1362,7 @@ try
 
                                 if (only_attrs &&
                                     !cell->attr.fragment() &&
-                                    (col + int(cell->attr.columns()) > right)) [[unlikely]] 
+                                    (col + int(cell->attr.columns()) > right)) [[unlikely]]
                                         break;
 
                                 pen(cell);
