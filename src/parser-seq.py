@@ -581,6 +581,8 @@ sequences = [
             comment='xterm initiate highlight mouse tracking'),
     seq_CSI('DTA', 'T', intermediates=(Intermediate.SPACE,), flags=Flags.NOP,
             comment='dimension text area'),
+    seq_CSI('MINTTY_SD', 'T', intermediates=(Intermediate.PLUS,), flags=Flags.NOP,
+            comment='mintty unscroll'),
     seq_CSI('XTERM_RTM', 'T', pintro=(ParameterIntro.GT,), flags=Flags.NOP,
             comment='xterm reset title mode'),
     seq_CSI('NP', 'U', flags=Flags.NOP,

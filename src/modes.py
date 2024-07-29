@@ -50,6 +50,7 @@ class Source(enum.Enum):
     WYSE     = enum.auto()
     XDG      = enum.auto()
     XTERM    = enum.auto()
+    UNDET    = enum.auto()
 
     @classmethod
     def from_name(cls, name):
@@ -80,7 +81,7 @@ class Source(enum.Enum):
         elif name.startswith('XTERM'):
             return cls.XTERM
         else:
-            return cls.ECMA48
+            return cls.UNDET
             #raise ValueError(f'Could not determine source for mode {name}')
 
 # Control Sequence
@@ -1240,6 +1241,11 @@ modes = [
 
     mode_WHAT('XTERM_READLINE_PASTE_QUOTE', 2005, default=False),
     mode_WHAT('XTERM_READLINE_PASTE_LITERAL_NL', 2006, default=False),
+
+    # In-band resize notifications,
+    #
+    # References: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
+    mode_WHAT('UNDET_IRN', 2048, default=False),
 
     # ************************************************************************
 
