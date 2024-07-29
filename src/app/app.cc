@@ -92,6 +92,7 @@ public:
         gboolean icon_title{false};
         gboolean keep{false};
         gboolean kinetic_scrolling{true};
+        gboolean legacy_osc777{false};
         gboolean object_notifications{false};
         gboolean overlay_scrollbar{false};
         gboolean pty{true};
@@ -1193,6 +1194,10 @@ public:
                                 0, &kinetic_scrolling,
                                 "Enable kinetic scrolling",
                                 "Disable kinetic scrolling");
+                add_bool_option("legacy-osc777", 0, "no-legacy-osc777", 0,
+                                0, &legacy_osc777,
+                                "Enable legacy OSC 777 sequences",
+                                "Disable legacy OSC 777 sequences");
                 add_bool_option("pty", 0, "no-pty", 0,
                                 0, &pty,
                                 "Enable PTY creation with --no-shell",
@@ -2163,8 +2168,6 @@ vteapp_terminal_init(VteappTerminal *terminal)
         if (options.background_pixbuf != nullptr)
                 vte_terminal_set_clear_background(VTE_TERMINAL(terminal), false);
 #endif /* VTE_GTK == 3 */
-
-        vte_terminal_set_enable_legacy_osc777(VTE_TERMINAL(terminal), true);
 }
 
 static GtkWidget *
@@ -3363,6 +3366,7 @@ vteapp_window_constructed(GObject *object)
         vte_terminal_set_enable_shaping(window->terminal, options.shaping);
         vte_terminal_set_enable_sixel(window->terminal, options.sixel);
         vte_terminal_set_enable_fallback_scrolling(window->terminal, options.fallback_scrolling);
+        vte_terminal_set_enable_legacy_osc777(window->terminal, options.legacy_osc777);
         vte_terminal_set_mouse_autohide(window->terminal, true);
         vte_terminal_set_rewrap_on_resize(window->terminal, options.rewrap);
         vte_terminal_set_scroll_on_insert(window->terminal, options.scroll_on_insert);

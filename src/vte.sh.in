@@ -28,8 +28,26 @@ case "$TERM" in
     *) return 0 ;;
 esac
 
+__vte_signal_termprop() {
+    printf "\033]666;%s\!\033\\" "$1"
+}
+
+__vte_set_termprop() {
+    printf "\033]666;%s=%s\033\\" "$1" "$2"
+}
+
+__vte_reset_termprop() {
+    printf "\033]666;%s\033\\" "$1"
+}
+
 __vte_osc7 () {
     printf "\033]7;file://%s%s\033\\" "${HOSTNAME}" "$(@libexecdir@/vte-urlencode-cwd)"
+}
+
+__vte_shell_precmd() {
+    local command=$(HISTTIMEFORMAT= history 1 | sed 's/^ *[0-9]\+ *//')
+    command="${command//;/ }"
+    printf '\033]777;notify;Command completed;%s\033\\\033]777;precmd\033\\' "${command}"
 }
 
 __vte_prompt_command() {
@@ -37,6 +55,7 @@ __vte_prompt_command() {
     [ "$PWD" != "$HOME" ] && pwd=${PWD/#$HOME\//\~\/}
     pwd="${pwd//[[:cntrl:]]}"
     printf "\033]0;%s@%s:%s\033\\" "${USER}" "${HOSTNAME%%.*}" "${pwd}"
+    __vte_shell_precmd
     __vte_osc7
 }
 
@@ -49,9 +68,12 @@ if [[ -n "${BASH_VERSION:-}" ]]; then
     # use the __vte_prompt_command function which also sets the title.
 
     if [[ "$(declare -p PROMPT_COMMAND 2>&1)" =~ "declare -a" ]]; then
+	PROMPT_COMMAND+=(__vte_shell_precmd)
 	PROMPT_COMMAND+=(__vte_osc7)
+	PS0=$(printf "\033]777;preexec\033\\")
     else
 	PROMPT_COMMAND="__vte_prompt_command"
+	PS0=$(printf "\033]777;preexec\033\\")
     fi
 
     # Shell integration
