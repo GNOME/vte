@@ -766,6 +766,15 @@ public:
                 return vte::terminal::get_termprop_info(id);
         }
 
+        auto get_termprop_info_checked(int id) const
+        {
+                auto const info = vte::terminal::get_termprop_info(id);
+
+                return info &&
+                        (!(unsigned(info->flags()) & unsigned(vte::terminal::TermpropFlags::EPHEMERAL)) ||
+                         m_in_termprops_changed_emission) ? info : nullptr;
+        }
+
         auto get_termprop(vte::terminal::TermpropInfo const& info) const
         {
                 return terminal()->get_termprop(info);
@@ -857,6 +866,7 @@ private:
         bool m_yfill{true};
 
         bool m_no_legacy_signals{false};
+        bool m_in_termprops_changed_emission{false};
 
 #if VTE_GTK == 4
         GdkToplevelState m_root_surface_state{GdkToplevelState(0)};

@@ -10995,14 +10995,32 @@ Terminal::emit_pending_signals()
                 auto changed_props = g_newa(int, n_props);
 
                 auto n_changed_props = 0;
+                auto any_ephemeral = false;
                 for (auto i = 0u; i < n_props; ++i) {
-                        if (m_termprops_dirty[i])
+                        if (m_termprops_dirty[i]) {
                                 changed_props[n_changed_props++] = int(i);
 
-                        m_termprops_dirty[i] = false;
+                                if (unsigned(get_termprop_info(i)->flags()) &
+                                    unsigned(vte::terminal::TermpropFlags::EPHEMERAL)) {
+                                        any_ephemeral = true;
+                                } else {
+                                        m_termprops_dirty[i] = false;
+                                }
+                        }
                 }
 
                 widget()->notify_termprops_changed(changed_props, n_changed_props);
+
+                // If there was (at least) an epehmeral termprop in this set,
+                // reset its value(s).
+                if (any_ephemeral) {
+                        for (auto i = 0u; i < n_props; ++i) {
+                                if (m_termprops_dirty[i]) {
+                                        m_termprop_values[i] = {};
+                                        m_termprops_dirty[i] = false;
+                                }
+                        }
+                }
         }
 
         if (!m_no_legacy_signals) {

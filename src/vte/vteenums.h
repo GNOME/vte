@@ -235,13 +235,15 @@ typedef enum /*< flags >*/ {
 /**
  * VtePropertyFlags:
  * @VTE_PROPERTY_FLAG_NONE: no flags, default
+ * @VTE_PROPERTY_FLAG_EPHEMERAL: denotes an ephemeral termprop
  *
  * A flags type.
  *
  * Since: 0.78
  */
 typedef enum /*< flags >*/ {
-        VTE_PROPERTY_FLAG_NONE = 0,
+        VTE_PROPERTY_FLAG_NONE = 0u,
+        VTE_PROPERTY_FLAG_EPHEMERAL = 1u << 0,
 } VtePropertyFlags;
 
 /**

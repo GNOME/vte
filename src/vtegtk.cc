@@ -3088,9 +3088,22 @@ vte_terminal_class_init(VteTerminalClass *klass)
  * will always deliver the current value, even if no change notification
  * for it has been dispatched yet.
  *
- * Note that when setting the value of a termprop to the same value it already
- * had, or resetting a termprop that already had no value, it is unspecified
- * whether a change notification for that termprop is emitted.
+ * Also note that when setting the value of a termprop to the same value it
+ * already had, or resetting a termprop that already had no value, vte tries
+ * to avoid emitting an unnecessary change notification for that termprop;
+ * however that is not an API guarantee.
+ *
+ * All change notifications for termprops changed from a single OSC sequence
+ * are emitted at the same time; notifications for termprop changes from
+ * a series of OSC sequences may or may not be emitted at the same time.
+ *
+ * An termprop installed with the %VTE_PROPERTY_FLAG_EPHEMERAL is called an
+ * ephemeral termprop. Ephemeral termprops can be set and reset using the
+ * same OSC sequences as other termprops; the only difference is that their
+ * values can only be observed during the emission of the
+ * #VteTerminal:termprops-changed and #VteTerminal:termprop-changed signals
+ * that follow them changing their value, and their values will be reset
+ * after the signal emission.
  *
  * The OSC sequence to change termprop values has the following syntax:
  * ```
@@ -3224,7 +3237,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
  * arbitrary file data, clipboard data, as a general free-form protocol,
  * or for textual user notifications.  Also you must never feed the data
  * received, or any derivation thereof, back to the terminal, in full or
- * in part.
+ * in part. Also note that %VTE_TERMPROP_STRING and %VTE_TERMPROP_DATA
+ * termprops must not to be used when the data fits one of th other
+ * termprop types (e.g. a string termprop may not be used for a number).
  *
  * If you do perform any further parsing on the contents of a termprop value,
  * you must do so in the strictest way possible, and treat any errors by
@@ -3280,7 +3295,8 @@ try
 {
         g_return_val_if_fail(name, -1);
         g_return_val_if_fail(check_enum_value(type), -1);
-        g_return_val_if_fail(flags == VTE_PROPERTY_FLAG_NONE, -1);
+        g_return_val_if_fail(flags == VTE_PROPERTY_FLAG_NONE ||
+                             flags == VTE_PROPERTY_FLAG_EPHEMERAL, -1);
 
         auto const itype = vte::terminal::TermpropType(type);
         auto const iflags = vte::terminal::TermpropFlags(flags);
@@ -8396,7 +8412,7 @@ try
         g_return_val_if_fail(prop >= 0, false);
 
         auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info(prop);
+        auto const info = widget->get_termprop_info_checked(prop);
         if (!info) {
                 if (valuep) [[likely]]
                         *valuep = false;
@@ -8472,7 +8488,7 @@ try
         g_return_val_if_fail(prop >= 0, false);
 
         auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info(prop);
+        auto const info = widget->get_termprop_info_checked(prop);
         if (!info) {
                 if (valuep) [[likely]]
                         *valuep = 0;
@@ -8553,7 +8569,7 @@ try
         g_return_val_if_fail(prop >= 0, false);
 
         auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info(prop);
+        auto const info = widget->get_termprop_info_checked(prop);
         if (!info) {
                 if (valuep) [[likely]]
                         *valuep = 0;
@@ -8634,7 +8650,7 @@ try
         g_return_val_if_fail(prop >= 0, false);
 
         auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info(prop);
+        auto const info = widget->get_termprop_info_checked(prop);
         if (!info) {
                 if (valuep) [[likely]]
                         *valuep = 0.0;
@@ -8711,7 +8727,7 @@ try
         g_return_val_if_fail(prop >= 0, false);
 
         auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info(prop);
+        auto const info = widget->get_termprop_info_checked(prop);
         if (!info)
                 return false;
 
@@ -8792,7 +8808,7 @@ try
                 *size = 0;
 
         auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info(prop);
+        auto const info = widget->get_termprop_info_checked(prop);
         if (!info)
                 return nullptr;
 
@@ -8865,7 +8881,7 @@ try
         g_return_val_if_fail(prop >= 0, nullptr);
 
         auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info(prop);
+        auto const info = widget->get_termprop_info_checked(prop);
         if (!info)
                 return nullptr;
 
@@ -8939,7 +8955,7 @@ try
         g_return_val_if_fail(size != nullptr, nullptr);
 
         auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info(prop);
+        auto const info = widget->get_termprop_info_checked(prop);
         if (!info)
                 return nullptr;
 
@@ -9010,7 +9026,7 @@ try
         g_return_val_if_fail(prop >= 0, nullptr);
 
         auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info(prop);
+        auto const info = widget->get_termprop_info_checked(prop);
         if (!info)
                 return nullptr;
 
@@ -9074,7 +9090,7 @@ try
         g_return_val_if_fail(prop >= 0, nullptr);
 
         auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info(prop);
+        auto const info = widget->get_termprop_info_checked(prop);
         if (!info)
                 return nullptr;
 
@@ -9137,7 +9153,7 @@ try
         g_return_val_if_fail(prop >= 0, nullptr);
 
         auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info(prop);
+        auto const info = widget->get_termprop_info_checked(prop);
         if (!info)
                 return nullptr;
 
@@ -9203,7 +9219,7 @@ try
         g_return_val_if_fail(prop >= 0, false);
 
         auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info(prop);
+        auto const info = widget->get_termprop_info_checked(prop);
         if (!info || info->type() == vte::terminal::TermpropType::VALUELESS)
                 return false;
 
@@ -9369,7 +9385,7 @@ try
         g_return_val_if_fail(prop >= 0, nullptr);
 
         auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info(prop);
+        auto const info = widget->get_termprop_info_checked(prop);
         if (!info || info->type() == vte::terminal::TermpropType::VALUELESS)
                 return nullptr;
 

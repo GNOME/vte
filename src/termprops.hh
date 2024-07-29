@@ -57,8 +57,12 @@ enum class TermpropType {
 };
 
 enum class TermpropFlags {
+        // public
         NONE = 0u,
-        NO_OSC = 1u << 0, // not settable via the termprop OSC
+        EPHEMERAL = 1u << 0,
+
+        // private
+        NO_OSC = 1u << 1, // not settable via the termprop OSC
 };
 
 class TermpropInfo {
