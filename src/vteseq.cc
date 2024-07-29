@@ -3871,12 +3871,25 @@ Terminal::DECRQDE(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQDE - request-display-extent
-         * Request how much of the curren tpage is shown on screen.
+         * Request how much of the current page is shown on screen.
          *
-         * References: VT525
+         * Reply: DECRPDE
+         *   Arguments:
+         *     args[0]: the number of lines of page memory being displayed
+         *     args[1]: the number of columns of page memory being displayed
+         *     args[2]: the first column being displayed
+         *     args[3]: the first line being displayed
+         *     args[4]: the page being displayed
          *
-         * Probably not worth implementing.
+         * References: DEC STD 070 p5–88
+         *             VT525
          */
+
+        reply(seq, VTE_REPLY_DECRPDE, {int(m_row_count),
+                                       int(m_column_count),
+                                       1, // column
+                                       1, // row
+                                       1}); // page
 }
 
 void
