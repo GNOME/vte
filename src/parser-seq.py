@@ -821,10 +821,12 @@ sequences = [
     seq_CSI('DECCRA', 'v', intermediates=(Intermediate.CASH,), flags=Flags.NOP,
             comment='copy rectangular area'),
     seq_CSI('DECRPKT', 'v', intermediates=(Intermediate.COMMA,), flags=Flags.NOP,
+            direction = Direction.TTH,
             comment='report key type'),
     seq_CSI('WYCAA', 'w', flags=Flags.NOP,
             comment='redefine character display attribute association'),
     seq_CSI('DECRPDE', 'w', intermediates=(Intermediate.DQUOTE,), flags=Flags.NOP,
+            direction = Direction.TTH,
             comment='report displayed extent'),
     seq_CSI('DECRQPSR', 'w', intermediates=(Intermediate.CASH,),
             comment='request presentation state report'),
@@ -898,7 +900,7 @@ sequences = [
             comment='insert column'),
     seq_CSI('DECATC', '}', intermediates=(Intermediate.COMMA,), flags=Flags.NOP,
             comment='alternate text color'),
-    seq_CSI('DECFNK', '~', direction=Direction.TTH, flags=Flags.NOP,
+    seq_CSI('DECFNK', '~', direction=Direction.BIDI, flags=Flags.NOP,
             comment='dec function key / XTERM bracketed paste'),
     seq_CSI('DECTME', '~', intermediates=(Intermediate.SPACE,), flags=Flags.NOP,
             comment='terminal mode emulation'),
@@ -961,8 +963,10 @@ sequences = [
     seq_DCS('WYLSFNT', '}', flags=Flags.NOP,
             comment='load soft font'),
     seq_DCS('DECRPFK', '}', intermediates=(Intermediate.DQUOTE,), flags=Flags.NOP,
+            direction=Direction.TTH,
             comment='report function key definition'),
     seq_DCS('DECRPAK', '~', intermediates=(Intermediate.DQUOTE,), flags=Flags.NOP,
+            direction=Direction.TTH,
             comment='report all modifier/alphanumeric key state'),
 
     # SCI sequences
@@ -992,7 +996,7 @@ def get_sequences(predicate):
     return result
 
 '''
-Returns: Dict[str, Tuple[str, str]] mapping command name to (comment, flags)
+Returns: Dict[str, Tuple[Flags, Direction, str]] mapping command name to (flags, direction, comment)
 '''
 def get_commands(predicate):
     cmds={}
@@ -1002,14 +1006,16 @@ def get_commands(predicate):
         seq_list = all_seqs[_seq]
         for seq in seq_list:
             if seq.name in cmds:
-                flags, comment = cmds[seq.name]
+                flags, direction, comment = cmds[seq.name]
 
                 if flags != seq.flags:
                     raise ValueError(f'{seq.name} flags inconsistent: {seq.flags} vs {flags}')
+                if direction != seq.direction:
+                    raise ValueError(f'{seq.name} direction inconsistent: {seq.direction} vs {direction}')
                 if comment != seq.comment:
                     raise ValueError(f'{seq.name} comment inconsistent: {seq.comment} vs {comment}')
 
-            cmds[seq.name]=(seq.flags, seq.comment)
+            cmds[seq.name]=(seq.flags, seq.direction, seq.comment)
 
         # Add an extra entry for the disambiguation command
         if len(seq_list) > 1:
@@ -1019,6 +1025,7 @@ def get_commands(predicate):
             or_comment=' or '.join(tuple([seq.comment for seq in sorted_seqs]))
 
             or_flags=None
+            or_direction=Direction.HTT
             for seq in sorted_seqs:
                 flags=seq.flags
                 if flags is None or or_flags is None:
@@ -1026,7 +1033,9 @@ def get_commands(predicate):
                 else:
                     or_flags &= flags
 
-            cmds[or_name] = (or_flags, or_comment)
+                or_direction |= seq.direction
+
+            cmds[or_name] = (or_flags, or_direction, or_comment)
 
     return cmds
 
@@ -1058,8 +1067,9 @@ def get_seqs(predicate):
             name=seq_list[0].name
             comment=seq_list[0].comment
             flags=seq_list[0].flags
+            direction=seq_list[0].direction
 
-        seqs[seq] = (seq.stype, name, seq.final, seq.pintro, seq.intermediates, flags, comment)
+        seqs[seq] = (seq.stype, name, seq.final, seq.pintro, seq.intermediates, flags, direction, comment)
 
     return seqs
 
@@ -1089,7 +1099,7 @@ def write_header(outfile):
 
 
 ''' Write sequences '''
-def write_seqs(output, stype):
+def write_seqs(output, stype, sdir=Direction.HTT):
     outfile = open(output.as_posix(), 'w')
     write_header(outfile)
     outfile.write('''
@@ -1120,7 +1130,7 @@ def write_seqs(output, stype):
 
     seqs = get_seqs(lambda seq: seq.stype == stype)
     for seq in seqs:
-        stype, name, final, pintro, intermediates, flags, comment = seqs[seq]
+        stype, name, final, pintro, intermediates, flags, direction, comment = seqs[seq]
 
         if len(intermediates) > 2:
             raise ValueError('{name} has too many intermediates')
@@ -1138,6 +1148,9 @@ def write_seqs(output, stype):
             macro = '_VTE_NOQ'
         else:
             macro = '_VTE_SEQ'
+
+        if not direction & sdir:
+            continue
 
         outfile.write(f'{macro}('
                       f'{name}, '
@@ -1169,7 +1182,10 @@ _VTE_CMD(GRAPHIC) /* graphics character */
 
     cmds = get_commands(lambda seq: True)
     for name in sorted(cmds):
-        flags, comment = cmds[name]
+        flags, direction, comment = cmds[name]
+        if not direction & Direction.HTT:
+            continue
+
         if flags is None or not (flags & Flags.NOP):
             if comment is not None:
                 outfile.write(f'_VTE_CMD({name}) /* {comment} */\n')
@@ -1178,7 +1194,10 @@ _VTE_CMD(GRAPHIC) /* graphics character */
 
     outfile.write('/* Unimplemented in VTE: */\n')
     for name in sorted(cmds):
-        flags, comment = cmds[name]
+        flags, direction, comment = cmds[name]
+        if not direction & Direction.HTT:
+            continue
+
         if flags is not None and flags & Flags.NOP:
             if comment is not None:
                 outfile.write(f'_VTE_NOP({name}) /* {comment} */\n')
@@ -1214,7 +1233,9 @@ _VTE_CMD_HANDLER(GRAPHIC) /* graphics character */
 
     cmds = get_commands(lambda seq: True)
     for name in sorted(cmds):
-        flags, comment = cmds[name]
+        flags, direction, comment = cmds[name]
+        if not direction & Direction.HTT:
+            continue
         if comment is not None:
             outfile.write(f'{cmd_handler_macro(flags)}({name}) /* {comment} */\n')
         else:
