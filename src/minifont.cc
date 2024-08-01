@@ -225,6 +225,86 @@ static unsigned char const checkerboard_reverse_pattern_data[16] = {
         0xff, 0xff, 0x00, 0x00,
 };
 
+// U+1FB97 HEAVY HORIZONTAL FILL
+static unsigned char const heavy_horizontal_fill_pattern_data[16] = {
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff,
+};
+
+// U+1CC40 SPARSE HORIZONTAL FILL
+static unsigned char const sparse_horizontal_fill_pattern_data[16] = {
+        0x00, 0x00, 0x00, 0x00,
+        0xff, 0xff, 0xff, 0xff,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+};
+
+// U+1CC41 SPARSE VERTICAL FILL
+static unsigned char const sparse_vertical_fill_pattern_data[16] = {
+        0x00, 0xff, 0x00, 0x00,
+        0x00, 0xff, 0x00, 0x00,
+        0x00, 0xff, 0x00, 0x00,
+        0x00, 0xff, 0x00, 0x00,
+};
+
+// U+1CC42 ORTHOGONAL CROSSHATCH FILL
+static unsigned char const orthogonal_crosshatch_fill_pattern_data[16] = {
+        0xff, 0x00, 0xff, 0x00,
+        0x00, 0xff, 0x00, 0x00,
+        0xff, 0x00, 0xff, 0x00,
+        0x00, 0x00, 0x00, 0xff,
+};
+
+// U+1CC43 DIAGONAL CROSSHATCH FILL
+static unsigned char const diagonal_crosshatch_fill_pattern_data[16] = {
+        0xff, 0x00, 0xff, 0x00,
+        0x00, 0xff, 0x00, 0x00,
+        0xff, 0xff, 0xff, 0x00,
+        0x00, 0xff, 0x00, 0xff,
+};
+
+// U+1CC44 DENSE VERTICAL FILL
+static unsigned char const dense_vertical_fill_pattern_data[16] = {
+        0x00, 0xff, 0x00, 0xff,
+        0x00, 0xff, 0x00, 0xff,
+        0x00, 0xff, 0x00, 0xff,
+        0x00, 0xff, 0x00, 0xff,
+};
+
+// U+1CC45 DENSE HORIZONTAL FILL
+static unsigned char const dense_horizontal_fill_pattern_data[16] = {
+        0x00, 0x00, 0x00, 0x00,
+        0xff, 0xff, 0xff, 0xff,
+        0x00, 0x00, 0x00, 0x00,
+        0xff, 0xff, 0xff, 0xff,
+};
+
+// U+1CC46 SPECKLE FILL FRAME-1
+static unsigned char const speckle_frame1_fill_pattern_data[64] = {
+        0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00,
+        0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00,
+        0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xff, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff,
+};
+
+// U+1CC47 SPECKLE FILL FRAME-2
+static unsigned char const speckle_frame2_fill_pattern_data[64] = {
+        0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+        0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00,
+        0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff,
+};
+
 #define DEFINE_STATIC_PATTERN_FUNC(name,data,width,height,stride) \
 static cairo_pattern_t* \
 name(void) \
@@ -251,6 +331,15 @@ DEFINE_STATIC_PATTERN_FUNC(create_hatching_pattern_lr, hatching_pattern_lr_data,
 DEFINE_STATIC_PATTERN_FUNC(create_hatching_pattern_rl, hatching_pattern_rl_data, 4, 4, 4)
 DEFINE_STATIC_PATTERN_FUNC(create_checkerboard_pattern, checkerboard_pattern_data, 4, 4, 4)
 DEFINE_STATIC_PATTERN_FUNC(create_checkerboard_reverse_pattern, checkerboard_reverse_pattern_data, 4, 4, 4)
+DEFINE_STATIC_PATTERN_FUNC(create_heavy_horizontal_fill_pattern, heavy_horizontal_fill_pattern_data, 4, 4, 4)
+DEFINE_STATIC_PATTERN_FUNC(create_sparse_horizontal_fill_pattern, sparse_horizontal_fill_pattern_data, 4, 4, 4)
+DEFINE_STATIC_PATTERN_FUNC(create_sparse_vertical_fill_pattern, sparse_vertical_fill_pattern_data, 4, 4, 4)
+DEFINE_STATIC_PATTERN_FUNC(create_orthogonal_crosshatch_fill_pattern, orthogonal_crosshatch_fill_pattern_data, 4, 4, 4)
+DEFINE_STATIC_PATTERN_FUNC(create_diagonal_crosshatch_fill_pattern, diagonal_crosshatch_fill_pattern_data, 4, 4, 4)
+DEFINE_STATIC_PATTERN_FUNC(create_dense_vertical_fill_pattern, dense_vertical_fill_pattern_data, 4, 4, 4)
+DEFINE_STATIC_PATTERN_FUNC(create_dense_horizontal_fill_pattern, dense_horizontal_fill_pattern_data, 4, 4, 4)
+DEFINE_STATIC_PATTERN_FUNC(create_speckle_frame1_fill_pattern, speckle_frame1_fill_pattern_data, 8, 8, 8)
+DEFINE_STATIC_PATTERN_FUNC(create_speckle_frame2_fill_pattern, speckle_frame2_fill_pattern_data, 8, 8, 8)
 
 #undef DEFINE_STATIC_PATTERN_FUNC
 
@@ -1791,8 +1880,7 @@ Minifont::draw_graphic(cairo_t* cr,
                 break;
 
         case 0x1fb97:
-                rectangle(cr, x, y, width, height, 1, 4,  0, 1,  1, 2);
-                rectangle(cr, x, y, width, height, 1, 4,  0, 3,  1, 4);
+                pattern(cr, create_heavy_horizontal_fill_pattern(), x, y, width, height);
                 break;
 
         case 0x1fb98:
@@ -2359,6 +2447,31 @@ Minifont::draw_graphic(cairo_t* cr,
                                2 - (v & 0x3), 2 - (v >> 2), 1);
                 break;
         }
+
+        case 0x1cc40: // U+1CC40 SPARSE HORIZONTAL FILL
+                pattern(cr, create_sparse_horizontal_fill_pattern(), x, y, width, height);
+                break;
+        case 0x1cc41: // U+1CC41 SPARSE VERTICAL FILL
+                pattern(cr, create_sparse_vertical_fill_pattern(), x, y, width, height);
+                break;
+        case 0x1cc42: // U+1CC42 ORTHOGONAL CROSSHATCH FILL
+                pattern(cr, create_orthogonal_crosshatch_fill_pattern(), x, y, width, height);
+                break;
+        case 0x1cc43: // U+1CC43 DIAGONAL CROSSHATCH FILL
+                pattern(cr, create_diagonal_crosshatch_fill_pattern(), x, y, width, height);
+                break;
+        case 0x1cc44: // U+1CC44 DENSE VERTICAL FILL
+                pattern(cr, create_dense_vertical_fill_pattern(), x, y, width, height);
+                break;
+        case 0x1cc45: // U+1CC45 DENSE HORIZONTAL FILL
+                pattern(cr, create_dense_horizontal_fill_pattern(), x, y, width, height);
+                break;
+        case 0x1cc46: // U+1CC46 SPECKLE FILL FRAME-1
+                pattern(cr, create_speckle_frame1_fill_pattern(), x, y, width, height);
+                break;
+        case 0x1cc47: // U+1CC47 SPECKLE FILL FRAME-2
+                pattern(cr, create_speckle_frame2_fill_pattern(), x, y, width, height);
+                break;
 
         default:
                 cairo_set_source_rgba (cr, 1., 0., 1., 1.);
