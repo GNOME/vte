@@ -67,6 +67,21 @@ libc_glue_sources = files(
   'libc-glue.hh',
 )
 
+minifont_coverage_sources = custom_target(
+  'minifont-coverage.inc',
+  input: files(
+    'minifont.cc',
+  ),
+  capture: false,
+  command: [
+    files('minifont-coverage.py'),
+    '--output', '@OUTPUT@',
+    '@INPUT@',
+  ],
+  install: false,
+  output: 'minifont-coverage.inc',
+)
+
 modes_sources = files(
   'modes.hh',
 )
@@ -198,7 +213,7 @@ vte_glue_sources = files(
   'vte-glue.hh',
 )
 
-libvte_common_sources = color_sources + config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + termprop_sources + utf8_sources + uuid_sources + vte_uuid_sources + vte_glue_sources + files(
+libvte_common_sources = color_sources + config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + minifont_coverage_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + termprop_sources + utf8_sources + uuid_sources + vte_uuid_sources + vte_glue_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
@@ -592,6 +607,34 @@ test_colors = executable(
   sources: test_colors_sources,
 )
 
+test_minifont_sources = config_sources + minifont_coverage_sources + files(
+  'minifont-test.cc'
+)
+
+test_minifont_sources += custom_target(
+  'minifont-coverage-tests.inc',
+  input: files(
+    'minifont.cc',
+  ),
+  capture: false,
+  command: [
+    files('minifont-coverage.py'),
+    '--output', '@OUTPUT@',
+    '--tests',
+    '@INPUT@',
+  ],
+  install: false,
+  output: 'minifont-coverage-tests.inc',
+)
+
+test_minifont = executable(
+  'test-minifont',
+  sources: test_minifont_sources,
+  dependencies: [glib_dep],
+  include_directories: top_inc,
+  install: false,
+)
+
 test_modes_sources = config_sources + modes_sources + files(
   'modes-test.cc',
 )
@@ -786,6 +829,7 @@ test_env = [
 # apparently there is no way to get a name back from an executable(), so it this ugly way
 test_units = [
   ['colors', test_colors],
+  ['minifont', test_minifont],
   ['modes', test_modes],
   ['parser', test_parser],
   ['pastify', test_pastify],

@@ -33,19 +33,7 @@ namespace view {
 class Minifont {
 public:
 
-        /* Check if a unicode character is actually a graphic character we draw
-         * ourselves to handle cases where fonts don't have glyphs for them.
-         */
-        static inline constexpr bool
-        unistr_is_local_graphic(vteunistr const c) noexcept
-        {
-                /* Box Drawing & Block Elements */
-                return ((c >=  0x23b8 && c <=  0x23bd) ||
-                        (c >=  0x2500 && c <=  0x259f) ||
-                        (c >=  0x25e2 && c <=  0x25e5) ||
-                        (c >= 0x1fb00 && c <= 0x1fbef) ||
-                        (c >= 0x1cc00 && c <= 0x1cebf));
-        }
+#include "minifont-coverage.inc"
 
         /* Draw the graphic representation of a line-drawing or special graphics
          * character.
