@@ -399,6 +399,38 @@ diagonal_double(cairo_t* cr,
         cairo_stroke(cr);
 }
 
+static inline void
+diagonal_double_middle(cairo_t* cr,
+                       double x,
+                       double y,
+                       int width,
+                       int height,
+                       int line_width,
+                       uint32_t v) noexcept
+{
+        double const xcenter = x + width / 2 + (width & 1 ? 0.5 : 0.0);
+        double const ycenter = y + height / 2 + (height & 1 ? 0.5 : 0.0);
+
+        cairo_rectangle(cr, x, y, width, height);
+        cairo_clip(cr);
+
+        cairo_set_line_width(cr, line_width);
+
+        auto const x1 = x + width;
+        auto const y0 = v & 1 ? y + height : y;
+        auto const y1 = v & 1 ? y : y + height;
+
+        cairo_move_to(cr, x, y0);
+        cairo_line_to(cr, xcenter, ycenter);
+        cairo_line_to(cr, x1, y0);
+        cairo_stroke(cr);
+
+        cairo_move_to(cr, x, ycenter);
+        cairo_line_to(cr, xcenter, y1);
+        cairo_line_to(cr, x1, ycenter);
+        cairo_stroke(cr);
+}
+
 // draw half- and double-slope diagonals U+1FBD0..U+1FBD7
 // and used to compose U+1FBDC..U+1FBDF.
 static inline void
@@ -2549,6 +2581,12 @@ Minifont::draw_graphic(cairo_t* cr,
                 break;
         case 0x1cc47: // U+1CC47 SPECKLE FILL FRAME-2
                 pattern(cr, create_speckle_frame2_fill_pattern(), x, y, width, height);
+                break;
+
+                // U+1CE09 BOX DRAWINGS DOUBLE DIAGONAL LOWER LEFT TO MIDDLE CENTRE TO LOWER RIGHT
+                // U+1CE0A BOX DRAWINGS DOUBLE DIAGONAL UPPER LEFT TO MIDDLE CENTRE TO UPPER RIGHT
+        case 0x1ce09 ... 0x1ce0a:
+                diagonal_double_middle(cr, x, y, width, height, light_line_width, c & 1);
                 break;
 
         default:
