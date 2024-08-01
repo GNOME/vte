@@ -254,6 +254,87 @@ DEFINE_STATIC_PATTERN_FUNC(create_checkerboard_reverse_pattern, checkerboard_rev
 
 #undef DEFINE_STATIC_PATTERN_FUNC
 
+// draw half- and double-slope diagonals U+1FBD0..U+1FBD7
+// and used to compose U+1FBDC..U+1FBDF.
+static inline void
+diagonal(cairo_t* cr,
+         double x,
+         double y,
+         int width,
+         int height,
+         int xoffset,
+         int yoffset,
+         int xstep,
+         int ystep,
+         int line_width,
+         uint32_t v) noexcept
+{
+        // These need to be perfectly symmetrical, so not using
+        // left_half/top_half as center.  Also in order to perfectly
+        // connect diagonally with each other, draw the line outside
+        // the cell area and clip the result to the cell. Also makes
+        // it so there's no need to even calculate xcenter or ycenter.
+
+        auto const x0 = x + xoffset;
+        auto const x1 = x0 + xstep;
+        auto const y0 = y + yoffset;
+        auto const y1 = y0 + ystep;
+
+        // These are allowed to draw horizontally outside of their cell,
+        // but only in the direction where the line goes to a cell corner,
+        // so v=0, 2, 4, 7 open at the left but clipped at the right edge,
+        // and  v=1, 3, 5, 6 clipped at the left edge and open at the right.
+        cairo_save(cr);
+        cairo_rectangle(cr,
+                        (v == 0 || v == 2 || v == 4 || v == 7) ? x - line_width : x,
+                        y,
+                        width + line_width,
+                        height);
+        cairo_clip(cr);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
+        cairo_set_line_width(cr, line_width);
+
+        cairo_move_to(cr, v & 4 ? x1 : x0, v & 2 ? y0 : y1);
+        cairo_line_to(cr, v & 4 ? x0 : x1, v & 2 ? y1 : y0);
+        cairo_stroke(cr);
+
+        cairo_restore(cr); // unclip
+}
+
+// half-slope diagonals U+1FBD0..U+1FBD3
+static inline void
+diagonal_slope_2_1(cairo_t* cr,
+                   double x,
+                   double y,
+                   int width,
+                   int height,
+                   int line_width,
+                   uint32_t v) noexcept
+{
+        return diagonal(cr, x, y, width, height,
+                        v & 1 ? -width : 0, 0,
+                        2 * width, height,
+                        line_width,
+                        v);
+}
+
+// double-slope diagonals U+1FBD4..U+1FBD7
+static inline void
+diagonal_slope_1_2(cairo_t* cr,
+                   double x,
+                   double y,
+                   int width,
+                   int height,
+                   int line_width,
+                   uint32_t v) noexcept
+{
+        return diagonal(cr, x, y, width, height,
+                        0, v & 1 ? -height : 0,
+                        width, 2 * height,
+                        line_width,
+                        v);
+}
+
 static inline void
 middle_diagonal(cairo_t* cr,
                 double x,
@@ -805,7 +886,13 @@ Minifont::get_char_padding(vteunistr c,
         switch (c) {
         case 0x2571: // box drawings light diagonal upper right to lower left
         case 0x2572: // box drawings light diagonal upper left to lower right
-        case 0x2573: { // box drawings light diagonal cross
+        case 0x2573: // box drawings light diagonal cross
+                // U+1FBD0 BOX DRAWINGS LIGHT DIAGONAL MIDDLE RIGHT TO LOWER LEFT ...
+                // U+1FBD7 BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO LOWER LEFT
+                // U+1FBDC BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO LOWER CENTRE TO UPPER RIGHT ...
+                // U+1FBDF BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO MIDDLE RIGHT TO LOWER LEFT
+        case 0x1fbd0 ... 0x1fbd7:
+        case 0x1fbdc ... 0x1fbdf: {
                 // These characters draw outside their cell, so we need to
                 // enlarge the drawing surface.
 
@@ -2070,6 +2157,46 @@ Minifont::draw_graphic(cairo_t* cr,
                         cairo_rectangle(cr, x, y, width_two_thirds, height);
                 }
                 cairo_fill(cr);
+                break;
+        }
+
+        case 0x1fbd0:   // U+1FBD0 BOX DRAWINGS LIGHT DIAGONAL MIDDLE RIGHT TO LOWER LEFT
+        case 0x1fbd1:   // U+1FBD1 BOX DRAWINGS LIGHT DIAGONAL UPPER RIGHT TO MIDDLE LEFT
+        case 0x1fbd2:   // U+1FBD2 BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO MIDDLE RIGHT
+        case 0x1fbd3: { // U+1FBD3 BOX DRAWINGS LIGHT DIAGONAL MIDDLE LEFT TO LOWER RIGHT
+                diagonal_slope_2_1(cr, x, y, width, height, light_line_width, c & 7);
+                break;
+        }
+        case 0x1fbd4:   // U+1FBD4 BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO LOWER CENTRE
+        case 0x1fbd5:   // U+1FBD5 BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO LOWER RIGHT
+        case 0x1fbd6:   // U+1FBD6 BOX DRAWINGS LIGHT DIAGONAL UPPER RIGHT TO LOWER CENTRE
+        case 0x1fbd7: { // U+1FBD7 BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO LOWER LEFT
+                // double-slope diagonals
+                diagonal_slope_1_2(cr, x, y, width, height, light_line_width, c & 7);
+                break;
+        }
+        case 0x1fbd8:   // U+1FBD8 BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO MIDDLE CENTRE TO UPPER RIGHT
+        case 0x1fbd9:   // U+1FBD9 BOX DRAWINGS LIGHT DIAGONAL UPPER RIGHT TO MIDDLE CENTRE TO LOWER RIGHT
+        case 0x1fbda:   // U+1FBDA BOX DRAWINGS LIGHT DIAGONAL LOWER LEFT TO MIDDLE CENTRE TO LOWER RIGHT
+        case 0x1fbdb: { // U+1FBDB BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO MIDDLE CENTRE TO LOWER LEFT
+                // these connect to the diagonals U+2571..U+2573
+                break;
+        }
+        case 0x1fbdc:   // U+1FBDC BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO LOWER CENTRE TO UPPER RIGHT
+        case 0x1fbde: { // U+1FBDE BOX DRAWINGS LIGHT DIAGONAL LOWER LEFT TO UPPER CENTRE TO LOWER RIGHT
+                // these connect to the double-slope diagonals U+1FBD4..U+1FBD7
+                auto const v = c == 0x1fbdc ? 4 : 5;
+                diagonal_slope_1_2(cr, x, y, width, height, light_line_width, v);
+                diagonal_slope_1_2(cr, x, y, width, height, light_line_width, v + 2);
+                break;
+        }
+
+        case 0x1fbdd:   // U+1FBDD BOX DRAWINGS LIGHT DIAGONAL UPPER RIGHT TO MIDDLE LEFT TO LOWER RIGHT
+        case 0x1fbdf: { // U+1FBDF BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO MIDDLE RIGHT TO LOWER LEFT
+                // these connect to the half-slope diagonals U+1FBD4..U+1FBD7
+                auto const v = c == 0x1fbdd ? 1 : 0;
+                diagonal_slope_2_1(cr, x, y, width, height, light_line_width, v);
+                diagonal_slope_2_1(cr, x, y, width, height, light_line_width, v + 2);
                 break;
         }
 
