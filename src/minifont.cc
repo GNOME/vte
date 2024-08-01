@@ -254,6 +254,55 @@ DEFINE_STATIC_PATTERN_FUNC(create_checkerboard_reverse_pattern, checkerboard_rev
 
 #undef DEFINE_STATIC_PATTERN_FUNC
 
+static inline void
+middle_diagonal(cairo_t* cr,
+                double x,
+                double y,
+                int width,
+                int height,
+                int line_width,
+                uint8_t v) noexcept
+{
+        // These need to be perfectly symmetrical, so not using
+        // left_half/top_half as center.  Also in order to perfectly
+        // connect diagonally with each other, draw the line outside
+        // the cell area and clip the result to the cell. Also makes
+        // it so there's no need to even calculate ycenter.
+
+        double const xcenter = x + width / 2 + (width & 1 ? 0.5 : 0.0);
+
+        cairo_rectangle(cr, x, y, width, height);
+        cairo_clip(cr);
+
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
+        cairo_set_line_width(cr, line_width);
+
+        if (v & 1) {
+                /* upper left */
+                cairo_move_to(cr, xcenter, y);
+                cairo_line_to(cr, xcenter - width, y + height);
+                cairo_stroke(cr);
+        }
+        if (v & 2) {
+                /* upper right */
+                cairo_move_to(cr, xcenter, y);
+                cairo_line_to(cr, xcenter + width, y + height);
+                cairo_stroke(cr);
+        }
+        if (v & 4) {
+                /* lower left */
+                cairo_move_to(cr, xcenter - width, y);
+                cairo_line_to(cr, xcenter, y + height);
+                cairo_stroke(cr);
+        }
+        if (v & 8) {
+                /* lower right */
+                cairo_move_to(cr, xcenter + width, y);
+                cairo_line_to(cr, xcenter, y + height);
+                cairo_stroke(cr);
+        }
+}
+
 static void
 rectangle(cairo_t* cr,
           double x,
@@ -1696,63 +1745,25 @@ Minifont::draw_graphic(cairo_t* cr,
                 break;
         }
 
-        case 0x1fba0:
-        case 0x1fba1:
-        case 0x1fba2:
-        case 0x1fba3:
-        case 0x1fba4:
-        case 0x1fba5:
-        case 0x1fba6:
-        case 0x1fba7:
-        case 0x1fba8:
-        case 0x1fba9:
-        case 0x1fbaa:
-        case 0x1fbab:
-        case 0x1fbac:
-        case 0x1fbad:
-        case 0x1fbae:
-        {
-                auto const v = c - 0x1fba0;
-                static uint8_t const map[15] = { 0b0001, 0b0010, 0b0100, 0b1000, 0b0101, 0b1010, 0b1100, 0b0011,
-                                                 0b1001, 0b0110, 0b1110, 0b1101, 0b1011, 0b0111, 0b1111 };
-                cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
-                cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
-                cairo_set_line_width(cr, light_line_width);
-                adjust = (light_line_width & 1) ? .5 : 0.;
-                double const dx = light_line_width / 2.;
-                double const dy = light_line_width / 2.;
-                if (map[v] & 1) {
-                        /* upper left */
-                        cairo_move_to(cr, x, ycenter + adjust);
-                        cairo_line_to(cr, x + dx, ycenter + adjust);
-                        cairo_line_to(cr, xcenter + adjust, y + dy);
-                        cairo_line_to(cr, xcenter + adjust, y);
-                        cairo_stroke(cr);
-                }
-                if (map[v] & 2) {
-                        /* upper right */
-                        cairo_move_to(cr, xright, ycenter + adjust);
-                        cairo_line_to(cr, xright - dx, ycenter + adjust);
-                        cairo_line_to(cr, xcenter + adjust, y + dy);
-                        cairo_line_to(cr, xcenter + adjust, y);
-                        cairo_stroke(cr);
-                }
-                if (map[v] & 4) {
-                        /* lower left */
-                        cairo_move_to(cr, x, ycenter + adjust);
-                        cairo_line_to(cr, x + dx, ycenter + adjust);
-                        cairo_line_to(cr, xcenter + adjust, ybottom - dy);
-                        cairo_line_to(cr, xcenter + adjust, ybottom);
-                        cairo_stroke(cr);
-                }
-                if (map[v] & 8) {
-                        /* lower right */
-                        cairo_move_to(cr, xright, ycenter + adjust);
-                        cairo_line_to(cr, xright - dx, ycenter + adjust);
-                        cairo_line_to(cr, xcenter + adjust, ybottom - dy);
-                        cairo_line_to(cr, xcenter + adjust, ybottom);
-                        cairo_stroke(cr);
-                }
+        // U+1FBA0 BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE LEFT
+        // U+1FBA1 BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE RIGHT
+        // U+1FBA2 BOX DRAWINGS LIGHT DIAGONAL MIDDLE LEFT TO LOWER CENTRE
+        // U+1FBA3 BOX DRAWINGS LIGHT DIAGONAL MIDDLE RIGHT TO LOWER CENTRE
+        // U+1FBA4 BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE LEFT TO LOWER CENTRE
+        // U+1FBA5 BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE RIGHT TO LOWER CENTRE
+        // U+1FBA6 BOX DRAWINGS LIGHT DIAGONAL MIDDLE LEFT TO LOWER CENTRE TO MIDDLE RIGHT
+        // U+1FBA7 BOX DRAWINGS LIGHT DIAGONAL MIDDLE LEFT TO UPPER CENTRE TO MIDDLE RIGHT
+        // U+1FBA8 BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE LEFT AND MIDDLE RIGHT TO LOWER CENTRE
+        // U+1FBA9 BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE RIGHT AND MIDDLE LEFT TO LOWER CENTRE
+        // U+1FBAA BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE RIGHT TO LOWER CENTRE TO MIDDLE LEFT
+        // U+1FBAB BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE LEFT TO LOWER CENTRE TO MIDDLE RIGHT
+        // U+1FBAC BOX DRAWINGS LIGHT DIAGONAL MIDDLE LEFT TO UPPER CENTRE TO MIDDLE RIGHT TO LOWER CENTRE
+        // U+1FBAD BOX DRAWINGS LIGHT DIAGONAL MIDDLE RIGHT TO UPPER CENTRE TO MIDDLE LEFT TO LOWER CENTRE
+        // U+1FBAE BOX DRAWINGS LIGHT DIAGONAL DIAMOND
+        case 0x1fba0 ... 0x1fbae: {
+                static constinit uint8_t const map[15] = { 0b0001, 0b0010, 0b0100, 0b1000, 0b0101, 0b1010, 0b1100, 0b0011,
+                                                           0b1001, 0b0110, 0b1110, 0b1101, 0b1011, 0b0111, 0b1111 };
+                middle_diagonal(cr, x, y, width, height, light_line_width, map[c - 0x1fba0]);
                 break;
         }
 
