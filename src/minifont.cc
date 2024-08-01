@@ -2048,6 +2048,17 @@ Minifont::draw_graphic(cairo_t* cr,
                 break;
         }
 
+        case 0x1fbe4 ... 0x1fbe5: {
+                // FIXME make sure this displays exactly as the
+                // corresponding sixteenths (see above) would!
+                static constinit uint8_t const quadrant_value[] = {
+                        0b0001, /* U+1FBE4 UPPER CENTRE ONE QUARTER BLOCK */
+                        0b0100, /* U+1FBE5 LOWER CENTRE ONE QUARTER BLOCK */
+                };
+                auto const dx = width / 4;
+                quadrant(cr, quadrant_value[c - 0x1fbe4], x + dx, y, width, height);
+                break;
+        }
         case 0x1fbe6 ... 0x1fbe7: {
                 static constinit uint8_t const octant_value[] = {
                         0b0001'0100, /* U+1FBE6 MIDDLE LEFT ONE QUARTER BLOCK */
