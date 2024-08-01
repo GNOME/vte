@@ -2048,6 +2048,20 @@ Minifont::draw_graphic(cairo_t* cr,
                 break;
         }
 
+        case 0x1fbce:   /* U+1FBCE LEFT TWO THIRDS BLOCK */
+        case 0x1fbcf: { /* U+1FBCF LEFT ONE THIRD BLOCK */
+                // To make the SGR 7 (reverse) of one be the mirror of the other,
+                // don't simply use width/3 for the second.
+                auto const width_two_thirds = width * 2 / 3;
+                if (c & 1) {
+                        cairo_rectangle(cr, x, y, width - width_two_thirds, height);
+                } else {
+                        cairo_rectangle(cr, x, y, width_two_thirds, height);
+                }
+                cairo_fill(cr);
+                break;
+        }
+
         case 0x1fbe4 ... 0x1fbe5: {
                 // FIXME make sure this displays exactly as the
                 // corresponding sixteenths (see above) would!
