@@ -336,3 +336,19 @@ for u in octants:
     n=n+1
     if n % 16 == 0:
         sys.stdout.write('\n\n             ')
+
+sys.stdout.write('\n\n')
+
+sys.stdout.write('Scanlines: \u23ba \u23bb \u2500 \u23bc \u23bd\n\n')
+
+sys.stdout.write('Box drawing:\n\n')
+
+sys.stdout.write('\U0001ce16\u23ba\U0001ce18\n\u2502 \u2502\n\U0001ce17\u23bd\U0001ce19\n\n')
+
+sys.stdout.write(' ' + '\u2500' + '\U0001cc1c' + '\n')
+sys.stdout.write(' ' + ' '      + '\u23b9'     + '\n')
+sys.stdout.write(' ' + '\u2500' + '\U0001cc1b' + '\n')
+
+sys.stdout.write('\n')
+sys.stdout.write(' \U0001cc1d\u23ba \U0001cc1e\u23bd\n')
+sys.stdout.write('\n')

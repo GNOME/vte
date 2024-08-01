@@ -383,6 +383,69 @@ octant(cairo_t* cr,
         cairo_fill(cr);
 }
 
+inline constexpr int
+scanline_y(int value,
+           int height,
+           int line_width) noexcept
+{
+        /* There are 9 scanlines, but only the odd scanlines (1, 3, 5, 7,
+         * and 9) are actually in unicode.
+         * To get the space assigned to each scanline, we divide the
+         * height by 9 and distribute the remainder space in this order:
+         * scanline 5, 4, 7, 2, 6, 3, 8, 1.
+         * This ensures that the remainder is added first to the bottom
+         * half towards the centre, and that the spacing between the odd
+         * scanlines are at most 1px different.
+         *
+         * Since scanline 5 is unified with U+2500 BOX DRAWINGS LIGHT HORIZONTAL,
+         * the other scanlines are aligned so that scanline 5 coincides with
+         * U+2500, that is, has y position upper_half - light_line_width / 2.
+         */
+
+        // FIMXE: this doesn't work for height < 9. Since we only need the odd
+        // scanlines, we can make this work fine for height = 5..8, but for
+        // heights < 5, need to still at least align 1 to top, 5 to middle, and
+        // 9 to bottom
+
+        auto const h = height / 9;
+        auto const r = height % 9;
+        auto y = height / 2 - line_width / 2 + (value - 5) * h;
+
+        auto extra = [&r](int v) constexpr noexcept -> auto { return r >= v ? 1 : 0; };
+
+        switch (value) {
+        case 1: y -= extra(8); [[fallthrough]];
+        case 2: y -= extra(4); [[fallthrough]];
+        case 3: y -= extra(6); [[fallthrough]];
+        case 4: y -= extra(2); [[fallthrough]];
+        case 5: break;
+        case 9: y += extra(7); [[fallthrough]];
+        case 8: y += extra(3); [[fallthrough]];
+        case 7: y += extra(5); [[fallthrough]];
+        case 6: y += extra(1); break;
+        default: __builtin_unreachable(); break;
+        }
+
+        return y;
+}
+
+inline void
+scanline(cairo_t* cr,
+         int value,
+         int x,
+         int y,
+         int width,
+         int height,
+         int line_width) noexcept
+{
+        cairo_rectangle(cr,
+                        x,
+                        y + scanline_y(value, height, line_width),
+                        width,
+                        line_width);
+        cairo_fill(cr);
+}
+
 static void
 polygon(cairo_t* cr,
         double x,
@@ -653,6 +716,35 @@ Minifont::draw_graphic(cairo_t* cr,
         ybottom = y + height;
 
         switch (c) {
+
+        case 0x23b8: /* LEFT VERTICAL BOX LINE */
+                cairo_rectangle(cr,
+                                x, y,
+                                light_line_width, height);
+                cairo_fill(cr);
+                break;
+        case 0x23b9: /* RIGHT VERTICAL BOX LINE */
+                cairo_rectangle(cr,
+                                x + width - light_line_width, y,
+                                light_line_width, height);
+                cairo_fill(cr);
+                break;
+
+        case 0x23ba: /* HORIZONTAL SCAN LINE-1 */
+                scanline(cr, 1, x, y, width, height, light_line_width);
+                break;
+        case 0x23bb: /* HORIZONTAL SCAN LINE-3 */
+                scanline(cr, 3, x, y, width, height, light_line_width);
+                break;
+
+        /* Note: HORIZONTAL SCAN LINE-5 is unified with U+2500 BOX DRAWINGS LIGHT HORIZONTAL */
+
+        case 0x23bc: /* HORIZONTAL SCAN LINE-7 */
+                scanline(cr, 7, x, y, width, height, light_line_width);
+                break;
+        case 0x23bd: /* HORIZONTAL SCAN LINE-9 */
+                scanline(cr, 9, x, y, width, height, light_line_width);
+                break;
 
         /* Box Drawing */
         case 0x1fbaf: /* box drawings light horizontal with vertical stroke */
@@ -1842,6 +1934,73 @@ Minifont::draw_graphic(cairo_t* cr,
                 break;
         }
 
+        case 0x1cc1b: /* BOX DRAWING LIGHT HORIZONTAL AND UPPER RIGHT */
+        case 0x1cc1c: /* BOX DRAWING LIGHT HORIZONTAL AND LOWER RIGHT */ {
+                /* Apparently these have no LEFT counterparts; note that
+                 * U+11CC1D..E below are *not* them!
+                 */
+                auto const top = (c == 0x1cc1b);
+                cairo_rectangle(cr,
+                                x, y + upper_half - light_line_width / 2,
+                                width, light_line_width);
+                cairo_rectangle(cr,
+                                x + width - light_line_width,
+                                y + (top ? 0 : upper_half - light_line_width / 2),
+                                light_line_width,
+                                (top ? upper_half : height - upper_half) + light_line_width / 2);
+                cairo_fill(cr);
+                break;
+        }
+
+        case 0x1cc1d: /* BOX DRAWING LIGHT TOP AND UPPER LEFT */
+        case 0x1cc1e: /* BOX DRAWING LIGHT BOTTOM AND LOWER LEFT */ {
+                auto const top = (c == 0x1cc1d);
+                auto const ys = scanline_y(top ? 1 : 9, height, light_line_width);
+
+                cairo_rectangle(cr, x, y + ys, width, light_line_width);
+                cairo_rectangle(cr, x, y + (top ? ys : upper_half),
+                                light_line_width,
+                                top ? upper_half - ys : ys - upper_half + light_line_width);
+                cairo_fill(cr);
+                break;
+        }
+
+        case 0x1ce16: /* BOX DRAWING LIGHT VERTICAL AND TOP RIGHT */
+        case 0x1ce17: /* BOX DRAWING LIGHT VERTICAL AND BOTTOM RIGHT */
+        case 0x1ce18: /* BOX DRAWING LIGHT VERTICAL AND TOP LEFT */
+        case 0x1ce19: /* BOX DRAWING LIGHT VERTICAL AND BOTTOM LEFT */ {
+                auto const top = (c & 1) == 0;
+                auto const left = (c >= 0x1ce18);
+                auto const sy = scanline_y(top ? 1 : 9, height, light_line_width);
+
+                if (top)
+                        cairo_rectangle(cr,
+                                        x + left_half - light_line_width / 2,
+                                        y + sy,
+                                        light_line_width,
+                                        height - sy);
+                else
+                        cairo_rectangle(cr,
+                                        x + left_half - light_line_width / 2,
+                                        y,
+                                        light_line_width,
+                                        sy + light_line_width);
+                cairo_fill(cr);
+
+                if (left)
+                        cairo_rectangle(cr,
+                                        x, y + sy,
+                                        left_half + light_line_width / 2,
+                                        light_line_width);
+                else
+                        cairo_rectangle(cr,
+                                        x + left_half - light_line_width / 2, y + sy,
+                                        width - left_half + light_line_width / 2,
+                                        light_line_width);
+                cairo_fill(cr);
+
+                break;
+        }
 
         default:
                 cairo_set_source_rgba (cr, 1., 0., 1., 1.);
