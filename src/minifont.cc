@@ -343,6 +343,34 @@ DEFINE_STATIC_PATTERN_FUNC(create_speckle_frame2_fill_pattern, speckle_frame2_fi
 
 #undef DEFINE_STATIC_PATTERN_FUNC
 
+static inline void
+diagonal_slope_1_1(cairo_t* cr,
+                   double x,
+                   double y,
+                   int width,
+                   int height,
+                   int line_width,
+                   uint32_t v) noexcept
+{
+        // These characters draw outside their cell, so we need to
+        // enlarge the drawing surface.
+        auto const dx = (line_width + 1) / 2;
+        cairo_rectangle(cr, x - dx, y, width + 2 * dx, height);
+        cairo_clip(cr);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
+        cairo_set_line_width(cr, line_width);
+        if (v & 2) {
+                cairo_move_to(cr, x, y);
+                cairo_line_to(cr, x + width, y + height);
+                cairo_stroke(cr);
+        }
+        if (v & 1) {
+                cairo_move_to(cr, x + width, y);
+                cairo_line_to(cr, x, y + height);
+                cairo_stroke(cr);
+        }
+}
+
 // draw half- and double-slope diagonals U+1FBD0..U+1FBD7
 // and used to compose U+1FBDC..U+1FBDF.
 static inline void
@@ -1360,26 +1388,8 @@ Minifont::draw_graphic(cairo_t* cr,
         case 0x2571: /* box drawings light diagonal upper right to lower left */
         case 0x2572: /* box drawings light diagonal upper left to lower right */
         case 0x2573: /* box drawings light diagonal cross */
-        {
-                // These characters draw outside their cell, so we need to
-                // enlarge the drawing surface.
-                auto const dx = (light_line_width + 1) / 2;
-                cairo_rectangle(cr, x - dx, y, width + 2 * dx, height);
-                cairo_clip(cr);
-                cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
-                cairo_set_line_width(cr, light_line_width);
-                if (c != 0x2571) {
-                        cairo_move_to(cr, x, y);
-                        cairo_line_to(cr, xright, ybottom);
-                        cairo_stroke(cr);
-                }
-                if (c != 0x2572) {
-                        cairo_move_to(cr, xright, y);
-                        cairo_line_to(cr, x, ybottom);
-                        cairo_stroke(cr);
-                }
+                diagonal_slope_1_1(cr, x, y, width, height, light_line_width, c & 3);
                 break;
-        }
 
         /* Block Elements */
         case 0x2580: /* upper half block */
@@ -1972,6 +1982,39 @@ Minifont::draw_graphic(cairo_t* cr,
                 static constinit uint8_t const map[15] = { 0b0001, 0b0010, 0b0100, 0b1000, 0b0101, 0b1010, 0b1100, 0b0011,
                                                            0b1001, 0b0110, 0b1110, 0b1101, 0b1011, 0b0111, 0b1111 };
                 middle_diagonal(cr, x, y, width, height, light_line_width, map[c - 0x1fba0]);
+                break;
+        }
+
+                // U+1FBBD NEGATIVE DIAGONAL CROSS
+        case 0x1fbbd: {
+                cairo_push_group(cr);
+
+                cairo_rectangle(cr, x, y, width, height);
+                cairo_fill(cr);
+                cairo_set_source_rgba(cr, 0, 0, 0, 0);
+                cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+
+                diagonal_slope_1_1(cr, x, y, width, height, light_line_width, 3);
+
+                cairo_pop_group_to_source(cr);
+                cairo_paint(cr);
+                break;
+        }
+
+                // U+1FBBE NEGATIVE DIAGONAL MIDDLE RIGHT TO LOWER CENTRE
+                // U+1FBBF NEGATIVE DIAGONAL DIAMOND
+        case 0x1fbbe ... 0x1fbbf: {
+                static constinit uint8_t const map[2] = { 0b1000, 0b1111 };
+                cairo_push_group(cr);
+
+                cairo_rectangle(cr, x, y, width, height);
+                cairo_fill(cr);
+                cairo_set_source_rgba(cr, 0, 0, 0, 0);
+                cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+
+                middle_diagonal(cr, x, y, width, height, light_line_width, map[c - 0x1fbbe]);
+                cairo_pop_group_to_source(cr);
+                cairo_paint(cr);
                 break;
         }
 
