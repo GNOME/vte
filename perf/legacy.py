@@ -339,6 +339,13 @@ for u in octants:
 
 sys.stdout.write('\n\n')
 
+sys.stdout.write('Sixteenths:\n\n')
+
+for i in range(0x1ce90, 0x1ceb0):
+    sys.stdout.write(f'  {chr(i)}')
+    if i % 16 == 15:
+        sys.stdout.write('\n\n')
+
 sys.stdout.write('Scanlines: \u23ba \u23bb \u2500 \u23bc \u23bd\n\n')
 
 sys.stdout.write('Box drawing:\n\n')
