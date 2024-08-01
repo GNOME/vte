@@ -335,6 +335,42 @@ diagonal_slope_1_2(cairo_t* cr,
                         v);
 }
 
+// half diagonals to center U+1FBD8..U+1FBDB
+static inline void
+diagonal_to_center(cairo_t* cr,
+                   double x,
+                   double y,
+                   int width,
+                   int height,
+                   int line_width,
+                   uint8_t v) noexcept
+{
+        // These need to be perfectly symmetrical, so not using
+        // left_half/top_half as center.
+        // These need to perfectly connect diagonally to
+        // U+2571..U+2573.
+
+        double const xcenter = x + width / 2 + (width & 1 ? 0.5 : 0.0);
+        double const ycenter = y + height / 2 + (height & 1 ? 0.5 : 0.0);
+
+        cairo_rectangle(cr, x - line_width, y, width + 2 * line_width, height);
+        cairo_clip(cr);
+
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
+        cairo_set_line_width(cr, line_width);
+
+        double const xp[4] = {x, x + width, x + width, x};
+        double const yp[4] = {y, y, y + height, y + height};
+
+        v &= 3;
+        cairo_move_to(cr, xp[v], yp[v]);
+        cairo_line_to(cr, xcenter, ycenter);
+        ++v;
+        v &= 3;
+        cairo_line_to(cr, xp[v], yp[v]);
+        cairo_stroke(cr);
+}
+
 static inline void
 middle_diagonal(cairo_t* cr,
                 double x,
@@ -888,11 +924,8 @@ Minifont::get_char_padding(vteunistr c,
         case 0x2572: // box drawings light diagonal upper left to lower right
         case 0x2573: // box drawings light diagonal cross
                 // U+1FBD0 BOX DRAWINGS LIGHT DIAGONAL MIDDLE RIGHT TO LOWER LEFT ...
-                // U+1FBD7 BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO LOWER LEFT
-                // U+1FBDC BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO LOWER CENTRE TO UPPER RIGHT ...
                 // U+1FBDF BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO MIDDLE RIGHT TO LOWER LEFT
-        case 0x1fbd0 ... 0x1fbd7:
-        case 0x1fbdc ... 0x1fbdf: {
+        case 0x1fbd0 ... 0x1fbdf: {
                 // These characters draw outside their cell, so we need to
                 // enlarge the drawing surface.
 
@@ -2180,7 +2213,8 @@ Minifont::draw_graphic(cairo_t* cr,
         case 0x1fbda:   // U+1FBDA BOX DRAWINGS LIGHT DIAGONAL LOWER LEFT TO MIDDLE CENTRE TO LOWER RIGHT
         case 0x1fbdb: { // U+1FBDB BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO MIDDLE CENTRE TO LOWER LEFT
                 // these connect to the diagonals U+2571..U+2573
-                break;
+                diagonal_to_center(cr, x, y, width, height, light_line_width, c);
+        break;
         }
         case 0x1fbdc:   // U+1FBDC BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO LOWER CENTRE TO UPPER RIGHT
         case 0x1fbde: { // U+1FBDE BOX DRAWINGS LIGHT DIAGONAL LOWER LEFT TO UPPER CENTRE TO LOWER RIGHT
