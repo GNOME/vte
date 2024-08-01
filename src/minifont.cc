@@ -371,6 +371,34 @@ diagonal_slope_1_1(cairo_t* cr,
         }
 }
 
+static inline void
+diagonal_double(cairo_t* cr,
+                double x,
+                double y,
+                int width,
+                int height,
+                int line_width,
+                uint32_t v) noexcept
+{
+        cairo_rectangle(cr, x, y, width, height);
+        cairo_clip(cr);
+
+        cairo_set_line_width(cr, line_width);
+
+        auto const x1 = x + width;
+        auto const y0 = v & 1 ? y + height : y;
+        auto const y1 = v & 1 ? y : y + height;
+
+        auto const dy = std::min(line_width * 3, height / 2);
+        cairo_move_to(cr, x, y0 - dy);
+        cairo_line_to(cr, x1, y1 - dy);
+        cairo_stroke(cr);
+
+        cairo_move_to(cr, x, y0 + dy);
+        cairo_line_to(cr, x1, y1 + dy);
+        cairo_stroke(cr);
+}
+
 // draw half- and double-slope diagonals U+1FBD0..U+1FBD7
 // and used to compose U+1FBDC..U+1FBDF.
 static inline void
@@ -2413,6 +2441,13 @@ Minifont::draw_graphic(cairo_t* cr,
                                 light_line_width,
                                 top ? upper_half - ys : ys - upper_half + light_line_width);
                 cairo_fill(cr);
+                break;
+        }
+
+                // U+1CC1F BOX DRAWINGS DOUBLE DIAGONAL UPPER RIGHT TO LOWER LEFT
+                // U+1CC20 BOX DRAWINGS DOUBLE DIAGONAL UPPER LEFT TO LOWER RIGHT
+        case 0x1cc1f ... 0x1cc20: {
+                diagonal_double(cr, x, y, width, height, light_line_width, c & 1);
                 break;
         }
 
