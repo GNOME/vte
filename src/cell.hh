@@ -147,6 +147,13 @@ typedef struct _VTE_GNUC_PACKED VteCellAttr {
         CELL_ATTR_BOOL(invisible, INVISIBLE)
         CELL_ATTR_UINT(shellintegration, SHELLINTEGRATION)
         /* ATTR_BOOL(boxed, BOXED) */
+
+        inline void reset_sgr_attributes()
+        {
+                vte_attr_set_value(&attr, VTE_ATTR_ALL_SGR_MASK, 0 /* shift */, 0 /* value */);
+                m_colors = vte_color_triple_init();
+        }
+
 } VteCellAttr;
 static_assert(sizeof (VteCellAttr) == 16, "VteCellAttr has wrong size");
 static_assert(offsetof (VteCellAttr, hyperlink_idx) == VTE_CELL_ATTR_COMMON_BYTES, "VteCellAttr layout is wrong");

@@ -250,6 +250,7 @@ libvte_common_sources = color_sources + config_sources + debug_sources + glib_gl
   'ringview.hh',
   'scheduler.cc',
   'scheduler.h',
+  'sgr.hh',
   'spawn.cc',
   'spawn.hh',
   'unicode-width.hh',

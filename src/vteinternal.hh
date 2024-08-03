@@ -1341,9 +1341,6 @@ public:
                 return _cell_is_selected_log(lcol, row);
         }
 
-
-        void reset_default_attributes(bool reset_osc);
-
         void ensure_font();
         void update_font();
         void apply_font_metrics(int cell_width_unscaled,
@@ -1720,11 +1717,6 @@ public:
                                      bool use_basic = false);
         void erase_image_rect(vte::grid::row_t rows,
                               vte::grid::column_t columns);
-
-        template<unsigned int redbits, unsigned int greenbits, unsigned int bluebits>
-        inline bool seq_parse_sgr_color(vte::parser::Sequence const& seq,
-                                        unsigned int& idx,
-                                        uint32_t& color) const noexcept;
 
         inline void move_cursor_up(vte::grid::row_t rows);
         inline void move_cursor_down(vte::grid::row_t rows);
