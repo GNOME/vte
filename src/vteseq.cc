@@ -2778,6 +2778,7 @@ Terminal::DA1(vte::parser::Sequence const& seq)
          *       TODO: ?
          *   24: Turkish
          *       TODO: ?
+         *   28: rectangular editing
          *   29: DECterm text locator
          *       TODO: ?
          *   42: ISO Latin-2 character set
@@ -2815,7 +2816,8 @@ Terminal::DA1(vte::parser::Sequence const& seq)
                m_sixel_enabled ? 4 : -2 /* skip */, // sixel graphics
 #endif
                21, // horizontal scrolling
-               22 // colour text
+               22, // colour text
+               28 // rectangular editing
               });
 }
 
