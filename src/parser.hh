@@ -1610,10 +1610,15 @@ public:
 
         /* collect_char:
          * @idx:
-         * @default_v:
+         * @default_v: return value for default parameter
+         * @zero_v: return value for zero parameter
          *
          * Collects an unicode character from a parameter or a run of
          * subparameters ending in a final parameter.
+         *
+         * A default final parameter returns the character @default_v;
+         * a final zeroed parameter returns the charcacter @zero_v if
+         * not -1, or @default_v if -1.
          *
          * This allows encoding characters outside plane 0 using
          * either the big number encoding (see collect_number() above),
@@ -1624,13 +1629,18 @@ public:
          *   character, or a surrogate
          */
         inline constexpr std::optional<char32_t> collect_char(unsigned int idx,
-                                                              int default_v = 0x20) const noexcept
+                                                              int default_v = 0x20,
+                                                              int zero_v = -1) const noexcept
         {
                 auto const n_params = next(idx) - idx;
 
                 auto v = uint32_t{0};
                 if (n_params == 1) {
-                        v = param(idx, default_v);
+                        auto pv = param(idx);
+                        if (pv == 0)
+                                pv = zero_v;
+
+                        v = pv != -1 ? pv : default_v;
                 } else if (n_params == 2) {
                         auto p0 = param(idx, 0);
                         auto p1 = param(idx + 1, 0);

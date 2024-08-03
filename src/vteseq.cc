@@ -936,6 +936,142 @@ Terminal::erase_image_rect(vte::grid::row_t rows,
         m_screen->cursor_advanced_by_graphic_character = false;
 }
 
+void
+Terminal::fill_rect(ParamRect rect,
+                    char32_t c,
+                    VteCellAttr attr) noexcept
+try
+{
+        // Fills the rectangle of cells denoted by @rect with character @c
+        // and attribute @attr.
+        // Note that the bottom and right parameters in @rect are inclusive.
+
+        auto const cw = character_width(c);
+        if (cw == 0) [[unlikely]]
+                return; // ignore
+
+        // Build an array of VteCell to copy to the rows
+        auto const rect_width = rect.right - rect.left + 1;
+        auto vec = std::vector<VteCell>{};
+        vec.reserve(rect_width);
+
+        auto cell = VteCell{};
+        cell.c = c;
+        cell.attr = attr;
+        cell.attr.set_columns(cw);
+
+        auto frag_cell = cell;
+        frag_cell.attr.set_fragment(true);
+
+        // Fill cells with character
+        auto col = 0;
+        while (col + cw <= rect_width) {
+                vec.push_back(cell);
+                for (auto f = 1; f < cw; ++f)
+                        vec.push_back(frag_cell);
+
+                col+= cw;
+        }
+
+        // Fill the rest with erased cells
+        cell = m_defaults;
+        while (col++ < rect_width) {
+                vec.push_back(cell);
+        }
+
+        assert(vec.size() == size_t(rect_width));
+
+        // Now copy the cells into the ring
+
+        for (auto row = m_screen->insert_delta + rect.top;
+             row <= m_screen->insert_delta + rect.bottom;
+             ++row) {
+                /* Find this row. */
+                while (long(m_screen->row_data->next()) <= row)
+                        ring_append(false);
+
+                auto rowdata = m_screen->row_data->index_writable(row);
+                if (!rowdata)
+                        continue;
+
+                cleanup_fragments(rowdata, row, rect.left, rect.right + 1);
+                _vte_row_data_fill_cells(rowdata,
+                                         rect.left,
+                                         &m_defaults,
+                                         vec.data(),
+                                         vec.size());
+        }
+
+        /* We modified the display, so make a note of it for completeness. */
+        m_text_modified_flag = true;
+
+        adjust_adjustments();
+        emit_text_modified();
+        invalidate_all();
+}
+catch (...)
+{
+}
+
+template<class P>
+void
+Terminal::rewrite_rect(ParamRect rect,
+                       bool as_rectangle,
+                       P const& pen) noexcept
+try
+{
+        // Visit the rectangle of cells (either as a rectangle, or a stream
+        // of cells) denoted by @rect and calls @pen on each cell.
+        // Note that the bottom and right parameters in @rect are inclusive.
+
+        auto visit_row = [&](auto rownum,
+                             auto left /* inclusive */,
+                             auto right /* exclusive */) -> void {
+                // Find this row
+                while (long(m_screen->row_data->next()) <= rownum)
+                        ring_append(false);
+
+                auto rowdata = m_screen->row_data->index_writable(rownum);
+                if (!rowdata)
+                        return;
+
+                if (!_vte_row_data_ensure_len(rowdata, right))
+                        return;
+
+                _vte_row_data_fill(rowdata, &m_defaults, right + 1);
+
+                cleanup_fragments(rowdata, rownum, left, right);
+
+                auto cell = &rowdata->cells[left];
+                for (auto col = left; col < right; ++col)
+                        pen(cell++);
+        };
+
+        if (as_rectangle || rect.top == rect.bottom) { // as rectangle
+                for (auto row = m_screen->insert_delta + rect.top;
+                     row <= m_screen->insert_delta + rect.bottom;
+                     ++row) {
+                        visit_row(row, rect.left, rect.right + 1);
+                }
+        } else { // as stream (see DECSACE)
+                auto row = m_screen->insert_delta + rect.top;
+                visit_row(row, rect.left, m_column_count);
+                for (; row < m_screen->insert_delta + rect.bottom; ++row)
+                        visit_row(row, 0, m_column_count);
+                visit_row(row, 0, rect.right + 1);
+        }
+
+        /* We modified the display, so make a note of it for completeness. */
+        m_text_modified_flag = true;
+
+        adjust_adjustments(); // since we may have added rows
+        emit_text_modified();
+        invalidate_all();
+}
+catch (...)
+{
+}
+
 /* Terminal::move_cursor_up:
  * Cursor up by n rows (respecting the DECSTBM / DECSLRM scrolling region).
  *
@@ -1875,20 +2011,23 @@ std::optional<Terminal::ParamRect>
 Terminal::collect_rect(vte::parser::Sequence const& seq,
                        unsigned& idx) noexcept
 {
-        auto top = seq.collect1(idx, 1, 1, m_row_count);
+        // Param values are 1-based; directly translate to 0-based
+        auto top = seq.collect1(idx, 1, 1, m_row_count) - 1;
         idx = seq.next(idx);
-        auto left = seq.collect1(idx, 1, 1, m_column_count); /* use 1 as default here */
+        auto left = seq.collect1(idx, 1, 1, m_column_count) - 1;
         idx = seq.next(idx);
-        auto bottom = seq.collect1(idx, m_row_count, 1, m_row_count);
+        auto bottom = seq.collect1(idx, m_row_count, 1, m_row_count) - 1;
         idx = seq.next(idx);
-        auto right = seq.collect1(idx, m_column_count, 1, m_column_count);
+        auto right = seq.collect1(idx, m_column_count, 1, m_column_count) - 1;
+        idx = seq.next(idx);
 
         if (m_modes_private.DEC_ORIGIN()) {
                 top += m_scrolling_region.top();
                 bottom += m_scrolling_region.top();
-                bottom = std::min(bottom, m_scrolling_region.bottom());
                 left += m_scrolling_region.left();
                 right += m_scrolling_region.left();
+
+                bottom = std::min(bottom, m_scrolling_region.bottom());
                 right = std::min(right, m_scrolling_region.right());
         }
 
@@ -2844,37 +2983,17 @@ Terminal::DECALN(vte::parser::Sequence const& seq)
          * with 'E's.
          *
          * References: VT525
+         *             DEC STD 070
          */
 
+        m_defaults = m_color_defaults = basic_cell;
         m_scrolling_region.reset();
         m_modes_private.set_DEC_ORIGIN(false);
         home_cursor();
 
-	for (auto row = m_screen->insert_delta;
-	     row < m_screen->insert_delta + m_row_count;
-	     row++) {
-		/* Find this row. */
-                while (long(m_screen->row_data->next()) <= row)
-                        ring_append(false);
-                adjust_adjustments();
-                auto rowdata = m_screen->row_data->index_writable(row);
-		g_assert(rowdata != NULL);
-		/* Clear this row. */
-		_vte_row_data_shrink (rowdata, 0);
-
-                emit_text_deleted();
-		/* Fill this row. */
-                VteCell cell;
-		cell.c = 'E';
-		cell.attr = basic_cell.attr;
-		cell.attr.set_columns(1);
-                _vte_row_data_fill(rowdata, &cell, m_column_count);
-                emit_text_inserted();
-	}
-        invalidate_all();
-
-	/* We modified the display, so make a note of it for completeness. */
-        m_text_modified_flag = TRUE;
+        fill_rect({0, 0, int(m_row_count - 1), int(m_column_count - 1)},
+                  U'E',
+                  m_defaults.attr);
 }
 
 void
@@ -2979,12 +3098,14 @@ Terminal::DECCARA(vte::parser::Sequence const& seq)
          * These coordinates are interpreted according to origin mode (DECOM),
          * but unaffected by the page margins (DECSLRM?). Current SGR defaults
          * and cursor position are unchanged.
+         * If no parameters after arg[3] are set, clears all attributes (like SGR 0).
          *
          * Note: DECSACE selects whether this function operates on the
          * rectangular area or the data stream between the star and end
          * positions.
          *
-         * References: VT525
+         * References: DEC STD 070 page 5-173 f
+         *             VT525
          *
          * Probably not worth implementing.
          */
@@ -3013,7 +3134,9 @@ Terminal::DECCRA(vte::parser::Sequence const& seq)
          *
          * Arguments;
          *   args[0..3]: top, left, bottom, right of the source rectangle (1-based)
-         *   args[4..7]: top, left, bottom, right of the target rectangle (1-based)
+         *   args[4]: source page
+         *   args[5..6]: top, left of the target rectangle
+         *   args[7]: target page
          *
          * Defaults:
          *   args[0]: 1
@@ -3022,8 +3145,8 @@ Terminal::DECCRA(vte::parser::Sequence const& seq)
          *   args[3]: width of current page
          *   args[4]: 1
          *   args[5]: 1
-         *   args[6]: height of current page
-         *   args[7]: width of current page
+         *   args[6]: 1
+         *   args[7]: 1
          *
          * If the top > bottom or left > right for either of the rectangles,
          * the command is ignored.
@@ -3036,7 +3159,8 @@ Terminal::DECCRA(vte::parser::Sequence const& seq)
          * rectangular area or the data stream between the star and end
          * positions.
          *
-         * References: VT525
+         * References: DEC STD 070 page 5-169
+         *             VT525
          *
          * Probably not worth implementing.
          */
@@ -3251,14 +3375,21 @@ Terminal::DECERA(vte::parser::Sequence const& seq)
          * but unaffected by the page margins (DECSLRM?). Current SGR defaults
          * and cursor position are unchanged.
          *
-         * Note: DECSACE selects whether this function operates on the
-         * rectangular area or the data stream between the star and end
-         * positions.
-         *
-         * References: VT525
-         *
-         * Probably not worth implementing.
+         * References: DEC STD 070 page 5-171
+         *             VT525
          */
+
+        auto idx = 0u;
+        auto const rect = collect_rect(seq, idx);
+        if (!rect)
+                return; // ignore
+
+        rewrite_rect(*rect,
+                     true, // as rectangle
+                     [attr = m_defaults.attr](VteCell* cell) constexpr noexcept -> void {
+                             cell->c = 0;
+                             cell->attr = attr;
+                     });
 }
 
 void
@@ -3326,13 +3457,14 @@ Terminal::DECFRA(vte::parser::Sequence const& seq)
          *
          * Arguments;
          *   args[0]: the decimal value of the replacement character (GL or GR)
-         *   args[0..3]: top, left, bottom, right of the rectangle (1-based)
+         *   args[1..4]: top, left, bottom, right of the rectangle (1-based)
          *
          * Defaults:
-         *   args[0]: 1
+         *   args[0]: 32 (U+0020 SPACE)
          *   args[1]: 1
-         *   args[2]: height of current page
-         *   args[3]: width of current page
+         *   args[2]: 1
+         *   args[3]: height of current page
+         *   args[4]: width of current page
          *
          * If the top > bottom or left > right, the command is ignored.
          * If the character is not in the GL or GR area, the command is ignored.
@@ -3341,21 +3473,40 @@ Terminal::DECFRA(vte::parser::Sequence const& seq)
          * but unaffected by the page margins (DECSLRM?). Current SGR defaults
          * and cursor position are unchanged.
          *
-         * Note: DECSACE selects whether this function operates on the
-         * rectangular area or the data stream between the start and end
-         * positions.
+         * Note: As a VTE exension, this function accepts any non-zero-width,
+         *   non-combining, non-control unicode character.
+         *   For characters in the BMP, just use its scalar value as-is for
+         *   arg[0].
+         *   For characters not in the BMP, you can either
+         *   * encode it using a surrogate pair as a ':' delimited
+         *     subparameter sequence as arg[0], e.g. using '55358:57240'
+         *     for the UTF-16 representation 0xD83E 0xDF98 of the
+         *     character U+1FB98 UPPER LEFT TO LOWER RIGHT FILL, or
+         *   * encode it as a ':' delimited subparameter sequence containing
+         *     the scalar value split into 16-bit chunks in big-endian
+         *     order, e.g. using '1:64408' for the same U+1FB98 character.
          *
-         * References: VT525
-         *
-         * Probably not worth implementing.
-         *
-         * *If* we were to implement it, we should find a way to allow any
-         * UTF-8 character, perhaps by using subparams to encode it. E.g.
-         * either each UTF-8 byte in a subparam of its own, or just split
-         * the unicode plane off into the leading subparam (plane:remaining 16 bits).
-         * Or by using the last graphic character for it, like REP.
-         * See also the changes wrt. UTF-8 handling here in XTERM 357.
+         * References: DEC STD 070 page 5-170 ff
+         *             VT525
          */
+
+        auto idx = 0u;
+        auto const c = seq.collect_char(idx, U' ');
+
+        idx = seq.next(idx);
+        auto const rect = collect_rect(seq, idx);
+
+        if (!c || !rect)
+                return; // ignore
+
+        /* fill_rect already checks for width 0, no need to pre-check  */
+        if (g_unichar_ismark(*c))
+                return; // ignore
+
+        // Charset invocation applies to the fill character
+        fill_rect(*rect,
+                  character_replacement(*c),
+                  m_defaults.attr);
 }
 
 void
@@ -3678,7 +3829,8 @@ Terminal::DECRARA(vte::parser::Sequence const& seq)
          * rectangular area or the data stream between the star and end
          * positions.
          *
-         * References: VT525
+         * References: DEC STD 070 page 5-175 f
+         *             VT525
          *
          * Probably not worth implementing.
          */
@@ -3823,7 +3975,7 @@ Terminal::DECRQCRA(vte::parser::Sequence const& seq)
          *   args[0]: no default
          *   args[1]: 0
          *   args[2]: 1
-         *   args[3]: no default (?)
+         *   args[3]: 1
          *   args[4]: height of current page
          *   args[5]: width of current page
          *
@@ -3855,10 +4007,10 @@ Terminal::DECRQCRA(vte::parser::Sequence const& seq)
 
         auto checksum = 0u;
         if (auto rect = collect_rect(seq, idx))
-                checksum = checksum_area(rect->top -1 + m_screen->insert_delta,
-                                         rect->left - 1,
-                                         rect->bottom - 1 + m_screen->insert_delta,
-                                         rect->right);
+                checksum = checksum_area(rect->top + m_screen->insert_delta,
+                                         rect->left,
+                                         rect->bottom + m_screen->insert_delta,
+                                         rect->right + 1);
         else
                 checksum = 0; /* empty area */
 
@@ -4281,8 +4433,8 @@ Terminal::DECSACE(vte::parser::Sequence const& seq)
 {
         /*
          * DECSACE - select-attribute-change-extent
-         * Selects which positions a rectangle command (DECCARA, DECCRA,
-         * DECERA, DECFRA, DECRARA, DECSERA) affects.
+         * Selects which positions the DECCARA and DECRAR rectangle
+         * commands affects.
          *
          * Arguments:
          *   args[0]:
@@ -4295,7 +4447,8 @@ Terminal::DECSACE(vte::parser::Sequence const& seq)
          * Defaults;
          *   args[0]: 0
          *
-         * References: VT525
+         * References: DEC STD 070 page 5-177 f
+         *             VT525
          *
          * Not worth implementing unless we implement all the rectangle functions.
          */
@@ -4616,14 +4769,14 @@ Terminal::DECSERA(vte::parser::Sequence const& seq)
          * but unaffected by the page margins (DECSLRM?). Current SGR defaults
          * and cursor position are unchanged.
          *
-         * Note: DECSACE selects whether this function operates on the
-         * rectangular area or the data stream between the star and end
-         * positions.
-         *
-         * References: VT525
-         *
-         * Probably not worth implementing.
+         * References: DEC STD 070 page 5-172
+         *             VT525
          */
+
+        /* We don't implement the protected attribute, so we can ignore selective:
+         * bool selective = (seq.command() == VTE_CMD_DECSERA);
+         */
+        DECERA(seq);
 }
 
 void
