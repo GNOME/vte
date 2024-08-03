@@ -880,7 +880,7 @@ sequences = [
             comment='select color lookup table'),
     seq_CSI('DECSZS', '{', intermediates=(Intermediate.COMMA,), flags=Flags.NOP,
             comment='select zero symbol'),
-    seq_CSI('XTERM_REPORTSGR', '|', intermediates=(Intermediate.HASH,), flags=Flags.NOP,
+    seq_CSI('XTERM_REPORTSGR', '|', intermediates=(Intermediate.HASH,),
             comment='xterm SGR report'),
     seq_CSI('DECSCPP', '|', intermediates=(Intermediate.CASH,), flags=Flags.NOP,
             comment='select columns per page'),
