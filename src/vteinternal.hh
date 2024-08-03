@@ -935,7 +935,7 @@ public:
 
                 while G_UNLIKELY (long(ring->next()) < position) {
                         row = ring->append(get_bidi_flags());
-                        if (not_default_bg)
+                        if (fill && not_default_bg)
                                 _vte_row_data_fill (row, &m_color_defaults, m_column_count);
                 }
                 row = ring->insert(position, get_bidi_flags());
