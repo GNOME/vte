@@ -1156,8 +1156,8 @@ try
         // fragments.
 
         auto visit_row = [&](auto rownum,
-                             auto left /* inclusive */,
-                             auto right /* exclusive */) -> void {
+                             int left /* inclusive */,
+                             int right /* exclusive */) -> void {
                 // Find this row
                 while (long(m_screen->row_data->next()) <= rownum)
                         ring_append(false);
@@ -1166,17 +1166,38 @@ try
                 if (!rowdata)
                         return;
 
-                if (!_vte_row_data_ensure_len(rowdata, right))
-                        return;
+                // Note that in RECTANGLE mode, changes apply to all cells in the
+                // rectangle, while in STREAM mode, changes should only be applied
+                // to non-erased cells. In the latter case, don't extend the line
+                // and make sure below to check for erased cells, as per
+                // https://gitlab.gnome.org/GNOME/vte/-/issues/2783#note_2164294
+                if (as_rectangle) {
+                        if (!_vte_row_data_ensure_len(rowdata, right))
+                                return;
 
-                _vte_row_data_fill(rowdata, &m_defaults, right + 1);
+                        _vte_row_data_fill(rowdata, &m_defaults, right + 1);
+                } else {
+                        if (!rowdata->len)
+                                return; // nothing to do
+
+                        right = std::min(right, int(rowdata->len));
+                }
 
                 if (!only_attrs)
                         cleanup_fragments(rowdata, rownum, left, right);
 
                 auto cell = &rowdata->cells[left];
-                for (auto col = left; col < right; ++col)
-                        pen(cell++);
+                if (as_rectangle) {
+                        for (auto col = left; col < right; ++col)
+                                pen(cell++);
+                } else {
+                        for (auto col = left; col < right; ++col) {
+                                if (cell->c == 0) // erased? skip this cell
+                                        continue;
+
+                                pen(cell++);
+                        }
+                }
         };
 
         if (as_rectangle || rect.top() == rect.bottom()) { // as rectangle
