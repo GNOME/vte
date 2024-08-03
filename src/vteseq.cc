@@ -1123,7 +1123,7 @@ try
                         while (col < int(srowdata->len) &&
                                col <= source_rect.right() &&
                                cell->attr.fragment()) {
-                                vec.push_back(m_defaults);
+                                vec.push_back(basic_cell); // or m_defaults?
                                 ++cell;
                                 ++col;
                         }
@@ -1132,16 +1132,26 @@ try
                         while (col < int(srowdata->len) &&
                                col + int(cell->attr.columns()) <= source_rect.right() + 1) {
                                 auto const cols = cell->attr.columns();
-                                for (auto j = 0u; j < cols; ++j)
-                                        vec.push_back(*(cell++));
+                                for (auto j = 0u; j < cols; ++j, ++cell)
+                                        vec.push_back(*cell);
 
                                 col += cols;
+                        }
+
+                        // Fill left-over space (if any) with attributes from source
+                        // but erased character content
+                        for (;
+                             col < int(srowdata->len) && col <= source_rect.right();
+                             ++col, ++cell) {
+                                auto erased_cell = VteCell{.c = 0, .attr = cell->attr};
+                                erased_cell.attr.set_fragment(false);
+                                vec.push_back(erased_cell);
                         }
                 }
 
                 // Fill left-over space (if any) with erased default attributes
                 for (; col <= source_rect.right(); ++col)
-                        vec.push_back(m_defaults);
+                        vec.push_back(m_defaults); // or basic_cell ??
 
                 assert(vec.size() == size_t(dest_width));
 
@@ -1155,9 +1165,11 @@ try
                 cleanup_fragments(drowdata, drow, dest_rect.left(), dest_rect.right() + 1);
                 _vte_row_data_fill_cells(drowdata,
                                          dest_rect.left(),
-                                         &m_defaults,
+                                         &basic_cell, // or m_defaults ?
                                          vec.data(),
                                          vec.size());
+
+                // FIXME: truncate row if only erased cells at end?
         };
 
         if (dest_rect.top() < source_rect.top() ||
