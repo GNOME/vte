@@ -1222,9 +1222,7 @@ try
         auto vec = std::vector<VteCell>{};
         vec.reserve(rect_width);
 
-        auto cell = VteCell{};
-        cell.c = c;
-        cell.attr = attr;
+        auto cell = VteCell{.c = c, .attr = attr};
         cell.attr.set_columns(cw);
 
         auto frag_cell = cell;
@@ -1241,7 +1239,9 @@ try
         }
 
         // Fill the rest with erased cells
-        cell = m_defaults;
+        cell.c = 0;
+        cell.attr.set_columns(1);
+        cell.attr.set_fragment(false);
         while (col++ < rect_width) {
                 vec.push_back(cell);
         }
@@ -1270,9 +1270,11 @@ try
                 cleanup_fragments(rowdata, row, rect.left(), rect.right() + 1);
                 _vte_row_data_fill_cells(rowdata,
                                          rect.left(),
-                                         &m_defaults,
+                                         &basic_cell,
                                          vec.data(),
                                          vec.size());
+
+                // FIXME: truncate row if only erased cells at end?
         }
 
         /* We modified the display, so make a note of it for completeness. */
