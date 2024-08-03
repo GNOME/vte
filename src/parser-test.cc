@@ -1627,6 +1627,23 @@ test_seq_glue_sequence_builder(void)
         /* This is sufficiently tested by being used in all the other tests,
          * but if there's anything remaining to be tested, do it here.
          */
+
+        vte_seq_builder b{VTE_SEQ_CSI, 'm'};
+        b.append_param(-1);
+        b.append_param(1);
+        b.append_param(-1);
+        b.append_params({2, -2, -1, 3});
+        b.append_subparams({4, -1, -2, 5, -1, 6});
+        b.append_param(7);
+        b.append_param(-1);
+        b.append_param(8);
+
+        auto str = std::u32string{};
+        b.to_string(str);
+        print_escaped(str);
+
+        g_assert_true(str == U"\e[;1;;2;;3;4::5::6;7;;8m"s);
+
 }
 
 static void
