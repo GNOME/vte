@@ -1089,16 +1089,15 @@ try
         auto const dest_width = dest_rect.right() - dest_rect.left() + 1;
 
         // Ensure all used rows exist
-        auto const first_row = std::min(source_rect.top(), dest_rect.top());
+        // auto const first_row = std::min(source_rect.top(), dest_rect.top());
         auto const last_row = std::max(source_rect.bottom(), dest_rect.bottom());
-        auto new_rows = 0;
-        for (auto row = m_screen->insert_delta + first_row;
-             row <= m_screen->insert_delta + last_row;
-             ++row) {
-                while (long(m_screen->row_data->next()) <= row) {
+        auto rowdelta = m_screen->insert_delta + last_row - long(m_screen->row_data->next()) + 1;
+        if (rowdelta > 0) [[unlikely]] {
+                do {
                         ring_append(false);
-                        ++new_rows;
-                }
+                } while (--rowdelta);
+
+                adjust_adjustments();
         }
 
         // Buffer to simplify copying when source and dest overlap
@@ -1185,9 +1184,6 @@ try
         /* We modified the display, so make a note of it for completeness. */
         m_text_modified_flag = true;
 
-        if (new_rows)
-                adjust_adjustments();
-
         emit_text_modified();
         invalidate_all();
 }
@@ -1241,14 +1237,13 @@ try
         assert(vec.size() == size_t(rect_width));
 
         // Ensure all used rows exist
-        auto new_rows = 0;
-        for (auto row = m_screen->insert_delta + rect.top();
-             row <= m_screen->insert_delta + rect.bottom();
-             ++row) {
-                while (long(m_screen->row_data->next()) <= row) {
+        auto rowdelta = m_screen->insert_delta + rect.bottom() - long(m_screen->row_data->next()) + 1;
+        if (rowdelta > 0) [[unlikely]] {
+                do {
                         ring_append(false);
-                        ++new_rows;
-                }
+                } while (--rowdelta);
+
+                adjust_adjustments();
         }
 
         // Now copy the cells into the ring
@@ -1271,9 +1266,6 @@ try
         /* We modified the display, so make a note of it for completeness. */
         m_text_modified_flag = true;
 
-        if (new_rows)
-                adjust_adjustments();
-
         emit_text_modified();
         invalidate_all();
 }
@@ -1294,14 +1286,13 @@ try
         // Note that the bottom and right parameters in @rect are inclusive.
 
         // Ensure all used rows exist
-        auto new_rows = 0;
-        for (auto row = m_screen->insert_delta + rect.top();
-             row <= m_screen->insert_delta + rect.bottom();
-             ++row) {
-                while (long(m_screen->row_data->next()) <= row) {
+        auto rowdelta = m_screen->insert_delta + rect.bottom() - long(m_screen->row_data->next()) + 1;
+        if (rowdelta > 0) [[unlikely]] {
+                do {
                         ring_append(false);
-                        ++new_rows;
-                }
+                } while (--rowdelta);
+
+                adjust_adjustments();
         }
 
         // If the pen will only write visual attrs, we don't need to cleanup
@@ -1389,9 +1380,6 @@ try
 
         /* We modified the display, so make a note of it for completeness. */
         m_text_modified_flag = true;
-
-        if (new_rows)
-                adjust_adjustments();
 
         emit_text_modified();
         invalidate_all();
