@@ -9428,11 +9428,12 @@ try
         case vte::terminal::TermpropType::RGBA:
                 if (std::holds_alternative<vte::terminal::termprop_rgba>(*value)) {
                         auto const& color = std::get<vte::terminal::termprop_rgba>(*value);
-                        return g_variant_new("(dddd)",
+                        return g_variant_new("(ddddv)",
                                              color.red(),
                                              color.green(),
                                              color.blue(),
-                                             color.alpha());
+                                             color.alpha(),
+                                             g_variant_new_boolean(false)); // placeholder
                 }
                 break;
 
@@ -9488,9 +9489,9 @@ catch (...)
  * * A %VTE_PROPERTY_INT termprop returns a %G_VARIANT_TYPE_INT64 variant.
  * * A %VTE_PROPERTY_UINT termprop returns a %G_VARIANT_TYPE_UINT64 variant.
  * * A %VTE_PROPERTY_DOUBLE termprop returns a %G_VARIANT_TYPE_DOUBLE variant.
- * * A %VTE_PROPERTY_RGB or %VTE_PROPERTY_RGBA termprop returns a "(dddd)"
+ * * A %VTE_PROPERTY_RGB or %VTE_PROPERTY_RGBA termprop returns a "(ddddv)"
  *   tuple containing the red, green, blue, and alpha (1.0 for %VTE_PROPERTY_RGB)
- *   components of the color.
+ *   components of the color and a variant of unspecified contents
  * * A %VTE_PROPERTY_STRING termprop returns a %G_VARIANT_TYPE_STRING variant.
  * * A %VTE_PROPERTY_DATA termprop returns a "ay" variant (which is *not* a bytestring!).
  * * A %VTE_PROPERTY_UUID termprop returns a %G_VARIANT_TYPE_STRING variant
