@@ -697,7 +697,7 @@ sequences = [
             comment='reset mode dec'),
     seq_CSI('SGR', 'm',
             comment='select graphics rendition'),
-    seq_CSI('DECSGR', 'm', pintro=(ParameterIntro.WHAT,), flags=Flags.NOP,
+    seq_CSI('DECSGR', 'm', pintro=(ParameterIntro.WHAT,),
             comment='DEC select graphics rendition'),
     seq_CSI('XTERM_MODKEYS', 'm', pintro=(ParameterIntro.GT,), flags=Flags.NOP,
             comment='xterm set key modifier options'),
