@@ -2087,6 +2087,7 @@ Terminal::set_encoding(char const* charset,
                         return true;
 
                 m_converter.reset();
+                m_oneoff_decoder.reset();
                 m_primary_data_syntax = DataSyntax::ECMA48_UTF8;
         } else {
                 if (primary_data_syntax() == DataSyntax::ECMA48_PCTERM &&

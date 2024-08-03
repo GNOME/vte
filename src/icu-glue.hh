@@ -19,6 +19,7 @@
 
 #include <glib.h>
 #include <memory>
+#include <optional>
 
 namespace vte::base {
 
@@ -28,7 +29,13 @@ bool get_icu_charset_supported(char const* charset);
 
 bool get_icu_charset_is_ecma35(char const* charset);
 
+std::optional<std::string> convert_icu_u8_to_charset(char const* to_charset,
+                                                     std::string_view const str);
+
 std::shared_ptr<UConverter> make_icu_converter(char const* charset,
                                                GError** error = nullptr);
+
+std::shared_ptr<UConverter> clone_icu_converter(UConverter* other,
+                                                GError** error = nullptr);
 
 } // namespace vte::base

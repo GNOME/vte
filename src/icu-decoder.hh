@@ -34,6 +34,8 @@ public:
 
         using converter_shared_type = std::shared_ptr<UConverter>;
 
+        static std::unique_ptr<ICUDecoder> clone(ICUDecoder const&);
+
         ICUDecoder(converter_shared_type charset_converter,
                    converter_shared_type u32_converter)
                 : m_charset_converter{charset_converter},

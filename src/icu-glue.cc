@@ -105,6 +105,36 @@ get_icu_charset_supported(char const* charset)
         return err.isSuccess() && count != 0;
 }
 
+static bool
+set_icu_callbacks(UConverter* converter,
+                  char const* charset,
+                  GError** error)
+{
+        /* The unicode->target conversion is only used when converting
+         * user input (keyboard, clipboard) to be sent to the PTY, and
+         * we don't want the ucnv_fromUChars to substitute the SUB character
+         * for illegal input, since SUB is U+001A which is Ctrl-Z, which
+         * the default UCNV_FROM_U_CALLBACK_SUBSTITUTE callback does.
+         * Use UCNV_FROM_U_CALLBACK_STOP to stop conversion when encountering
+         * illegal input.
+         */
+        auto err = icu::ErrorCode{};
+        ucnv_setFromUCallBack(converter,
+                              UCNV_FROM_U_CALLBACK_STOP,
+                              nullptr,
+                              nullptr,
+                              nullptr,
+                              err);
+        if (err.isFailure()) {
+                g_set_error(error, G_CONVERT_ERROR, G_CONVERT_ERROR_NO_CONVERSION,
+                            "Failed ucnv_setFromUCallBack for charset \"%s\": %s",
+                            charset, err.errorName());
+                return {};
+        }
+
+        return converter;
+}
+
 std::shared_ptr<UConverter>
 make_icu_converter(char const* charset,
                    GError** error)
@@ -118,27 +148,36 @@ make_icu_converter(char const* charset,
                 return {};
         }
 
-        /* The unicode->target conversion is only used when converting
-         * user input (keyboard, clipboard) to be sent to the PTY, and
-         * we don't want the ucnv_fromUChars to substitute the SUB character
-         * for illegal input, since SUB is U+001A which is Ctrl-Z, which
-         * the default UCNV_FROM_U_CALLBACK_SUBSTITUTE callback does.
-         * Use UCNV_FROM_U_CALLBACK_STOP to stop conversion when encountering
-         * illegal input.
-         */
-        err.reset();
-        ucnv_setFromUCallBack(converter.get(),
-                              UCNV_FROM_U_CALLBACK_STOP,
-                              nullptr,
-                              nullptr,
-                              nullptr,
-                              err);
+        if (!set_icu_callbacks(converter.get(), charset, error))
+                return {};
+
+        return converter;
+}
+
+
+std::shared_ptr<UConverter>
+clone_icu_converter(UConverter* other,
+                    GError** error)
+{
+        auto err = icu::ErrorCode{};
+        auto const charset = ucnv_getName(other, err);
         if (err.isFailure()) {
                 g_set_error(error, G_CONVERT_ERROR, G_CONVERT_ERROR_NO_CONVERSION,
-                            "Failed ucnv_setFromUCallBack for charset \"%s\": %s",
+                            "Failed to get charset from converter: %s",
+                            err.errorName());
+        }
+
+        err.reset();
+        auto converter = std::shared_ptr<UConverter>{ucnv_clone(other, err), &ucnv_close};
+        if (err.isFailure()) {
+                g_set_error(error, G_CONVERT_ERROR, G_CONVERT_ERROR_NO_CONVERSION,
+                            "Failed to clone converter for charset \"%s\": %s",
                             charset, err.errorName());
                 return {};
         }
+
+        if (!set_icu_callbacks(converter.get(), charset, error))
+                return {};
 
         return converter;
 }

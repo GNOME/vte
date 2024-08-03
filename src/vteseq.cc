@@ -3565,22 +3565,71 @@ Terminal::DECFRA(vte::parser::Sequence const& seq)
          *             VT525
          */
 
+        auto c = U' ';
         auto idx = 0u;
-        auto const c = seq.collect_char(idx, U' ');
+        switch (primary_data_syntax()) {
+        case DataSyntax::ECMA48_UTF8: {
+                if (auto const co = seq.collect_char(idx, U' '))
+                        c = *co;
+                else
+                        return;
+                break;
+        }
+
+#if WITH_ICU
+        case DataSyntax::ECMA48_PCTERM: {
+                auto v = seq.param(idx);
+                if (v == -1 || v == 0)
+                        v = 0x20;
+                if (v > 0xff)
+                        return;
+
+                try {
+                        // Cannot use m_converter directly since it may have saved
+                        // state or pending output
+                        if (!m_oneoff_decoder)
+                                m_oneoff_decoder = vte::base::ICUDecoder::clone(m_converter->decoder());
+                        if (!m_oneoff_decoder)
+                                return;
+
+                        m_oneoff_decoder->reset();
+
+                        uint8_t const c8 = {uint8_t(v)};
+                        auto c8ptr = &c8;
+                        if (m_oneoff_decoder->decode(&c8ptr) !=
+                            vte::base::ICUDecoder::Result::eSomething ||
+                            m_oneoff_decoder->pending())
+                                return;
+
+                        c = m_oneoff_decoder->codepoint();
+                        // The translated character must not be C0 or C1
+                        if (c < 0x20 || (c >= 0x7f && c < 0xa0))
+                                return;
+                } catch (...) {
+                        return;
+                }
+
+                break;
+        }
+#endif // WITH_ICU
+
+        default:
+                __builtin_unreachable();
+                return;
+        }
 
         idx = seq.next(idx);
         auto const rect = collect_rect(seq, idx);
-
-        if (!c || !rect)
+        if (!rect)
                 return; // ignore
 
         /* fill_rect already checks for width 0, no need to pre-check  */
-        if (g_unichar_ismark(*c))
+        if (g_unichar_ismark(c))
                 return; // ignore
 
         // Charset invocation applies to the fill character
         fill_rect(*rect,
-                  character_replacement(*c),
+                  character_replacement(c),
                   m_defaults.attr);
 }
 

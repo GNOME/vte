@@ -23,6 +23,7 @@
 #include <memory>
 
 #include "icu-decoder.hh"
+#include "icu-glue.hh"
 
 namespace vte::base {
 
@@ -146,6 +147,20 @@ ICUDecoder::reset() noexcept
         m_state = State::eInput;
         m_available = 0;
         m_index = 0;
+}
+
+std::unique_ptr<ICUDecoder>
+ICUDecoder::clone(ICUDecoder const& other)
+{
+        auto charset_converter = vte::base::clone_icu_converter(other.m_charset_converter.get());
+        if (!charset_converter)
+                return {};
+        auto u32_converter = vte::base::clone_icu_converter(other.m_u32_converter.get());
+        if (!u32_converter)
+                return {};
+
+        return std::make_unique<ICUDecoder>(std::move(charset_converter),
+                                            std::move(u32_converter));
 }
 
 } // namespace vte::base

@@ -417,7 +417,11 @@ public:
 
 #if WITH_ICU
         /* Legacy charset support */
+        // The main converter for the PTY stream
         std::unique_ptr<vte::base::ICUConverter> m_converter;
+        // Extra converter for use in one-off conversion e.g. for
+        // DECFRA, instantiated on-demand
+        std::unique_ptr<vte::base::ICUDecoder> m_oneoff_decoder;
 #endif /* WITH_ICU */
 
         char const* encoding() const noexcept
