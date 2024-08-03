@@ -9268,6 +9268,7 @@ try
 
         case vte::terminal::TermpropType::RGB:
         case vte::terminal::TermpropType::RGBA:
+#if VTE_GTK == 3
                 if (std::holds_alternative<vte::terminal::termprop_rgba>(*value)) {
                         rv = true;
                         auto const& c = std::get<vte::terminal::termprop_rgba>(*value);
@@ -9275,6 +9276,7 @@ try
                         g_value_init(gvalue, GDK_TYPE_RGBA);
                         g_value_set_boxed(gvalue, &color);
                 }
+#endif // VTE_GTK
                 break;
 
         case vte::terminal::TermpropType::STRING:
@@ -9339,8 +9341,10 @@ catch (...)
  * * A %VTE_PROPERTY_INT termprop stores a %G_TYPE_INT64 value.
  * * A %VTE_PROPERTY_UINT termprop stores a %G_TYPE_UINT64 value.
  * * A %VTE_PROPERTY_DOUBLE termprop stores a %G_TYPE_DOUBLE value.
- * * A %VTE_PROPERTY_RGB termprop stores a boxed #GdkRGBA value with alpha 1.0.
- * * A %VTE_PROPERTY_RGBA termprop stores a boxed #GdkRGBA value.
+ * * A %VTE_PROPERTY_RGB termprop stores a boxed #GdkRGBA value with alpha 1.0 on gtk3,
+ *    and nothing on gtk4.
+ * * A %VTE_PROPERTY_RGBA termprop stores a boxed #GdkRGBA value on gtk3,
+ *    and nothing on gtk4.
  * * A %VTE_PROPERTY_STRING termprop stores a %G_TYPE_STRING value.
  * * A %VTE_PROPERTY_DATA termprop stores a boxed #GBytes value.
  * * A %VTE_PROPERTY_UUID termprop stores a boxed #VteUuid value.
