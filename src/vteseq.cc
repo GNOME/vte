@@ -640,6 +640,123 @@ Terminal::set_character_replacement(unsigned slot)
         m_character_replacement = &m_character_replacements[slot];
 }
 
+template<class B>
+static void
+append_attr_sgr_params(VteCellAttr const& attr,
+                       B&& builder)
+{
+        // The VT520/525 manual shows an example response from DECRQSS SGR,
+        // which start with 0 (reset-all).
+        builder.append_param(VTE_SGR_RESET_ALL);
+
+        if (attr.bold())
+                builder.append_param(VTE_SGR_SET_BOLD);
+        if (attr.dim())
+                builder.append_param(VTE_SGR_SET_DIM);
+        if (attr.italic())
+                builder.append_param(VTE_SGR_SET_ITALIC);
+        if (auto v = attr.underline()) {
+                if (v == 1)
+                        builder.append_param(VTE_SGR_SET_UNDERLINE);
+                else if (v == 2)
+                        builder.append_param(VTE_SGR_SET_UNDERLINE_DOUBLE);
+                else
+                        builder.append_subparams({VTE_SGR_SET_UNDERLINE, int(v)});
+        }
+        if (attr.blink())
+                builder.append_param(VTE_SGR_SET_BLINK);
+        if (attr.reverse())
+                builder.append_param(VTE_SGR_SET_REVERSE);
+        if (attr.invisible())
+                builder.append_param(VTE_SGR_SET_INVISIBLE);
+        if (attr.strikethrough())
+                builder.append_param(VTE_SGR_SET_STRIKETHROUGH);
+        if (attr.overline())
+                builder.append_param(VTE_SGR_SET_OVERLINE);
+
+        auto append_color = [&](uint32_t cidx,
+                                unsigned default_cidx,
+                                int sgr,
+                                int legacy_sgr_first,
+                                int legacy_sgr_last,
+                                int legacy_sgr_bright_first,
+                                int legacy_sgr_bright_last,
+                                int redbits,
+                                int greenbits,
+                                int bluebits) constexpr noexcept -> void {
+                if (cidx == default_cidx)
+                        return;
+
+                if (cidx & VTE_RGB_COLOR_MASK(redbits, greenbits, bluebits)) {
+                        // Truecolour
+                        auto const red   = VTE_RGB_COLOR_GET_COMPONENT(cidx, greenbits + bluebits, redbits);
+                        auto const green = VTE_RGB_COLOR_GET_COMPONENT(cidx, bluebits, greenbits);
+                        auto const blue  = VTE_RGB_COLOR_GET_COMPONENT(cidx, 0, bluebits);
+
+                        builder.append_subparams({sgr,
+                                        vte::parser::detail::VTE_SGR_COLOR_SPEC_RGB,
+                                        -1 /* colourspace */,
+                                        int(red),
+                                        int(green),
+                                        int(blue)});
+                        return;
+                }
+
+                if (cidx & VTE_DIM_COLOR)
+                        cidx &= ~VTE_DIM_COLOR;
+
+                if (cidx & VTE_LEGACY_COLORS_OFFSET) {
+                        // Legacy colour
+
+                        cidx -= VTE_LEGACY_COLORS_OFFSET;
+                        if (cidx < unsigned(legacy_sgr_last - legacy_sgr_first + 1)) {
+                                builder.append_param(legacy_sgr_first + cidx);
+                                return;
+                        }
+                        if (cidx >= VTE_COLOR_BRIGHT_OFFSET) {
+                                cidx -= VTE_COLOR_BRIGHT_OFFSET;
+                                if (cidx < unsigned(legacy_sgr_bright_last - legacy_sgr_bright_first + 1)) {
+                                        builder.append_param(legacy_sgr_bright_first + cidx);
+                                        return;
+                                }
+                        }
+
+                        return;
+                }
+
+                // Palette colour
+
+                if (cidx < 256) {
+                        builder.append_subparams({sgr,
+                                        vte::parser::detail::VTE_SGR_COLOR_SPEC_LEGACY,
+                                        int(cidx)});
+                        return;
+                }
+        };
+
+        append_color(attr.fore(),
+                     VTE_DEFAULT_FG,
+                     VTE_SGR_SET_FORE_SPEC,
+                     VTE_SGR_SET_FORE_LEGACY_START,
+                     VTE_SGR_SET_FORE_LEGACY_END,
+                     VTE_SGR_SET_FORE_LEGACY_BRIGHT_START,
+                     VTE_SGR_SET_FORE_LEGACY_BRIGHT_END,
+                     8, 8, 8);
+        append_color(attr.back(),
+                     VTE_DEFAULT_BG,
+                     VTE_SGR_SET_BACK_SPEC,
+                     VTE_SGR_SET_BACK_LEGACY_START,
+                     VTE_SGR_SET_BACK_LEGACY_END,
+                     VTE_SGR_SET_BACK_LEGACY_BRIGHT_START,
+                     VTE_SGR_SET_BACK_LEGACY_BRIGHT_END,
+                     8, 8, 8);
+        append_color(attr.deco(),
+                     VTE_DEFAULT_FG,
+                     VTE_SGR_SET_DECO_SPEC,
+                     -1, -1, -1, -1,
+                     4, 5, 5);
+}
+
 /* Clear from the cursor position (inclusive!) to the beginning of the line. */
 void
 Terminal::clear_to_bol()
@@ -4494,6 +4611,13 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
                              {VTE_REPLY_DECSLRM, {m_scrolling_region.left() + 1,
                                                   m_scrolling_region.right() + 1}});
 
+        case VTE_CMD_SGR: {
+                auto builder = vte::parser::ReplyBuilder(VTE_REPLY_SGR, {});
+                append_attr_sgr_params(m_defaults.attr, builder);
+                return reply(seq, VTE_REPLY_DECRPSS, {1},
+                             std::move(builder));
+        }
+
         case VTE_CMD_DECAC:
         case VTE_CMD_DECARR:
         case VTE_CMD_DECATC:
@@ -4526,7 +4650,6 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
         case VTE_CMD_DECSWBV:
         case VTE_CMD_DECSZS:
         case VTE_CMD_DECTME:
-        case VTE_CMD_SGR:
         case VTE_CMD_XTERM_MODKEYS:
         default:
                 return reply(seq, VTE_REPLY_DECRPSS, {0});
