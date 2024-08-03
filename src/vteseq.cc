@@ -1092,7 +1092,9 @@ try
         auto const first_row = std::min(source_rect.top(), dest_rect.top());
         auto const last_row = std::max(source_rect.bottom(), dest_rect.bottom());
         auto new_rows = 0;
-        for (auto row = first_row; row <= last_row; ++row) {
+        for (auto row = m_screen->insert_delta + first_row;
+             row <= m_screen->insert_delta + last_row;
+             ++row) {
                 while (long(m_screen->row_data->next()) <= row) {
                         ring_append(false);
                         ++new_rows;
@@ -1238,15 +1240,25 @@ try
 
         assert(vec.size() == size_t(rect_width));
 
+        // Ensure all used rows exist
+        auto new_rows = 0;
+        for (auto row = m_screen->insert_delta + rect.top();
+             row <= m_screen->insert_delta + rect.bottom();
+             ++row) {
+                while (long(m_screen->row_data->next()) <= row) {
+                        ring_append(false);
+                        ++new_rows;
+                }
+        }
+
+        if (new_rows)
+                adjust_adjustments();
+
         // Now copy the cells into the ring
 
         for (auto row = m_screen->insert_delta + rect.top();
              row <= m_screen->insert_delta + rect.bottom();
              ++row) {
-                /* Find this row. */
-                while (long(m_screen->row_data->next()) <= row)
-                        ring_append(false);
-
                 auto rowdata = m_screen->row_data->index_writable(row);
                 if (!rowdata)
                         continue;
@@ -1262,7 +1274,6 @@ try
         /* We modified the display, so make a note of it for completeness. */
         m_text_modified_flag = true;
 
-        adjust_adjustments();
         emit_text_modified();
         invalidate_all();
 }
@@ -1282,6 +1293,20 @@ try
         // of cells) denoted by @rect and calls @pen on each cell.
         // Note that the bottom and right parameters in @rect are inclusive.
 
+        // Ensure all used rows exist
+        auto new_rows = 0;
+        for (auto row = m_screen->insert_delta + rect.top();
+             row <= m_screen->insert_delta + rect.bottom();
+             ++row) {
+                while (long(m_screen->row_data->next()) <= row) {
+                        ring_append(false);
+                        ++new_rows;
+                }
+        }
+
+        if (new_rows)
+                adjust_adjustments();
+
         // If the pen will only write visual attrs, we don't need to cleanup
         // fragments. However we do need to make sure it's not writing only
         // the attrs for half a double-width character. If the pen does write
@@ -1291,10 +1316,6 @@ try
         auto visit_row = [&](auto rownum,
                              int left /* inclusive */,
                              int right /* exclusive */) -> void {
-                // Find this row
-                while (long(m_screen->row_data->next()) <= rownum)
-                        ring_append(false);
-
                 auto rowdata = m_screen->row_data->index_writable(rownum);
                 if (!rowdata)
                         return;
@@ -1364,7 +1385,6 @@ try
         /* We modified the display, so make a note of it for completeness. */
         m_text_modified_flag = true;
 
-        adjust_adjustments(); // since we may have added rows
         emit_text_modified();
         invalidate_all();
 }
