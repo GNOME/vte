@@ -9319,7 +9319,6 @@ try
 catch (...)
 {
         vte::log_exception();
-        g_value_init(gvalue, G_TYPE_NONE);
         return false;
 }
 
