@@ -1428,9 +1428,8 @@ Terminal::line_feed()
 void
 Terminal::erase_in_display(vte::parser::Sequence const& seq)
 {
-        /* We don't implement the protected attribute, so we can ignore selective:
-         * bool selective = (seq.command() == VTE_CMD_DECSED);
-         */
+        // We don't implement the protected attribute, so we can ignore selective:
+        auto selective = (seq.command() == VTE_CMD_DECSED);
 
         switch (seq.collect1(0)) {
         case -1: /* default */
@@ -1450,7 +1449,10 @@ Terminal::erase_in_display(vte::parser::Sequence const& seq)
                 clear_screen();
 		break;
         case 3:
-                /* Drop the scrollback. */
+                if (selective)
+                        break;
+
+                /* Drop the scrollback (only for ED) */
                 drop_scrollback();
                 break;
 	default:
@@ -4868,18 +4870,30 @@ Terminal::DECSED(vte::parser::Sequence const& seq)
 {
         /*
          * DECSED - selective-erase-in-display
-         * This control function erases some or all of the erasable characters
-         * in the display. DECSED can only erase characters defined as erasable
-         * by the DECSCA control function. DECSED works inside or outside the
-         * scrolling margins.
          *
-         * @args[0] defines which regions are erased. If it is 0, all cells from
-         * the cursor (inclusive) till the end of the display are erase. If it
-         * is 1, all cells from the start of the display till the cursor
-         * (inclusive) are erased. If it is 2, all cells are erased.
+         * Erases (some or all of, depending on args[0]) the erasable
+         * characters in the display, i.e. those which have the
+         * Selectively Erasable attribute set. Characters written with
+         * the Selectively Erasable attribute reset, and empty character
+         * positions, are not affected.
+         * Line attributes are not changed by this function.
+         * This function is not affected by the scrolling margins.
+         *
+         * Arguments:
+         *   args[0]: mode
+         *     0 = erase from the cursor position to the end of the screen
+         *         (inclusive)
+         *     1 = erase from the beginning of the screen to the cursor
+         *         position (inclusive)
+         *     2 = erase display
          *
          * Defaults:
          *   args[0]: 0
+         *
+         * This function is not affected by the scrolling margins.
+         *
+         * References: DEC STD 070 page 5-162 ff
+         *             DEC VT 525
          */
 
         erase_in_display(seq);
@@ -4890,18 +4904,26 @@ Terminal::DECSEL(vte::parser::Sequence const& seq)
 {
         /*
          * DECSEL - selective-erase-in-line
-         * This control function erases some or all of the erasable characters
-         * in a single line of text. DECSEL erases only those characters defined
-         * as erasable by the DECSCA control function. DECSEL works inside or
-         * outside the scrolling margins.
          *
-         * @args[0] defines the region to be erased. If it is 0, all cells from
-         * the cursor (inclusive) till the end of the line are erase. If it is
-         * 1, all cells from the start of the line till the cursor (inclusive)
-         * are erased. If it is 2, the whole line of the cursor is erased.
+         * Erases (some or all of, depending on args[0]) the erasable
+         * characters in the active line, i.e. those which have the
+         * Selectively Erasable attribute set. Characters written with
+         * the Selectively Erasable attribute reset, and empty character
+         * positions, are not affected.
+         * Line attributes are not changed by this function.
+         * This function is not affected by the scrolling margins.
+         *
+         * Arguments: mode
+         *   args[0]: which character positions to erase
+         *     0: from the active position to the end of the line (inclusive)
+         *     1: from the start of the line to the active position (inclusive)
+         *     2: all positions on the active line
          *
          * Defaults:
          *   args[0]: 0
+         *
+         * References: DEC STD 070 page 5-159 ff
+         *             DEC VT 525
          */
 
         erase_in_line(seq);
@@ -4912,10 +4934,12 @@ Terminal::DECSERA(vte::parser::Sequence const& seq)
 {
         /*
          * DECSERA - selective-erase-rectangular-area
-         * Selectively erases characters in the specified rectangle,
-         * replacing them with SPACE (2/0). Character attributes,
-         * protection attribute (DECSCA) and line attributes (DECDHL,
-         * DECDWL) are unchanged.
+         * Erases the erasable characters in the rectangle, i.e. those which
+         * have the Selectively Erasable attribute set. Characters written
+         * with the Selectively Erasable attribute reset, and empty character
+         * positions, are not affected.
+         * Line attributes are not changed by this function.
+         * This function is not affected by the scrolling margins.
          *
          * Arguments;
          *   args[0..3]: top, left, bottom, right of the source rectangle (1-based)
@@ -4936,10 +4960,27 @@ Terminal::DECSERA(vte::parser::Sequence const& seq)
          *             VT525
          */
 
-        /* We don't implement the protected attribute, so we can ignore selective:
-         * bool selective = (seq.command() == VTE_CMD_DECSERA);
-         */
-        DECERA(seq);
+        // Note that this function still differs from DECERA in
+        // that DECERA also erases the attributes (replacing them
+        // with defaults) while DECSERA only erases the characters
+        // and keeps the attributes.
+
+        auto idx = 0u;
+        auto const rect = collect_rect(seq, idx);
+        if (!rect)
+                return; // ignore
+
+        rewrite_rect(*rect,
+                     true, // as rectangle
+                     false, // not only writing attrs
+                     [&](VteCell* cell) constexpr noexcept -> void {
+                             // We don't implement the protected attribute, so treat
+                             // all cells as unprotected.
+
+                             cell->c = ' ';
+                             cell->attr.set_columns(1);
+                             cell->attr.set_fragment(false);
+                     });
 }
 
 void
@@ -6246,7 +6287,7 @@ Terminal::ED(vte::parser::Sequence const& seq)
          * Defaults:
          *   args[0]: 0
          *
-         * This function does not respect the scrolling margins.
+         * This function is not affected by the scrolling margins.
          *
          * If ERM is set, erases only non-protected characters; if
          * ERM is reset, erases all characters.
