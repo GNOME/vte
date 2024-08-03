@@ -1856,7 +1856,7 @@ public:
         void rewrite_rect(grid_rect rect,
                           bool as_rectangle,
                           bool only_attrs,
-                          P const& pen) noexcept;
+                          P&& pen) noexcept;
 
         // ringview
         void ringview_update();

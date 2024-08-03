@@ -1292,7 +1292,7 @@ void
 Terminal::rewrite_rect(grid_rect rect,
                        bool as_rectangle,
                        bool only_attrs,
-                       P const& pen) noexcept
+                       P&& pen) noexcept
 try
 {
         // Visit the rectangle of cells (either as a rectangle, or a stream
@@ -1308,6 +1308,7 @@ try
 
                 adjust_adjustments();
         }
+
 
         // If the pen will only write visual attrs, we don't need to cleanup
         // fragments. However we do need to make sure it's not writing only
@@ -1331,9 +1332,14 @@ try
                         if (!_vte_row_data_ensure_len(rowdata, right))
                                 return;
 
-                        _vte_row_data_fill(rowdata, &m_defaults, right);
+                        _vte_row_data_fill(rowdata, &basic_cell, left);
+
+                        auto fill = VteCell{.c = ' ', .attr = m_defaults.attr};
+                        fill.attr.set_columns(1);
+                        fill.attr.set_fragment(false);
+                        _vte_row_data_fill(rowdata, &fill, right);
                 } else {
-                        if (!rowdata->len)
+                        if (int(rowdata->len) <= left)
                                 return; // nothing to do
 
                         right = std::min(right, int(rowdata->len));
@@ -1360,6 +1366,8 @@ try
                                 pen(cell);
 
                         }
+
+                        _vte_row_data_expand(rowdata, right);
                 } else {
                         for (auto col = left; col < right; ++col, ++cell) {
                                 if (cell->c == 0) // erased? skip this cell
