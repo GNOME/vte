@@ -55,6 +55,7 @@
 #include "fwd.hh"
 #include "color-palette.hh"
 #include "osc-colors.hh"
+#include "rect.hh"
 
 #include "pcre2-glue.hh"
 #include "vteregexinternal.hh"
@@ -172,6 +173,10 @@ public:
 
 namespace vte {
 
+        // Inclusive rect of integer
+        using grid_rect = vte::rect_inclusive<int>;
+        using grid_point = vte::point<int>;
+
 /* Tracks the DECSTBM / DECSLRM scrolling region, a.k.a. margins.
  * For effective operation, it stores in a single boolean if at its default state. */
 struct scrolling_region {
@@ -209,6 +214,18 @@ public:
         void reset_horizontal() noexcept { set_horizontal(0, m_width - 1); }
         void reset() noexcept { reset_vertical(); reset_horizontal(); }
         void reset_with_size(int w, int h) noexcept { m_width = w; m_height = h; reset(); }
+
+        // FIXME inherit from grid_rect instead
+        constexpr grid_rect as_rect() const noexcept
+        {
+                return grid_rect{left(), top(), right(), bottom()};
+        }
+
+        constexpr grid_point origin() const noexcept
+        {
+                return grid_point{left(), top()};
+        }
+
 }; // class scrolling_region
 
 namespace platform {
@@ -1736,10 +1753,7 @@ public:
         inline void erase_in_display(vte::parser::Sequence const& seq);
         inline void erase_in_line(vte::parser::Sequence const& seq);
 
-        unsigned int checksum_area(vte::grid::row_t start_row,
-                                   vte::grid::column_t start_col,
-                                   vte::grid::row_t end_row,
-                                   vte::grid::column_t end_col);
+        unsigned int checksum_area(grid_rect rect);
 
         void select_text(vte::grid::column_t start_col,
                          vte::grid::row_t start_row,
@@ -1828,28 +1842,18 @@ public:
 
         // helpers
 
-        // ParamRect is a rectangle as used in DECERA, DECFRA etc.
-        // Values are 0-based.
-        struct ParamRect {
-                int top;
-                int left;
-                int bottom;
-                int right;
-        };
+        grid_rect collect_rect(vte::parser::Sequence const&,
+                               unsigned&) noexcept;
 
-        std::optional<ParamRect> collect_rect(vte::parser::Sequence const&,
-                                              unsigned&) noexcept;
+        void copy_rect(grid_rect srect,
+                       grid_point dest) noexcept;
 
-        void copy_rect(ParamRect srect,
-                       int dest_top,
-                       int dest_left) noexcept;
-
-        void fill_rect(ParamRect rect,
+        void fill_rect(grid_rect rect,
                        char32_t c,
                        VteCellAttr attr) noexcept;
 
         template<class P>
-        void rewrite_rect(ParamRect rect,
+        void rewrite_rect(grid_rect rect,
                           bool as_rectangle,
                           bool only_attrs,
                           P const& pen) noexcept;

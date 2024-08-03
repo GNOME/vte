@@ -6855,11 +6855,13 @@ Terminal::get_selected_text(GString *string,
 
 #if VTE_DEBUG
 unsigned int
-Terminal::checksum_area(vte::grid::row_t start_row,
-                        vte::grid::column_t start_col,
-                        vte::grid::row_t end_row,
-                        vte::grid::column_t end_col)
+Terminal::checksum_area(vte::grid_rect rect)
 {
+        vte::grid::row_t const start_row = rect.top() + m_screen->insert_delta;
+        vte::grid::row_t const end_row = rect.bottom() + m_screen->insert_delta;
+        vte::grid::column_t const start_col = rect.left();
+        vte::grid::column_t const end_col = rect.right() + 1;
+
         unsigned int checksum = 0;
         VteCharAttrList attributes;
         const VteCellAttr *attr;
