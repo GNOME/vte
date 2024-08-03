@@ -47,8 +47,9 @@
 typedef struct VteCellAttr VteCellAttr;
 
 /*
- * VteCellAttrAndMask: A class that stores SGR attributes and
- * remembers which attributes have been explicitly set.
+ * VteCellAttrReverseMask: A class that stores SGR attributes and
+ * stores a mask that when applied to a VteCellAttr reverses its
+ * attributes.
  *
  * When adding new attributes, keep in sync with VteCellAttr.
  */
@@ -56,55 +57,45 @@ typedef struct VteCellAttr VteCellAttr;
 #define CELL_ATTR_BOOL(lname,uname) \
         inline constexpr void set_##lname(bool value) \
         { \
-                vte_attr_set_bool(&m_attr, VTE_ATTR_##uname##_MASK, value); \
-                m_attr_mask |= VTE_ATTR_##uname##_MASK; \
+                attr ^= value ? VTE_ATTR_##uname##_MASK : 0;      \
         }
 
 #define CELL_ATTR_UINT(lname,uname) \
         inline constexpr void set_##lname(unsigned int value) \
         { \
-                vte_attr_set_value(&m_attr, VTE_ATTR_##uname##_MASK, VTE_ATTR_##uname##_SHIFT, value); \
-                m_attr_mask |= VTE_ATTR_##uname##_MASK; \
+                attr ^= value ? VTE_ATTR_##uname(1) : 0;  \
         } \
         \
         inline constexpr uint32_t lname() const \
         { \
-                return vte_attr_get_value(m_attr, VTE_ATTR_##uname##_VALUE_MASK, VTE_ATTR_##uname##_SHIFT); \
+                return vte_attr_get_value(attr, VTE_ATTR_##uname##_VALUE_MASK, VTE_ATTR_##uname##_SHIFT); \
         }
 
-typedef struct _VTE_GNUC_PACKED VteCellAttrAndMask {
+typedef struct _VTE_GNUC_PACKED VteCellAttrReverseMask {
 
-        friend VteCellAttr;
-
-        uint32_t m_attr{0u};
-        uint32_t m_attr_mask{0u};
-
-        uint64_t m_colors{0u};
-        uint64_t m_colors_mask{0u};
+        uint32_t attr{0u};
+        // Colours cannot be 'reversed' so don't bother storing them
 
         /* Methods */
 
         explicit constexpr operator bool() const noexcept
         {
-                return m_attr_mask != 0 || m_colors_mask != 0;
+                return attr != 0;
         }
 
         inline constexpr void unset(uint32_t mask)
         {
-                m_attr &= ~mask;
-                m_attr_mask |= mask;
+                // no-op
         }
 
 #define CELL_ATTR_COLOR(name,mask) \
         inline void set_##name(uint32_t value) \
         { \
-                vte_color_triple_set_##name(&m_colors, value); \
-                m_colors_mask |= mask; \
         } \
         \
         inline constexpr uint32_t name() const \
         { \
-                return vte_color_triple_get_##name(m_colors); \
+                return 0; \
         }
 
         CELL_ATTR_COLOR(fore, VTE_COLOR_TRIPLE_FORE_MASK)
@@ -124,21 +115,10 @@ typedef struct _VTE_GNUC_PACKED VteCellAttrAndMask {
 
         inline constexpr void reset_sgr_attributes() noexcept
         {
-                vte_attr_set_value(&m_attr, VTE_ATTR_ALL_SGR_MASK, 0 /* shift */, 0 /* value */);
-                m_attr_mask |= VTE_ATTR_ALL_SGR_MASK;
-
-                m_colors = vte_color_triple_init();
-                m_colors_mask = uint64_t(-1);
+                attr ^= VTE_ATTR_ALL_SGR_MASK;
         }
 
-        inline constexpr void normalise() noexcept
-        {
-                // Normalise multi-valued attrs to 0 or 1
-                // Currently, this is just the underline attr.
-                set_underline(underline() != 0);
-        }
-
-} VteCellAttrAndMask;
+} VteCellAttrReverseMask;
 
 #undef CELL_ATTR_BOOL
 #undef CELL_ATTR_UINT
@@ -253,34 +233,8 @@ struct _VTE_GNUC_PACKED VteCellAttr {
                 m_colors = vte_color_triple_init();
         }
 
-        inline constexpr void apply(VteCellAttrAndMask const& changes) noexcept
-        {
-                // Copy set attributes from @changes
-                attr &= ~changes.m_attr_mask;
-                attr |= changes.m_attr & changes.m_attr_mask;
+}; // class VteCellAttr
 
-                m_colors &= ~changes.m_colors_mask;
-                m_colors |= changes.m_colors & changes.m_colors_mask;
-        }
-
-        inline constexpr void reverse_apply(VteCellAttrAndMask const& changes) noexcept
-        {
-                // Reverse set attributes from @changes
-
-                // Need to handle attrs that occupy more than 1 bit specially
-                // by normalising their non-zero values to 1, if @changes
-                // applies to that attr.
-                // @changes is expected to already have been so normalised.
-                // (Currently this applies only to the underline attr)
-                if (changes.m_attr_mask & VTE_ATTR_UNDERLINE_MASK) {
-                        set_underline(underline() != 0);
-                }
-
-                attr ^= changes.m_attr;
-
-                // Colours cannot be "reversed", so do nothing with changes.m_colors.
-        }
-};
 static_assert(sizeof (VteCellAttr) == 16, "VteCellAttr has wrong size");
 static_assert(offsetof (VteCellAttr, hyperlink_idx) == VTE_CELL_ATTR_COMMON_BYTES, "VteCellAttr layout is wrong");
 

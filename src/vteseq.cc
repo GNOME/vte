@@ -3158,16 +3158,36 @@ Terminal::DECCARA(vte::parser::Sequence const& seq)
         if (!rect)
                 return;
 
-        auto changes = VteCellAttrAndMask{};
-        vte::parser::collect_sgr(seq, idx, changes);
-        if (!changes)
-                return; // nothing to do
+        // Parse the SGR attributes twice, applying them first to
+        // an all-unset attr, then to an all-set attr. Combining these
+        // obtains a mask and a value that can be applied to each
+        // cell's attrs to set them to their new value while preserving
+        // any attrs not mentioned in the SGR attributes.
+
+        auto const sgr_idx = idx; // save index
+        auto empty = VteCellAttr{.attr = 0, .m_colors = 0};
+        vte::parser::collect_sgr(seq, idx, empty);
+
+        idx = sgr_idx; // restore index
+        auto full = VteCellAttr{.attr = ~uint32_t{0}, .m_colors = ~uint64_t{0}};
+        vte::parser::collect_sgr(seq, idx, full);
+
+        auto const attr_mask = (full.attr & ~empty.attr & VTE_ATTR_ALL_SGR_MASK)
+                | ~VTE_ATTR_ALL_SGR_MASK; // make sure not to change non-visual attrs
+        auto const attr = empty.attr;
+        auto const colors_mask = full.m_colors & ~empty.m_colors;
+        auto const colors = empty.m_colors;
 
         rewrite_rect(rect,
                      m_decsace_is_rectangle,
                      true, // only writing attrs
                      [&](VteCell* cell) constexpr noexcept -> void {
-                             cell->attr.apply(changes);
+                             auto& cell_attr = cell->attr;
+                             cell_attr.attr &= attr_mask;
+                             cell_attr.attr ^= attr;
+
+                             cell_attr.m_colors &= colors_mask;
+                             cell_attr.m_colors ^= colors;
                      });
 }
 
@@ -3981,17 +4001,46 @@ Terminal::DECRARA(vte::parser::Sequence const& seq)
         if (idx >= seq.size())
                 return;
 
-        auto changes = VteCellAttrAndMask{};
-        vte::parser::collect_sgr(seq, idx, changes);
-        if (!changes)
+
+        // Note that using an an SGR attributes that unsets some attribute
+        // should be ignored; e.g. a DECCARA 3;23 should be the same as a
+        // DECCARA 3.
+
+        auto mask = VteCellAttrReverseMask{};
+        vte::parser::collect_sgr(seq, idx, mask);
+        if (!mask)
                 return; // nothing to do
 
-        changes.normalise();
+        // Make sure to only change visual attributes
+        mask.attr &= VTE_ATTR_ALL_SGR_MASK;
+
+        // As per DEC STD 070, DECRARA only supports bold, underline,
+        // blink, and reverse attributes unless they are part of a
+        // well-defined extension. Vte provides such an extension in
+        // that it allows any SGR attributes here (except colours).
+        // However, specifically exclude invisible from the supported
+        // attrs so that an DECRARA 0 doesn't turn all text invisible.
+        mask.attr &= ~VTE_ATTR_INVISIBLE_MASK;
+
         rewrite_rect(rect,
                      m_decsace_is_rectangle,
                      true, // only writing attrs
                      [&](VteCell* cell) constexpr noexcept -> void {
-                             cell->attr.reverse_apply(changes);
+                             // While vte has different underline styles
+                             // selected by subparameters of SGR 4, reversing
+                             // underline only toggles between any underline
+                             // to no-underline and v.v.
+
+                             // Need to handle attrs that occupy more than
+                             // 1 bit specially by normalising their non-zero
+                             // values to all-1, so that the ^ can reverse the
+                             // value correctly.
+
+                             auto& attr = cell->attr;
+                             if (attr.underline())
+                                     attr.set_underline(VTE_ATTR_UNDERLINE_VALUE_MASK);
+
+                             attr.attr ^= mask.attr;
                      });
 }
 

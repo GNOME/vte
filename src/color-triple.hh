@@ -48,6 +48,20 @@ static constexpr inline vte_color_triple_t vte_color_triple_copy(vte_color_tripl
         return ct;
 }
 
+static inline void vte_color_triple_set(vte_color_triple_t* ct,
+                                        uint64_t mask,
+                                        unsigned value_shift,
+                                        uint64_t value)
+{
+        *ct = (*ct & ~mask) | (value << value_shift);
+}
+
+static inline void vte_color_triple_unset(vte_color_triple_t* ct,
+                                          uint64_t mask)
+{
+        *ct = (*ct & ~mask);
+}
+
 static inline void vte_color_triple_set_fore(vte_color_triple_t* ct,
                                              uint32_t fore)
 {
