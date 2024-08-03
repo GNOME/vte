@@ -46,6 +46,7 @@ _VTE_REPLY(XTERM_WM,                                  CSI, 't', NONE, NONE,  ) /
 _VTE_REPLY(DECRPKT,                                   CSI, 'v', NONE, COMMA, ) /* report key type */
 _VTE_REPLY(DECRPDE,                                   CSI, 'w', NONE, DQUOTE,) /* report displayed extent */
 _VTE_REPLY(DECREPTPARM,                               CSI, 'x', NONE, NONE,  ) /* report terminal parameters */
+_VTE_REPLY(DECSACE,                                   CSI, 'x', NONE, MULT,  ) /* report DECSACE  */
 _VTE_REPLY(DECPKMFR,                                  CSI, 'y', NONE, PLUS,  ) /* program key free memory report */
 _VTE_REPLY(DECRPM_ECMA,                               CSI, 'y', NONE, CASH,  ) /* report ECMA mode */
 _VTE_REPLY(DECRPM_DEC,                                CSI, 'y', WHAT, CASH,  ) /* report private mode */

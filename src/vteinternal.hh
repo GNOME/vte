@@ -338,6 +338,7 @@ public:
 
         vte::terminal::modes::ECMA m_modes_ecma{};
         vte::terminal::modes::Private m_modes_private{};
+        bool m_decsace_is_rectangle{false};
 
 	/* PTY handling data. */
         vte::base::RefPtr<vte::base::Pty> m_pty{};

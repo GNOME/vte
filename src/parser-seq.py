@@ -842,7 +842,7 @@ sequences = [
             comment='fill rectangular area'),
     seq_CSI('DECES', 'x', intermediates=(Intermediate.AND,), flags=Flags.NOP,
             comment='enable session'),
-    seq_CSI('DECSACE', 'x', intermediates=(Intermediate.MULT,), flags=Flags.NOP,
+    seq_CSI('DECSACE', 'x', intermediates=(Intermediate.MULT,),
             comment='select attribute change extent'),
     seq_CSI('DECRQPKFM', 'x', intermediates=(Intermediate.PLUS,), flags=Flags.NOP,
             comment='request program key free memory'),
