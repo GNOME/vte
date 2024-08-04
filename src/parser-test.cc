@@ -1668,7 +1668,6 @@ test_seq_glue_sequence_builder(void)
 
         auto str = std::u32string{};
         b.to_string(str);
-        print_escaped(str);
 
         g_assert_true(str == U"\e[;1;;2;;3;4::5::6;7;;8m"s);
 
