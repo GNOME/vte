@@ -2656,10 +2656,11 @@ MinifontCache::draw_graphic(DrawingContext const& context,
         auto xoff = 0, yoff = 0;
 
         switch (c) {
-        case 0x1fb95:
-        case 0x1fb96:
-        case 0x1fb98:
-        case 0x1fb99:
+        case 0x1fb95 ... 0x1fb99:
+        case 0x1cc40 ... 0x1cc47:
+                // actually U+1CC46..7 are 8x8 pattern, but since they're
+                // random speckle fills it shouldn't matter too much to
+                // only use a 4x4 alignment.
                 xoff = x & 0x3;
                 yoff = y & 0x3;
                 [[fallthrough]];
