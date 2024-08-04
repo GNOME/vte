@@ -1323,6 +1323,28 @@ test_seq_glue_uchar(void)
         auto& args = raw_seq->args;
         raw_seq->n_final_args = 1;
 
+        auto test_zero = [&](int32_t c,
+                             int zero_v,
+                             bool valid,
+                             int default_v = 0x20) noexcept -> void
+        {
+                if (c == -1) {
+                        n_args = 0;
+                } else {
+                        n_args = 1;
+                        args[0] = vte_seq_arg_init(c);
+                        vte_seq_arg_finish(&args[0]); // final
+                }
+
+                auto const rc = seq.collect_char(0, default_v, zero_v);
+                if (valid) {
+                        g_assert_true(rc);
+                        g_assert_cmphex(*rc, ==, default_v);
+                } else {
+                        g_assert_false(rc);
+                }
+        };
+
         auto test = [&](uint32_t c,
                         bool valid = true) noexcept -> void
         {
@@ -1362,16 +1384,22 @@ test_seq_glue_uchar(void)
                 g_assert_cmphex(*rc, ==, c);
         };
 
-        for (auto c = 0u; c < 0x20u; ++c)
-                test(c, false);
+        test_zero(-1, -1, true); // default arg returns default value (0x20)
+        test_zero(-1, -1, false, 0); // default arg but default value NUL is C0
+        test_zero(0, -1, true); // zero arg treated as default returns default value (0x20)
+        test_zero(0, -1, false, 0); // zero arg treated as default fails because NUL is C0
+        test_zero(0, 0, false); // zero arg treated as zero fails because NUL is C0
+        test_zero(0, 0x20, true); // zero arg treated as default value (0x20)
+        for (auto c = 1u; c < 0x20u; ++c)
+                test(c, false); // C0
         for (auto c = 0x20u; c < 0x7fu; ++c)
                 test(c);
         for (auto c = 0x7fu; c < 0xa0u; ++c)
-                test(c, false);
+                test(c, false); // C1
         for (auto c = 0xa0u; c < 0xd800u; ++c)
                 test(c);
         for (auto c = 0xd800; c < 0xe000; ++c)
-                test(c, false);
+                test(c, false); // surrogate
         for (auto c = 0xe000; c < 0x10000; ++c)
                 test(c);
 
