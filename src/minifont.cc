@@ -2994,11 +2994,6 @@ MinifontGsk::draw_graphic(DrawingContext const& context,
                 rectangle(context, fg, .5, x, y, width, height, 2, 1,  0, 0,  1, 1);
                 return;
 
-        case 0x1fb97:
-                rectangle(context, fg, 1, x, y, width, height, 1, 4,  0, 1,  1, 2);
-                rectangle(context, fg, 1, x, y, width, height, 1, 4,  0, 3,  1, 4);
-                return;
-
         default:
                 return MinifontCache::draw_graphic(context, c, fg, x, y, font_width, columns, font_height, scale_factor);
         }
