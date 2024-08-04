@@ -3613,43 +3613,6 @@ Terminal::insert_single_width_chars(gunichar const *p, int len)
         }
 }
 
-#if WITH_SIXEL
-
-void
-Terminal::insert_image(ProcessingContext& context,
-                       vte::Freeable<cairo_surface_t> image_surface) /* throws */
-{
-        if (!image_surface)
-                return;
-
-        auto const image_width_px = cairo_image_surface_get_width(image_surface.get());
-        auto const image_height_px = cairo_image_surface_get_height(image_surface.get());
-
-        /* Calculate geometry */
-
-        auto const left = m_screen->cursor.col;
-        auto const top = m_screen->cursor.row;
-        auto const width = (image_width_px + m_cell_width_unscaled - 1) / m_cell_width_unscaled;
-        auto const height = (image_height_px + m_cell_height_unscaled - 1) / m_cell_height_unscaled;
-
-        m_screen->row_data->append_image(std::move(image_surface),
-                                         image_width_px,
-                                         image_height_px,
-                                         left,
-                                         top,
-                                         m_cell_width_unscaled,
-                                         m_cell_height_unscaled);
-
-        /* Erase characters under the image. Since this inserts content, we need
-         * to update the processing context's bbox.
-         */
-        context.pre_GRAPHIC();
-        erase_image_rect(height, width);
-        context.post_GRAPHIC();
-}
-
-#endif /* WITH_SIXEL */
-
 guint8
 Terminal::get_bidi_flags() const noexcept
 {
@@ -4016,12 +3979,6 @@ Terminal::process_incoming()
                         break;
 #endif
 
-#if WITH_SIXEL
-                case DataSyntax::DECSIXEL:
-                        process_incoming_decsixel(context, *chunk);
-                        break;
-#endif
-
                 default:
                         g_assert_not_reached();
                         break;
@@ -4287,7 +4244,10 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                 }
         }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-label"
 switched_data_syntax:
+#pragma GCC diagnostic pop
 
         // Update start for data consumed
         chunk.set_begin_reading(ip);
@@ -4412,7 +4372,10 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
                 return;
         }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-label"
  switched_data_syntax:
+#pragma GCC diagnostic pop
 
         // Update start for data consumed
         chunk.set_begin_reading(ip);
@@ -4425,44 +4388,6 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
 }
 
 #endif /* WITH_ICU */
-
-#if WITH_SIXEL
-
-void
-Terminal::process_incoming_decsixel(ProcessingContext& context,
-                                    vte::base::Chunk& chunk)
-{
-        auto const [status, ip] = m_sixel_context->parse(chunk.begin_reading(),
-                                                         chunk.end_reading(),
-                                                         chunk.eos());
-
-        // Update start for data consumed
-        chunk.set_begin_reading(ip);
-
-        switch (status) {
-        case vte::sixel::Parser::ParseStatus::CONTINUE:
-                break;
-
-        case vte::sixel::Parser::ParseStatus::COMPLETE:
-                /* Like the main parser, the sequence only takes effect
-                 * if introducer and terminator match (both C0 or both C1).
-                 */
-                if (m_sixel_context->is_matching_controls()) {
-                        try {
-                                insert_image(context, m_sixel_context->image_cairo());
-                        } catch (...) {
-                        }
-                }
-
-                [[fallthrough]];
-        case vte::sixel::Parser::ParseStatus::ABORT:
-                m_sixel_context->reset();
-                pop_data_syntax();
-                break;
-        }
-}
-
-#endif /* WITH_SIXEL */
 
 bool
 Terminal::pty_io_read(int const fd,
@@ -8392,12 +8317,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 	for (auto i = 0; i < VTE_PALETTE_SIZE; i++)
 		m_palette[i].sources[vte::to_integral(color_palette::ColorSource::Escape)].is_set = false;
 
-        /* Dispatch unripe DCS (for now, just DECSIXEL) sequences,
-         * so we can switch data syntax and parse the contents with
-         * the SIXEL subparser.
-         */
-        m_parser.set_dispatch_unripe(true);
-
 	/* Set up I/O encodings. */
 	m_outgoing = _vte_byte_array_new();
 
@@ -10062,9 +9981,6 @@ Terminal::draw(cairo_region_t const* region) noexcept
         int allocated_width, allocated_height;
         int extra_area_for_cursor;
         bool text_blink_enabled_now;
-#if WITH_SIXEL
-        auto const ring = m_screen->row_data;
-#endif
         auto now_ms = int64_t{0};
 
         allocated_width = get_allocated_width();
@@ -10106,42 +10022,6 @@ Terminal::draw(cairo_region_t const* region) noexcept
 #endif
                                                     allocated_height - m_border.top - m_border.bottom};
         m_draw.clip_border(&vert_clip);
-
-#if WITH_SIXEL
-	/* Draw images */
-	if (m_images_enabled) {
-		vte::grid::row_t top_row = first_displayed_row();
-		vte::grid::row_t bottom_row = last_displayed_row();
-                auto const& image_map = ring->image_map();
-                auto const image_map_end = image_map.end();
-                for (auto it = image_map.begin(); it != image_map_end; ++it) {
-                        auto const& image = it->second;
-
-                        if (image->get_bottom() < top_row ||
-                            image->get_top() > bottom_row)
-				continue;
-
-#if VTE_GTK == 3
-			auto const x = image->get_left () * m_cell_width;
-			auto const y = (image->get_top () - m_screen->scroll_delta) * m_cell_height;
-
-                        /* Clear cell extent; image may be slightly smaller */
-                        m_draw.clear(x, y, image->get_width() * m_cell_width,
-                                     image->get_height() * m_cell_height,
-                                     get_color(VTE_DEFAULT_BG), m_background_alpha);
-
-                        // FIXMEgtk4
-			// image->paint(cr, x, y, m_cell_width, m_cell_height);
-#elif VTE_GTK == 4
-                        /* Nothing has been drawn yet in this snapshot, so no need
-                         * to clear over any existing data like you do in GTK 3.
-                         */
-
-                        // FIXMEgtk4 draw image
-#endif
-		}
-	}
-#endif /* WITH_SIXEL */
 
         /* Whether blinking text should be visible now */
         m_text_blink_state = true;
@@ -10744,26 +10624,11 @@ Terminal::reset_data_syntax()
                 return;
 
         switch (current_data_syntax()) {
-#if WITH_SIXEL
-        case DataSyntax::DECSIXEL:
-                m_sixel_context->reset();
-                break;
-#endif
-
         default:
                 break;
         }
 
         pop_data_syntax();
-}
-
-void
-Terminal::reset_graphics_color_registers()
-{
-#if WITH_SIXEL
-        if (m_sixel_context)
-                m_sixel_context->reset_colors();
-#endif
 }
 
 /*
@@ -10874,11 +10739,6 @@ Terminal::reset(bool clear_tabstops,
 	/* Clear modifiers. */
 	m_modifiers = 0;
 
-#if WITH_SIXEL
-        if (m_sixel_context)
-                m_sixel_context->reset_colors();
-#endif
-
         /* Reset the saved cursor. */
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);
@@ -10891,12 +10751,6 @@ Terminal::reset(bool clear_tabstops,
 
         /* Reset XTerm window controls */
         m_xterm_wm_iconified = false;
-
-        /* When not using private colour registers, we should
-         * clear (assign to black) all SIXEL colour registers.
-         * (DEC PPLV2 § 5.8)
-         */
-        reset_graphics_color_registers();
 
         // Reset termprops
         reset_termprops();
