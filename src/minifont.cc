@@ -199,12 +199,16 @@ create_surface(int width,
 // (fixed) width and height that are then put next to each other
 // horizontally or vertically.
 // See issue#2672.
+
+// U+1FB98 UPPER LEFT TO LOWER RIGHT FILL
 static unsigned char const hatching_pattern_lr_data[16] = {
         0xff, 0x00, 0x00, 0x00,
         0x00, 0xff, 0x00, 0x00,
         0x00, 0x00, 0xff, 0x00,
         0x00, 0x00, 0x00, 0xff,
 };
+
+// U+1FB99 UPPER RIGHT TO LOWER LEFT FILL
 static unsigned char const hatching_pattern_rl_data[16] = {
         0x00, 0x00, 0xff, 0x00,
         0x00, 0xff, 0x00, 0x00,
@@ -212,12 +216,15 @@ static unsigned char const hatching_pattern_rl_data[16] = {
         0x00, 0x00, 0x00, 0xff,
 };
 
+// U+1FB95 CHECKER BOARD FILL
 static unsigned char const checkerboard_pattern_data[16] = {
         0xff, 0xff, 0x00, 0x00,
         0xff, 0xff, 0x00, 0x00,
         0x00, 0x00, 0xff, 0xff,
         0x00, 0x00, 0xff, 0xff,
 };
+
+// U+1FB96 INVERSE CHECKER BOARD FILL
 static unsigned char const checkerboard_reverse_pattern_data[16] = {
         0x00, 0x00, 0xff, 0xff,
         0x00, 0x00, 0xff, 0xff,
