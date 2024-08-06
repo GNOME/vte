@@ -927,10 +927,8 @@ pattern(cairo_t* cr,
         double width,
         double height)
 {
-        cairo_push_group(cr);
         cairo_rectangle(cr, x, y, width, height);
-        cairo_fill(cr);
-        cairo_pop_group_to_source(cr);
+        cairo_clip(cr);
         cairo_mask(cr, pattern);
 }
 
