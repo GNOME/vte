@@ -321,7 +321,7 @@ name(void) \
                 cairo_surface_destroy(surface); \
 \
                 cairo_pattern_set_extend (pattern, CAIRO_EXTEND_REPEAT); \
-                cairo_pattern_set_filter (pattern, CAIRO_FILTER_NEAREST); \
+                cairo_pattern_set_filter (pattern, CAIRO_FILTER_FAST); \
        } \
 \
        return pattern; \
