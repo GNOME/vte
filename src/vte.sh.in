@@ -67,7 +67,7 @@ if [[ -n "${BASH_VERSION:-}" ]]; then
     # use the __vte_prompt_command function which also sets the title.
 
     if [[ "$(declare -p PROMPT_COMMAND 2>&1)" =~ "declare -a" ]]; then
-	PROMPT_COMMAND+=(__vte_shell_precmd)
+	PROMPT_COMMAND+=(__vte_precmd)
 	PROMPT_COMMAND+=(__vte_osc7)
 	PS0=$(__vte_termprop_signal "vte.shell.preexec")
     else
