@@ -9199,7 +9199,7 @@ vte_terminal_ref_termprop_uri(VteTerminal* terminal,
  * vte_terminal_get_termprop_value_by_id:
  * @terminal: a #VteTerminal
  * @prop: a termprop ID
- * @gvalue: (out): a #GValue to be filled in
+ * @gvalue: (out) (allow-none): a #GValue to be filled in
  *
  * Like vte_terminal_get_termprop_value() except that it takes the termprop
  * by ID. See that function for more information.
@@ -9237,32 +9237,40 @@ try
         case vte::terminal::TermpropType::BOOL:
                 if (std::holds_alternative<bool>(*value)) {
                         rv = true;
-                        g_value_init(gvalue, G_TYPE_BOOLEAN);
-                        g_value_set_boolean(gvalue, std::get<bool>(*value));
+                        if (gvalue) [[likely]] {
+                                g_value_init(gvalue, G_TYPE_BOOLEAN);
+                                g_value_set_boolean(gvalue, std::get<bool>(*value));
+                        }
                 }
                 break;
 
         case vte::terminal::TermpropType::INT:
                 if (std::holds_alternative<int64_t>(*value)) {
                         rv = true;
-                        g_value_init(gvalue, G_TYPE_INT64);
-                        g_value_set_int64(gvalue, int64_t(std::get<int64_t>(*value)));
+                        if (gvalue) [[likely]] {
+                                g_value_init(gvalue, G_TYPE_INT64);
+                                g_value_set_int64(gvalue, int64_t(std::get<int64_t>(*value)));
+                        }
                 }
                 break;
 
         case vte::terminal::TermpropType::UINT:
                 if (std::holds_alternative<uint64_t>(*value)) {
                         rv = true;
-                        g_value_init(gvalue, G_TYPE_UINT64);
-                        g_value_set_uint64(gvalue, uint64_t(std::get<uint64_t>(*value)));
+                        if (gvalue) [[likely]] {
+                                g_value_init(gvalue, G_TYPE_UINT64);
+                                g_value_set_uint64(gvalue, uint64_t(std::get<uint64_t>(*value)));
+                        }
                 }
                 break;
 
         case vte::terminal::TermpropType::DOUBLE:
                 if (std::holds_alternative<double>(*value)) {
                         rv = true;
-                        g_value_init(gvalue, G_TYPE_DOUBLE);
-                        g_value_set_double(gvalue, std::get<double>(*value));
+                        if (gvalue) [[likely]] {
+                                g_value_init(gvalue, G_TYPE_DOUBLE);
+                                g_value_set_double(gvalue, std::get<double>(*value));
+                        }
                 }
                 break;
 
@@ -9271,10 +9279,17 @@ try
 #if VTE_GTK == 3
                 if (std::holds_alternative<vte::terminal::termprop_rgba>(*value)) {
                         rv = true;
-                        auto const& c = std::get<vte::terminal::termprop_rgba>(*value);
-                        auto color = GdkRGBA{c.red(), c.green(), c.blue(), c.alpha()};
-                        g_value_init(gvalue, GDK_TYPE_RGBA);
-                        g_value_set_boxed(gvalue, &color);
+                        if (gvalue) [[likely]] {
+                                auto const& c = std::get<vte::terminal::termprop_rgba>(*value);
+                                auto color = GdkRGBA{c.red(), c.green(), c.blue(), c.alpha()};
+                                g_value_init(gvalue, GDK_TYPE_RGBA);
+                                g_value_set_boxed(gvalue, &color);
+                        }
+                }
+#elif VTE_GTK == 4
+                if (std::holds_alternative<vte::terminal::termprop_rgba>(*value) &&
+                    !gvalue) {
+                        rv = true;
                 }
 #endif // VTE_GTK
                 break;
@@ -9282,33 +9297,41 @@ try
         case vte::terminal::TermpropType::STRING:
                 if (std::holds_alternative<std::string>(*value)) {
                         rv = true;
-                        g_value_init(gvalue, G_TYPE_STRING);
-                        g_value_set_string(gvalue, std::get<std::string>(*value).c_str());
+                        if (gvalue) [[likely]] {
+                                g_value_init(gvalue, G_TYPE_STRING);
+                                g_value_set_string(gvalue, std::get<std::string>(*value).c_str());
+                        }
                 }
                 break;
 
         case vte::terminal::TermpropType::DATA:
                 if (std::holds_alternative<std::string>(*value)) {
                         rv = true;
-                        auto const& str = std::get<std::string>(*value);
-                        g_value_init(gvalue, G_TYPE_BYTES);
-                        g_value_take_boxed(gvalue, g_bytes_new(str.data(), str.size()));
+                        if (gvalue) [[likely]] {
+                                auto const& str = std::get<std::string>(*value);
+                                g_value_init(gvalue, G_TYPE_BYTES);
+                                g_value_take_boxed(gvalue, g_bytes_new(str.data(), str.size()));
+                        }
                 }
                 break;
 
         case vte::terminal::TermpropType::UUID:
                 if (std::holds_alternative<vte::uuid>(*value)) {
                         rv = true;
-                        g_value_init(gvalue, VTE_TYPE_UUID);
-                        g_value_take_boxed(gvalue, _vte_uuid_new_from_uuid(std::get<vte::uuid>(*value)));
+                        if (gvalue) [[likely]] {
+                                g_value_init(gvalue, VTE_TYPE_UUID);
+                                g_value_take_boxed(gvalue, _vte_uuid_new_from_uuid(std::get<vte::uuid>(*value)));
+                        }
                 }
                 break;
 
         case vte::terminal::TermpropType::URI:
                 if (std::holds_alternative<vte::terminal::TermpropURIValue>(*value)) {
                         rv = true;
-                        g_value_init(gvalue, G_TYPE_URI);
-                        g_value_set_boxed(gvalue, std::get<vte::terminal::TermpropURIValue>(*value).first.get());
+                        if (gvalue) [[likely]] {
+                                g_value_init(gvalue, G_TYPE_URI);
+                                g_value_set_boxed(gvalue, std::get<vte::terminal::TermpropURIValue>(*value).first.get());
+                        }
                 }
                 break;
 
@@ -9328,11 +9351,11 @@ catch (...)
  * vte_terminal_get_termprop_value:
  * @terminal: a #VteTerminal
  * @prop: a termprop name
- * @gvalue: (out): a #GValue to be filled in
+ * @gvalue: (out) (allow-none): a #GValue to be filled in, or %NULL
  *
- * Returns %TRUE with the value of @prop stored in @value, or %FALSE if
- *   @prop is unset, or @prop is not a registered property; in that
- *   case @value will not be set.
+ * Returns %TRUE with the value of @prop stored in @value (if not %NULL) if,
+ *   the termprop has a value, or %FALSE if @prop is unset, or @prop is not
+ *   a registered property; in that case @value will not be set.
  *
  * The value type returned depends on the termprop type:
  * * A %VTE_PROPERTY_VALUELESS termprop stores no value, and returns %FALSE
