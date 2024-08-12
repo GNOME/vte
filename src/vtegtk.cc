@@ -3042,8 +3042,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
                           vte::terminal::TermpropFlags::NONE,
                           VTE_PROPERTY_ID_SHELL_PREEXEC },
                         { VTE_TERMPROP_SHELL_POSTEXEC,
-                          vte::terminal::TermpropType::VALUELESS,
-                          vte::terminal::TermpropFlags::NONE,
+                          vte::terminal::TermpropType::UINT,
+                          vte::terminal::TermpropFlags::EPHEMERAL,
                           VTE_PROPERTY_ID_SHELL_POSTEXEC },
                 };
 

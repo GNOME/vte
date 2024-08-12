@@ -172,9 +172,9 @@ gboolean vte_query_termprop_by_id(int prop,
 /**
  * VTE_TERMPROP_SHELL_POSTEXEC:
  *
- * A %VTE_PROPERTY_VALUELESS termprop that signals that the shell
+ * An ephemeral %VTE_PROPERTY_UINT termprop that signals that the shell
  * has executed the commands entered at the prompt and these commands
- * have returned.
+ * have returned. The termprop value is the exit code.
  *
  * Since: 0.78
  */
