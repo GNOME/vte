@@ -807,7 +807,8 @@ vte_terminal_accessible_title_changed(VteTerminal *terminal, gpointer data)
 {
         VteTerminalAccessible *accessible = (VteTerminalAccessible *)data;
 
-	atk_object_set_description(ATK_OBJECT(accessible), vte_terminal_get_window_title(terminal));
+        auto const title = vte_terminal_get_window_title(terminal);
+        atk_object_set_description(ATK_OBJECT(accessible), title ? : "");
 }
 
 /* Reflect visibility-notify events. */
