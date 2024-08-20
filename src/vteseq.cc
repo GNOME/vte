@@ -7594,7 +7594,7 @@ Terminal::OSC(vte::parser::Sequence const& seq)
         case VTE_OSC_VTECWD:
                 set_termprop_uri(seq, it, cend,
                                  VTE_PROPERTY_ID_CURRENT_DIRECTORY_URI,
-                                 PendingChanges::CWF);
+                                 PendingChanges::CWD);
                 break;
 
         case VTE_OSC_VTEHYPER:
