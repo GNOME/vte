@@ -685,6 +685,9 @@ private:
                 load_bool_option("ScrollUnitIsPixels", &scroll_unit_is_pixels);
                 load_bool_option("Scrollbar", &scrollbar);
                 load_bool_option("ScrolledWindow", &use_scrolled_window);
+                load_bool_option("ScrollOnInsert", &scroll_on_insert);
+                load_bool_option("ScrollOnKeystroke", &scroll_on_keystroke);
+                load_bool_option("ScrollOnOutput", &scroll_on_output);
                 load_bool_option("Shaping", &shaping);
                 load_bool_option("Shell", &shell);
                 load_bool_option("Sixel", &sixel);
@@ -887,6 +890,9 @@ private:
                 save_bool_option("ScrollUnitIsPixels" , scroll_unit_is_pixels, defopt.scroll_unit_is_pixels);
                 save_bool_option("Scrollbar" , scrollbar, defopt.scrollbar);
                 save_bool_option("ScrolledWindow" , use_scrolled_window, defopt.use_scrolled_window);
+                save_bool_option("ScrollOnInsert", scroll_on_insert, defopt.scroll_on_insert);
+                save_bool_option("ScrollOnKeystroke", scroll_on_keystroke, defopt.scroll_on_keystroke);
+                save_bool_option("ScrollOnOutput", scroll_on_output, defopt.scroll_on_output);
                 save_bool_option("Shaping" , shaping, defopt.shaping);
                 save_bool_option("Shell" , shell, defopt.shell);
                 save_bool_option("Sixel" , sixel, defopt.sixel);
@@ -1238,6 +1244,18 @@ public:
                                 0, &require_systemd_scope,
                                 "Require use of a systemd user scope",
                                 "Don't require use of a systemd user scope");
+                add_bool_option("scroll-on-insert", 0, "no-scroll-on-insert", 0,
+                                0, &scroll_on_insert,
+                                "Scroll to bottom when text is pasted",
+                                "Don't scroll to bottom when text is pasted");
+                add_bool_option("scroll-on-keystroke", 0, "no-scroll-on-keystroke", 0,
+                                0, &scroll_on_keystroke,
+                                "Scroll to bottom when a key is pressed",
+                                "Don't scroll to bottom when a key is pressed");
+                add_bool_option("scroll-on-output", 0, "no-scroll-on-output", 0,
+                                0, &scroll_on_output,
+                                "Scroll to bottom when new output is received",
+                                "Don't scroll to bottom when new output is received");
                 add_bool_option("scroll-unit-is-pixels", 0, "no-scroll-unit-is-pixels", 0,
                                 0, &scroll_unit_is_pixels,
                                 "Use pixels as scroll unit",
