@@ -47,7 +47,7 @@ def process(filename):
     # greeping the source for "case" labels with unichar works
     # fine for now.
 
-    rx = re.compile("case\s+(?P<first>0x[0-9a-fA-z]{4,6})(?:\s*\.\.\.\s*(?P<last>0x[0-9a-fA-F]{4,6}))?\s*:")
+    rx = re.compile(r"case\s+(?P<first>0x[0-9a-fA-z]{4,6})(?:\s*\.\.\.\s*(?P<last>0x[0-9a-fA-F]{4,6}))?\s*:")
     with open(filename, "r") as f:
         for line in f:
             match = rx.search(line)
