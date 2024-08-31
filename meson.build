@@ -165,6 +165,8 @@ if cxx.get_id() == 'clang'
   assert(cxx.version().version_compare('>=' + clangxx_req_version), 'needs clang++ >= ' + clangxx_req_version + ' for ' + cxx_req_std + ' support')
 endif
 
+have_gnu_ld = cxx.get_linker_id() == 'ld.bfd' or cxx.get_linker_id() == 'ld.gold'
+
 # Python interpreter
 
 py_req_modules = [
@@ -584,7 +586,7 @@ add_project_arguments(global_cxxflags, language: 'cpp')
 
 linker_flags = [
   ['-Wl,-Bsymbolic', false,],
-  ['-Wl,-Bsymbolic-functions', get_option('_b_symbolic_functions'),],
+  ['-Wl,-Bsymbolic-functions', get_option('_b_symbolic_functions') and have_gnu_ld,],
 
   # See issue vte#2535.
   ['-fstack-protector', false],
