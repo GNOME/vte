@@ -265,15 +265,6 @@ merge_environ(char** envp /* consumed */,
                 g_strfreev(envp);
         }
 
-        // Make our terminfo available
-        if (auto const tidirs = (char const*)g_hash_table_lookup(table, "TERMINFO_DIRS");
-            tidirs && tidirs[0])
-                g_hash_table_replace(table, g_strdup("TERMINFO_DIRS"),
-                                     g_strdup_printf("%s:%s", TERMINFODIR, tidirs));
-        else
-                g_hash_table_replace(table, g_strdup("TERMINFO_DIRS"),
-                                     g_strdup(TERMINFODIR));
-
         /* Always set this ourself, not allowing replacing from envp */
         g_hash_table_replace(table, g_strdup("VTE_VERSION"), g_strdup_printf("%u", VTE_VERSION_NUMERIC));
         g_hash_table_replace(table, g_strdup("COLORTERM"), g_strdup("truecolor"));
