@@ -1269,7 +1269,7 @@ public:
         void reset_decoder();
 
         void feed(std::string_view const& data,
-                  bool start_processsing_ = true);
+                  bool start_processing_ = true);
         void feed_child(char const* data,
                         size_t length) { assert(data); feed_child({data, length}); }
         void feed_child(std::string_view const& str);
