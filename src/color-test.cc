@@ -165,7 +165,7 @@ static void
 test_color_to_string (void)
 {
         auto test = [](std::string str,
-                       bool alpha = false) constexpr noexcept -> void
+                       bool alpha = false) noexcept -> void
         {
                 auto const value = parse<rgba>(str);
                 assert(value);
