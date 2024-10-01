@@ -18,6 +18,7 @@
 
 #include "config.h"
 
+#include <algorithm>
 #include <cmath>
 
 #include "cairo-glue.hh"
