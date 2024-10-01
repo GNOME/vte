@@ -20,6 +20,7 @@
 #include <glib.h>
 #include <memory>
 #include <optional>
+#include <string_view>
 
 namespace vte::base {
 
