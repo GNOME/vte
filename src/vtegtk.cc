@@ -9442,7 +9442,7 @@ try
                 break;
 
         case vte::terminal::TermpropType::DOUBLE:
-                if (std::holds_alternative<uint64_t>(*value)) {
+                if (std::holds_alternative<double>(*value)) {
                         return g_variant_new_double(std::get<double>(*value));
                 }
                 break;
