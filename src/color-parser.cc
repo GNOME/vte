@@ -17,7 +17,6 @@
 
 #include "color-parser.hh"
 #include "color.hh"
-
 #include <algorithm>
 #include <cctype>
 #include <charconv>
@@ -28,6 +27,8 @@
 #include <cstring>
 
 #include <glib.h>
+
+#include "fast_float.h"
 
 #include "color-names.hh"
 
@@ -298,7 +299,7 @@ parse_csslike(std::string const& spec) noexcept
                 auto value = uint64_t{};
                 auto const start = spec.c_str() + 1;
                 auto const end = spec.c_str() + spec.size();
-                auto const rv = std::from_chars(start, end, value, 16);
+                auto const rv = fast_float::from_chars(start, end, value, 16);
                 if (rv.ec != std::errc{} || rv.ptr != end)
                         return std::nullopt;
 
@@ -424,7 +425,7 @@ parse_x11like(std::string const& spec) noexcept
                 auto value = uint64_t{};
                 auto const start = spec.c_str() + 1;
                 auto const end = spec.c_str() + spec.size();
-                auto const rv = std::from_chars(start, end, value, 16);
+                auto const rv = fast_float::from_chars(start, end, value, 16);
                 if (rv.ec != std::errc{} || rv.ptr != end)
                         return std::nullopt;
 
@@ -447,13 +448,13 @@ parse_x11like(std::string const& spec) noexcept
                 // Note that the length check above makes sure that @r, @g, @b,
                 // don't exceed @bits.
                 auto r = UINT64_C(0), b = UINT64_C(0), g = UINT64_C(0);
-                auto rv = std::from_chars(start, end, r, 16);
+                auto rv = fast_float::from_chars(start, end, r, 16);
                 if (rv.ec != std::errc{} || rv.ptr == end || *rv.ptr != '/')
                         return std::nullopt;
-                rv = std::from_chars(rv.ptr + 1, end, g, 16);
+                rv = fast_float::from_chars(rv.ptr + 1, end, g, 16);
                 if (rv.ec != std::errc{} || rv.ptr == end || *rv.ptr != '/')
                         return std::nullopt;
-                rv = std::from_chars(rv.ptr + 1, end, b, 16);
+                rv = fast_float::from_chars(rv.ptr + 1, end, b, 16);
                 if (rv.ec != std::errc{} || rv.ptr != end)
                         return std::nullopt;
 

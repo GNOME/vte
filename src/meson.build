@@ -325,6 +325,7 @@ libvte_common_public_deps = [
 
 libvte_common_deps = libvte_common_public_deps + [
   cairo_gobject_dep,
+  fast_float_dep,
   fribidi_dep,
   gnutls_dep,
   icu_dep,

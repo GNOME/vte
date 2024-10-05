@@ -34,6 +34,8 @@
 #include <variant>
 #include <version>
 
+#include "fast_float.h"
+
 namespace vte::terminal {
 
 using namespace std::literals::string_literals;
@@ -355,9 +357,9 @@ inline std::optional<TermpropValue>
 parse_termprop_integral(std::string_view const& str) noexcept
 {
         auto v = T{};
-        if (auto [ptr, err] = std::from_chars(std::begin(str),
-                                              std::end(str),
-                                              v);
+        if (auto [ptr, err] = fast_float::from_chars(std::begin(str),
+                                                     std::end(str),
+                                                     v);
             err == std::errc() && ptr == std::end(str)) {
                 if constexpr (std::is_unsigned_v<T>) {
                         return uint64_t(v);
@@ -389,10 +391,9 @@ inline std::optional<TermpropValue>
 parse_termprop_floating(std::string_view const& str) noexcept
 {
         auto v = T{};
-        if (auto [ptr, err] = std::from_chars(std::begin(str),
-                                              std::end(str),
-                                              v,
-                                              std::chars_format::general);
+        if (auto [ptr, err] = fast_float::from_chars(std::begin(str),
+                                                     std::end(str),
+                                                     v);
             err == std::errc() &&
             ptr == std::end(str) &&
             std::isfinite(v)) {
