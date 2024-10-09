@@ -195,6 +195,12 @@ create_surface(int width,
         return surface;
 }
 
+#if VTE_GTK == 4 || (VTE_DEBUG && (VERSION_MINOR % 2))
+#define ENABLE_FILL_CHARACTERS
+#endif
+
+#ifdef ENABLE_FILL_CHARACTERS
+
 /* pixman data must have stride 0 mod 4 */
 
 // Note that the LR and RL patterns are not mirrors of each other,
@@ -354,6 +360,8 @@ DEFINE_STATIC_PATTERN_FUNC(create_speckle_frame1_fill_pattern, speckle_frame1_fi
 DEFINE_STATIC_PATTERN_FUNC(create_speckle_frame2_fill_pattern, speckle_frame2_fill_pattern_data, 8, 8, 8)
 
 #undef DEFINE_STATIC_PATTERN_FUNC
+
+#endif // ENABLE_FILL_CHARACTERS
 
 static inline void
 diagonal_slope_1_1(cairo_t* cr,
@@ -924,6 +932,8 @@ polygon(cairo_t* cr,
         cairo_fill (cr);
 }
 
+#ifdef ENABLE_FILL_CHARACTERS
+
 static void
 pattern(cairo_t* cr,
         cairo_pattern_t* pattern,
@@ -936,6 +946,8 @@ pattern(cairo_t* cr,
         cairo_clip(cr);
         cairo_mask(cr, pattern);
 }
+
+#endif // ENABLE_FILL_CHARACTERS
 
 /* Create separated mosaic patterns.
  * Transparent pixels will not be drawn; opaque pixels will draw that part of the
@@ -1957,6 +1969,7 @@ Minifont::draw_graphic(cairo_t* cr,
                 rectangle(cr, x, y, width, height, 2, 1,  0, 0,  1, 1);
                 break;
 
+#ifdef ENABLE_FILL_CHARACTERS
         case 0x1fb95:
                 pattern(cr, create_checkerboard_pattern(), x, y, width, height);
                 break;
@@ -1976,6 +1989,7 @@ Minifont::draw_graphic(cairo_t* cr,
         case 0x1fb99:
                 pattern(cr, create_hatching_pattern_rl(), x, y, width, height);
                 break;
+#endif // ENABLE_FILL_CHARACTERS
 
         case 0x1fb9a:
         {
@@ -2574,6 +2588,7 @@ Minifont::draw_graphic(cairo_t* cr,
                 break;
         }
 
+#ifdef ENABLE_FILL_CHARACTERS
         case 0x1cc40: // U+1CC40 SPARSE HORIZONTAL FILL
                 pattern(cr, create_sparse_horizontal_fill_pattern(), x, y, width, height);
                 break;
@@ -2598,6 +2613,7 @@ Minifont::draw_graphic(cairo_t* cr,
         case 0x1cc47: // U+1CC47 SPECKLE FILL FRAME-2
                 pattern(cr, create_speckle_frame2_fill_pattern(), x, y, width, height);
                 break;
+#endif // ENABLE_FILL_CHARACTERS
 
                 // U+1CE09 BOX DRAWINGS DOUBLE DIAGONAL LOWER LEFT TO MIDDLE CENTRE TO LOWER RIGHT
                 // U+1CE0A BOX DRAWINGS DOUBLE DIAGONAL UPPER LEFT TO MIDDLE CENTRE TO UPPER RIGHT
