@@ -9429,6 +9429,8 @@ Terminal::draw_rows(VteScreen *screen_,
         int const rect_width = get_allocated_width() + m_style_border.left + m_style_border.right;
 #endif
 
+        m_draw.begin_background(column_count, end_row - start_row);
+
         /* The rect contains the area of the row, and is moved row-wise in the loop. */
         auto rect = vte::view::Rectangle{-m_border.left, start_y, rect_width, row_height};
         for (row = start_row, y = start_y;
@@ -9494,12 +9496,7 @@ Terminal::draw_rows(VteScreen *screen_,
                         if (back != VTE_DEFAULT_BG) {
                                 vte::color::rgb bg;
                                 rgb_from_index<8, 8, 8>(back, bg);
-                                m_draw.fill_rectangle(
-                                                          i * column_width,
-                                                          y,
-                                                          (j - i) * column_width,
-                                                          row_height,
-                                                          &bg);
+                                m_draw.fill_cell_background(i, row - start_row, (j - i), &bg);
                         }
 
                         _VTE_DEBUG_IF (VTE_DEBUG_BIDI) {
@@ -9546,6 +9543,11 @@ Terminal::draw_rows(VteScreen *screen_,
                 } while (i < column_count);
         }
 
+        auto bg_area = vte::view::Rectangle{-m_border.left,
+                                            start_y,
+                                            rect_width,
+                                            int(row_height * (end_row - start_row))};
+        m_draw.flush_background(&bg_area);
 
         /* Render the text.
          * The rect contains the area of the row (enlarged a bit at the top and bottom

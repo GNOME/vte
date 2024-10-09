@@ -22,6 +22,7 @@
 #include "drawing-gsk.hh"
 #include "fonts-pangocairo.hh"
 #include "graphene-glue.hh"
+#include "refptr.hh"
 
 static inline PangoGlyphInfo *
 vte_glyphs_grow (VteGlyphs *glyphs,
@@ -298,6 +299,44 @@ DrawingGsk::draw_surface_with_color_mask(GdkTexture *texture,
         gtk_snapshot_pop(m_snapshot);
         gtk_snapshot_append_color(m_snapshot, &rgba, &bounds);
         gtk_snapshot_pop(m_snapshot);
+}
+
+void
+DrawingGsk::begin_background(size_t columns,
+                             size_t rows)
+{
+        m_background_cols = columns;
+        m_background_rows = rows;
+        m_background_len = columns * rows;
+        m_background_set = false;
+        m_background_data = vte::glib::take_free_ptr(g_new0(r8g8b8a8, m_background_len));
+}
+
+void
+DrawingGsk::flush_background(Rectangle const* rect)
+{
+        if (m_background_set) {
+                auto bytes = vte::take_freeable
+                        (g_bytes_new_take(m_background_data.release(),
+                                          m_background_len * sizeof(r8g8b8a8)));
+                auto texture = vte::glib::take_ref
+                        (gdk_memory_texture_new(m_background_cols,
+                                                m_background_rows,
+                                                GDK_MEMORY_R8G8B8A8,
+                                                bytes.get(),
+                                                m_background_cols * sizeof(r8g8b8a8)));
+                gtk_snapshot_append_scaled_texture(m_snapshot,
+                                                   texture.get(),
+                                                   GSK_SCALING_FILTER_NEAREST,
+                                                   rect->graphene());
+        } else {
+                m_background_data.reset();
+        }
+
+        m_background_cols = 0;
+        m_background_rows = 0;
+        m_background_len = 0;
+        m_background_set = false;
 }
 
 } // namespace view
