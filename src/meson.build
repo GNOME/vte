@@ -67,19 +67,8 @@ libc_glue_sources = files(
   'libc-glue.hh',
 )
 
-minifont_coverage_sources = custom_target(
-  'minifont-coverage.inc',
-  input: files(
-    'minifont.cc',
-  ),
-  capture: false,
-  command: [
-    files('minifont-coverage.py'),
-    '--output', '@OUTPUT@',
-    '@INPUT@',
-  ],
-  install: false,
-  output: 'minifont-coverage.inc',
+minifont_coverage_sources = files(
+  'minifont.cc',
 )
 
 modes_sources = files(
@@ -213,7 +202,7 @@ vte_glue_sources = files(
   'vte-glue.hh',
 )
 
-libvte_common_sources = color_sources + config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + minifont_coverage_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + termprop_sources + utf8_sources + uuid_sources + vte_uuid_sources + vte_glue_sources + files(
+libvte_common_sources = color_sources + config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + termprop_sources + utf8_sources + uuid_sources + vte_uuid_sources + vte_glue_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
@@ -360,7 +349,33 @@ libvte_common_cppflags = [
 ]
 
 if get_option('gtk3')
-  libvte_gtk3_sources = libvte_common_sources + libvte_gtk3_public_headers + libvte_gtk3_enum_sources + libvte_gtk3_drawing_sources
+
+   minifont_coverage_gtk3_preprocessed_sources = cxx.preprocess(
+    minifont_coverage_sources,
+    compile_args: [
+      '-fdirectives-only',
+      '-DMINIFONT_COVERAGE',
+      '-DVTE_GTK=3',
+    ],
+    include_directories: [
+      top_inc,
+    ],
+  )
+
+  minifont_coverage_gtk3_sources = custom_target(
+    'minifont-coverage-gtk3.inc',
+    input: minifont_coverage_gtk3_preprocessed_sources,
+    capture: false,
+    command: [
+      files('minifont-coverage.py'),
+      '--output', '@OUTPUT@',
+      '@INPUT@',
+    ],
+    install: false,
+    output: 'minifont-coverage-gtk3.inc',
+  )
+
+  libvte_gtk3_sources = libvte_common_sources + libvte_gtk3_public_headers + libvte_gtk3_enum_sources + libvte_gtk3_drawing_sources + minifont_coverage_gtk3_sources
   libvte_gtk3_cppflags = libvte_common_cppflags + gtk3_version_cppflags + ['-DVTE_GTK=3',] + release_args
   libvte_gtk3_deps = libvte_common_deps + [gtk3_dep,]
   libvte_gtk3_public_deps = libvte_common_public_deps + [gtk3_dep,]
@@ -410,7 +425,32 @@ if get_option('gtk4')
     dependencies: libvte_gtk4_resources_data,
   )
 
-  libvte_gtk4_sources = libvte_common_sources + libvte_gtk4_public_headers + libvte_gtk4_enum_sources + libvte_gtk4_resources_sources + graphene_glue_sources + libvte_gtk4_drawing_sources
+  minifont_coverage_gtk4_preprocessed_sources = cxx.preprocess(
+    minifont_coverage_sources,
+    compile_args: [
+      '-fdirectives-only',
+      '-DMINIFONT_COVERAGE',
+      '-DVTE_GTK=4',
+    ],
+    include_directories: [
+      top_inc,
+    ],
+  )
+
+  minifont_coverage_gtk4_sources = custom_target(
+    'minifont-coverage-gtk4.inc',
+    input: minifont_coverage_gtk4_preprocessed_sources,
+    capture: false,
+    command: [
+      files('minifont-coverage.py'),
+      '--output', '@OUTPUT@',
+      '@INPUT@',
+    ],
+    install: false,
+    output: 'minifont-coverage-gtk4.inc',
+  )
+
+  libvte_gtk4_sources = libvte_common_sources + libvte_gtk4_public_headers + libvte_gtk4_enum_sources + libvte_gtk4_resources_sources + graphene_glue_sources + libvte_gtk4_drawing_sources + minifont_coverage_gtk4_sources
   libvte_gtk4_cppflags = libvte_common_cppflags + gtk4_version_cppflags + ['-DVTE_GTK=4',] + release_args
   libvte_gtk4_deps = libvte_common_deps + [gtk4_dep,]
   libvte_gtk4_public_deps = libvte_common_public_deps + [gtk4_dep,]
@@ -609,33 +649,67 @@ test_colors = executable(
   sources: test_colors_sources,
 )
 
-test_minifont_sources = config_sources + minifont_coverage_sources + files(
+test_minifont_common_sources = config_sources + files(
   'minifont-test.cc'
 )
 
-test_minifont_sources += custom_target(
-  'minifont-coverage-tests.inc',
-  input: files(
-    'minifont.cc',
-  ),
-  capture: false,
-  command: [
-    files('minifont-coverage.py'),
-    '--output', '@OUTPUT@',
-    '--tests',
-    '@INPUT@',
-  ],
-  install: false,
-  output: 'minifont-coverage-tests.inc',
-)
+if get_option('gtk3')
+  test_minifont_gtk3_sources = test_minifont_common_sources + minifont_coverage_gtk3_sources
 
-test_minifont = executable(
-  'test-minifont',
-  sources: test_minifont_sources,
-  dependencies: [glib_dep],
-  include_directories: top_inc,
-  install: false,
-)
+  test_minifont_gtk3_sources += custom_target(
+    'minifont-coverage-tests-gtk3.inc',
+    capture: false,
+    command: [
+      files('minifont-coverage.py'),
+      '--output', '@OUTPUT@',
+      '--tests',
+      '@INPUT@',
+    ],
+    input: minifont_coverage_gtk3_preprocessed_sources,
+    install: false,
+    output: 'minifont-coverage-tests-gtk3.inc',
+  )
+
+  test_minifont_gtk3 = executable(
+    'test-minifont-gtk3',
+    cpp_args: [
+      '-DVTE_GTK=3',
+    ],
+    dependencies: [glib_dep],
+    include_directories: top_inc,
+    install: false,
+    sources: test_minifont_gtk3_sources,
+  )
+endif # gtk3
+
+if get_option('gtk4')
+  test_minifont_gtk4_sources = test_minifont_common_sources + minifont_coverage_gtk4_sources
+
+  test_minifont_gtk4_sources += custom_target(
+    'minifont-coverage-tests-gtk4.inc',
+    capture: false,
+    command: [
+      files('minifont-coverage.py'),
+      '--output', '@OUTPUT@',
+      '--tests',
+      '@INPUT@',
+    ],
+    input: minifont_coverage_gtk4_preprocessed_sources,
+    install: false,
+    output: 'minifont-coverage-tests-gtk4.inc',
+  )
+
+  test_minifont_gtk4 = executable(
+    'test-minifont-gtk4',
+    cpp_args: [
+      '-DVTE_GTK=4',
+    ],
+    dependencies: [glib_dep],
+    include_directories: top_inc,
+    install: false,
+    sources: test_minifont_gtk4_sources,
+  )
+endif # gtk4
 
 test_modes_sources = config_sources + modes_sources + files(
   'modes-test.cc',
@@ -831,7 +905,6 @@ test_env = [
 # apparently there is no way to get a name back from an executable(), so it this ugly way
 test_units = [
   ['colors', test_colors],
-  ['minifont', test_minifont],
   ['modes', test_modes],
   ['parser', test_parser],
   ['pastify', test_pastify],
@@ -847,7 +920,14 @@ test_units = [
 
 if get_option('gtk3')
   test_units += [
+    ['minifont-gtk3', test_minifont_gtk3],
     ['vtetypes', test_vtetypes],
+  ]
+endif
+
+if get_option('gtk4')
+  test_units += [
+    ['minifont-gtk4', test_minifont_gtk4],
   ]
 endif
 

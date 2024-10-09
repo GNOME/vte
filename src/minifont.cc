@@ -18,6 +18,8 @@
 
 #include "config.h"
 
+#ifndef MINIFONT_COVERAGE
+
 #include <algorithm>
 #include <cmath>
 
@@ -30,6 +32,8 @@
 
 #include "drawing-context.hh"
 #include "minifont.hh"
+
+#endif // !MINIFONT_COVERAGE
 
 #define MINIFONT_CACHE_MAX_SIZE 128
 
@@ -1087,11 +1091,15 @@ create_sextant_separation_pattern(int width,
         return pattern;
 }
 
+#ifndef MINIFONT_COVERAGE
 #include "box-drawing.hh"
+#endif
 
 namespace vte::view {
 
 // Minifont
+
+#ifndef MINIFONT_COVERAGE
 
 void
 Minifont::get_char_padding(vteunistr c,
@@ -1123,6 +1131,8 @@ Minifont::get_char_padding(vteunistr c,
                 break;
         }
 }
+
+#endif // !MINIFONT_COVERAGE
 
 /* Draw the graphic representation of a line-drawing or special graphics
  * character. */
@@ -2608,6 +2618,8 @@ Minifont::draw_graphic(cairo_t* cr,
 
 // MinifontCache
 
+#ifndef MINIFONT_COVERAGE
+
 vte::Freeable<cairo_t>
 MinifontCache::begin_cairo(int x,
                            int y,
@@ -2719,6 +2731,8 @@ MinifontCache::draw_graphic(DrawingContext const& context,
         // ... and draw from cache
         cached_minifont_draw(mf, context, x, y, width, height, fg);
 }
+
+#endif // !MINIFONT_COVERAGE
 
 // MinifontGsk
 

@@ -33,7 +33,11 @@ namespace view {
 class Minifont {
 public:
 
-#include "minifont-coverage.inc"
+#if VTE_GTK == 3
+#include "minifont-coverage-gtk3.inc"
+#elif VTE_GTK == 4
+#include "minifont-coverage-gtk4.inc"
+#endif
 
         /* Draw the graphic representation of a line-drawing or special graphics
          * character.
