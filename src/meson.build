@@ -367,6 +367,7 @@ if get_option('gtk3')
     input: minifont_coverage_gtk3_preprocessed_sources,
     capture: false,
     command: [
+      python,
       files('minifont-coverage.py'),
       '--output', '@OUTPUT@',
       '@INPUT@',
@@ -442,6 +443,7 @@ if get_option('gtk4')
     input: minifont_coverage_gtk4_preprocessed_sources,
     capture: false,
     command: [
+      python,
       files('minifont-coverage.py'),
       '--output', '@OUTPUT@',
       '@INPUT@',
@@ -660,6 +662,7 @@ if get_option('gtk3')
     'minifont-coverage-tests-gtk3.inc',
     capture: false,
     command: [
+      python,
       files('minifont-coverage.py'),
       '--output', '@OUTPUT@',
       '--tests',
@@ -689,6 +692,7 @@ if get_option('gtk4')
     'minifont-coverage-tests-gtk4.inc',
     capture: false,
     command: [
+      python,
       files('minifont-coverage.py'),
       '--output', '@OUTPUT@',
       '--tests',
