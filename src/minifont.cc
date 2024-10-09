@@ -197,6 +197,7 @@ create_surface(int width,
 
 #if VTE_GTK == 4 || (VTE_DEBUG && (VERSION_MINOR % 2))
 #define ENABLE_FILL_CHARACTERS
+#define ENABLE_SEPARATED_MOSAICS
 #endif
 
 #ifdef ENABLE_FILL_CHARACTERS
@@ -949,6 +950,8 @@ pattern(cairo_t* cr,
 
 #endif // ENABLE_FILL_CHARACTERS
 
+#ifdef ENABLE_SEPARATED_MOSAICS
+
 /* Create separated mosaic patterns.
  * Transparent pixels will not be drawn; opaque pixels will draw that part of the
  * mosaic onto the target surface.
@@ -1102,6 +1105,8 @@ create_sextant_separation_pattern(int width,
 
         return pattern;
 }
+
+#endif // ENABLE_SEPARATED_MOSAICS
 
 #ifndef MINIFONT_COVERAGE
 #include "box-drawing.hh"
@@ -2108,6 +2113,7 @@ Minifont::draw_graphic(cairo_t* cr,
                 break;
         }
 
+#ifdef ENABLE_SEPARATED_MOSAICS
         case 0x1cc21 ... 0x1cc2f: { /* separated block quadrant-* */
                 cairo_push_group(cr);
                 quadrant(cr, c - 0x1cc10, x, y, width, height);
@@ -2123,6 +2129,7 @@ Minifont::draw_graphic(cairo_t* cr,
                 cairo_mask(cr, create_sextant_separation_pattern(width, height, light_line_width).get());
                 break;
         }
+#endif // ENABLE_SEPARATED_MOSAICS
 
         case 0x1cd00 ... 0x1cde5: { /* block octant-* */
                 static constinit uint8_t const octant_value [] = {
