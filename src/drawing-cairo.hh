@@ -86,6 +86,20 @@ public:
                        uint32_t attr,
                        vte::color::rgb const* color) override;
 
+        inline void fill_cell_background(size_t column,
+                                         size_t row,
+                                         size_t n_colums,
+                                         vte::color::rgb const* color) override {
+                fill_rectangle(column * cell_width(),
+                               row * cell_height(),
+                               cell_width() * n_colums,
+                               cell_height(),
+                               color);
+        }
+        inline void begin_background(size_t columns,
+                                     size_t rows) override {};
+        inline void flush_background(Rectangle const* rect) override {};
+
 private:
         cairo_t *m_cr{nullptr}; // unowned
 
