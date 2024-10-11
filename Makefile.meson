@@ -24,6 +24,7 @@ NJOBS = -j$(NTHREADS)
 NINJA = ninja $(NJOBS)
 
 MESON = meson
+MESONDISTFLAGS = --include-subprojects
 
 #
 
@@ -60,7 +61,7 @@ uninstall:
 	$(NINJA) uninstall
 
 dist:
-	$(MESON) dist --no-tests
+	$(MESON) dist $(MESONDISTFLAGS) --no-tests
 
 distcheck:
-	$(MESON) dist
+	$(MESON) dist $(MESONDISTFLAGS)
