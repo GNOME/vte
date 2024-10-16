@@ -143,8 +143,10 @@ public:
                 m_background_set = true;
         }
 
-        void begin_background(size_t columns, size_t rows) override;
-        void flush_background(Rectangle const* rect) override;
+        void begin_background(Rectangle const& rect,
+                              size_t columns,
+                              size_t rows) override;
+        void flush_background(Rectangle const& rect) override;
 
 private:
         GtkSnapshot *m_snapshot{nullptr}; // unowned

@@ -96,9 +96,18 @@ public:
                                cell_height(),
                                color);
         }
-        inline void begin_background(size_t columns,
-                                     size_t rows) override {};
-        inline void flush_background(Rectangle const* rect) override {};
+        inline void begin_background(Rectangle const& rect,
+                                     size_t columns,
+                                     size_t rows) override
+        {
+                cairo_save(m_cr);
+                cairo_translate(m_cr, rect.cairo()->x, rect.cairo()->y);
+        }
+
+        inline void flush_background(Rectangle const& rect) override
+        {
+                cairo_restore(m_cr);
+        }
 
 private:
         cairo_t *m_cr{nullptr}; // unowned
