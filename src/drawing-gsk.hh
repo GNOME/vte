@@ -129,16 +129,15 @@ public:
                                          size_t row,
                                          size_t n_columns,
                                          vte::color::rgb const* color) override {
-                size_t begin = (row * m_background_cols) + column;
-                size_t end = MIN (begin + n_columns, m_background_len);
+                assert(column + n_columns <= m_background_cols);
 
-                auto data = m_background_data.get();
-                for (size_t i = begin; i < end; i++) {
-                        data[i].red = color->red >> 8;
-                        data[i].green = color->green >> 8;
-                        data[i].blue = color->blue >> 8;
-                        data[i].alpha = 0xff;
-                }
+                auto const fill = r8g8b8a8{uint8_t(color->red >> 8),
+                                           uint8_t(color->green >> 8),
+                                           uint8_t(color->blue >> 8),
+                                           uint8_t(0xffu)};
+                std::fill_n(m_background_data.get() + (row * m_background_cols + column),
+                            n_columns,
+                            fill);
 
                 m_background_set = true;
         }
