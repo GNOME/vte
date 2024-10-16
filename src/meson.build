@@ -646,7 +646,10 @@ test_colors_sources = config_sources + debug_sources + glib_glue_sources + color
 test_colors = executable(
   'test-colors',
   cpp_args: ['-DVTE_GTK=0'],
-  dependencies: [glib_dep],
+  dependencies: [
+    glib_dep,
+    fast_float_dep,
+  ],
   include_directories: top_inc,
   install: false,
   sources: test_colors_sources,
@@ -845,7 +848,10 @@ test_termprops_sources = color_sources + config_sources + debug_sources + glib_g
 
 test_termprops = executable(
   'test-termprops',
-  dependencies: [glib_dep],
+  dependencies: [
+    glib_dep,
+    fast_float_dep,
+  ],
   include_directories: top_inc,
   install: false,
   sources: test_termprops_sources,
