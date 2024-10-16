@@ -302,7 +302,8 @@ DrawingGsk::draw_surface_with_color_mask(GdkTexture *texture,
 }
 
 void
-DrawingGsk::begin_background(size_t columns,
+DrawingGsk::begin_background(Rectangle const& rect,
+                             size_t columns,
                              size_t rows)
 {
         m_background_cols = columns;
@@ -313,7 +314,7 @@ DrawingGsk::begin_background(size_t columns,
 }
 
 void
-DrawingGsk::flush_background(Rectangle const* rect)
+DrawingGsk::flush_background(Rectangle const& rect)
 {
         if (m_background_set) {
                 auto bytes = vte::take_freeable
@@ -328,7 +329,7 @@ DrawingGsk::flush_background(Rectangle const* rect)
                 gtk_snapshot_append_scaled_texture(m_snapshot,
                                                    texture.get(),
                                                    GSK_SCALING_FILTER_NEAREST,
-                                                   rect->graphene());
+                                                   rect.graphene());
         } else {
                 m_background_data.reset();
         }
