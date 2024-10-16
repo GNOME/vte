@@ -664,7 +664,7 @@ endif
 config_h.set10('WITH_SYSTEMD', systemd_dep.found())
 
 # Try fast_float.h from system headers, else fall back to subproject
-if cxx.has_header('fast_float.h')
+if cxx.has_header('fast_float' / 'fast_float.h')
   fast_float_dep = dependency('', required: false)
 else
   fast_float_dep = dependency('fast_float', required: true)

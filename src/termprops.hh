@@ -34,7 +34,7 @@
 #include <variant>
 #include <version>
 
-#include "fast_float.h"
+#include <fast_float/fast_float.h>
 
 namespace vte::terminal {
 

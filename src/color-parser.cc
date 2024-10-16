@@ -29,7 +29,7 @@
 
 #include <glib.h>
 
-#include "fast_float.h"
+#include <fast_float/fast_float.h>
 
 #include "color-names.hh"
 

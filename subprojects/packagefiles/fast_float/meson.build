@@ -23,7 +23,7 @@ project(
   version: '6.1.6',
 )
 
-fast_float_inc = include_directories('include' / 'fast_float', is_system: true,)
+fast_float_inc = include_directories('include', is_system: true,)
 fast_float_dep = declare_dependency(include_directories: fast_float_inc,)
 
 meson.override_dependency('fast_float', fast_float_dep)
