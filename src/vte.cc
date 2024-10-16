@@ -9397,7 +9397,6 @@ Terminal::draw_rows(VteScreen *screen_,
 {
         vte::grid::row_t row;
         vte::grid::column_t i, j, lcol, vcol;
-        int y;
         guint fore = VTE_DEFAULT_FG, nfore, back = VTE_DEFAULT_BG, nback, deco = VTE_DEFAULT_FG, ndeco;
         gboolean hyperlink = FALSE, nhyperlink;  /* non-hovered explicit hyperlink, needs dashed underlining */
         gboolean hilite = FALSE, nhilite;        /* hovered explicit hyperlink or regex match, needs continuous underlining */
@@ -9429,22 +9428,35 @@ Terminal::draw_rows(VteScreen *screen_,
         int const rect_width = get_allocated_width() + m_style_border.left + m_style_border.right;
 #endif
 
-        m_draw.begin_background(column_count, end_row - start_row);
+        auto bg_rect = vte::view::Rectangle{0,
+                                            start_y,
+                                            int(column_count * column_width),
+                                            int(row_height * (end_row - start_row))};
+        m_draw.begin_background(bg_rect, column_count, end_row - start_row);
 
         /* The rect contains the area of the row, and is moved row-wise in the loop. */
-        auto rect = vte::view::Rectangle{-m_border.left, start_y, rect_width, row_height};
-        for (row = start_row, y = start_y;
+#if VTE_GTK == 3
+        auto crect = vte::view::Rectangle{-m_border.left, start_y, rect_width, row_height};
+#endif
+        for (row = start_row;
              row < end_row;
-             row++, y += row_height, rect.move_y(y) /* same as rect.y += row_height */) {
+             row++
+#if VTE_GTK == 3
+                     , crect.advance_y(row_height)
+#endif
+             ) {
 #if VTE_GTK == 3
                 /* Check whether we need to draw this row at all */
-                if (cairo_region_contains_rectangle(region, rect.cairo()) == CAIRO_REGION_OVERLAP_OUT)
+                if (cairo_region_contains_rectangle(region, crect.cairo()) == CAIRO_REGION_OVERLAP_OUT)
                         continue;
+
+                auto const y = crect.cairo()->y;
 #endif
 
 		row_data = find_row_data(row);
                 bidirow = m_ringview.get_bidirow(row);
 
+#if VTE_GTK == 3
                 _VTE_DEBUG_IF (VTE_DEBUG_BIDI) {
                         /* Debug: Highlight the paddings of RTL rows with a slightly different background. */
                         if (bidirow->base_is_rtl()) {
@@ -9468,6 +9480,7 @@ Terminal::draw_rows(VteScreen *screen_,
                                                           &bg);
                         }
                 }
+#endif // VTE_GTK == 3
 
                 i = j = 0;
                 /* Walk the line.
@@ -9499,6 +9512,7 @@ Terminal::draw_rows(VteScreen *screen_,
                                 m_draw.fill_cell_background(i, row - start_row, (j - i), &bg);
                         }
 
+#if VTE_GTK == 3
                         _VTE_DEBUG_IF (VTE_DEBUG_BIDI) {
                                 /* Debug: Highlight RTL letters and RTL rows with a slightly different background. */
                                 vte::color::rgb bg;
@@ -9536,6 +9550,7 @@ Terminal::draw_rows(VteScreen *screen_,
                                                                   &bg);
                                 }
                         }
+#endif // VTE_GTK == 3
 
                         /* We'll need to continue at the first cell which didn't
                          * match the first one in this set. */
@@ -9543,21 +9558,18 @@ Terminal::draw_rows(VteScreen *screen_,
                 } while (i < column_count);
         }
 
-        auto bg_area = vte::view::Rectangle{-m_border.left,
-                                            start_y,
-                                            rect_width,
-                                            int(row_height * (end_row - start_row))};
-        m_draw.flush_background(&bg_area);
+        m_draw.flush_background(bg_rect);
 
         /* Render the text.
          * The rect contains the area of the row (enlarged a bit at the top and bottom
          * to allow the text to overdraw a bit), and is moved row-wise in the loop.
          */
-        rect = vte::view::Rectangle{-m_border.left,
-                                    start_y - cell_overflow_top(),
-                                    rect_width,
-                                    row_height + cell_overflow_top() + cell_overflow_bottom()};
+        auto rect = vte::view::Rectangle{-m_border.left,
+                                         start_y - cell_overflow_top(),
+                                         rect_width,
+                                         row_height + cell_overflow_top() + cell_overflow_bottom()};
 
+        int y;
         for (row = start_row, y = start_y;
              row < end_row;
              row++, y += row_height, rect.advance_y(row_height)) {
