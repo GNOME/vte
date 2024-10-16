@@ -1651,8 +1651,7 @@ Terminal::selection_maybe_swap_endpoints(vte::view::coords const& pos)
                 return;
 
         /* Need to ensure the ringview is updated. */
-        if (!m_ringview.is_updated())
-                ringview_update();
+        ringview_update();
 
         auto current = selection_grid_halfcoords_from_view_coords (pos);
 
@@ -1722,8 +1721,7 @@ Terminal::hyperlink_check_at(double x,
                              double y)
 {
         /* Need to ensure the ringview is updated. */
-        if (!m_ringview.is_updated())
-                ringview_update();
+        ringview_update();
 
         long col, row;
         if (!rowcol_at(x, y, &col, &row))
@@ -1738,8 +1736,7 @@ char*
 Terminal::hyperlink_check(vte::platform::MouseEvent const& event)
 {
         /* Need to ensure the ringview is updated. */
-        if (!m_ringview.is_updated())
-                ringview_update();
+        ringview_update();
 
         long col, row;
         if (!rowcol_from_event(event, &col, &row))
@@ -1783,8 +1780,7 @@ Terminal::regex_match_check(vte::platform::MouseEvent const& event,
                             int *tag)
 {
         /* Need to ensure the ringview is updated. */
-        if (!m_ringview.is_updated())
-                ringview_update();
+        ringview_update();
 
         long col, row;
         if (!rowcol_from_event(event, &col, &row))
@@ -1803,8 +1799,7 @@ Terminal::regex_match_check_at(double x,
                                int *tag)
 {
         /* Need to ensure the ringview is updated. */
-        if (!m_ringview.is_updated())
-                ringview_update();
+        ringview_update();
 
         long col, row;
         if (!rowcol_at(x, y, &col, &row)) {
@@ -1827,8 +1822,7 @@ Terminal::regex_match_check_extra_at(double x,
                                      char** matches)
 {
         /* Need to ensure the ringview is updated. */
-        if (!m_ringview.is_updated())
-                ringview_update();
+        ringview_update();
 
         long col, row;
         if (!rowcol_at(x, y, &col, &row))
@@ -1847,8 +1841,7 @@ Terminal::regex_match_check_extra(vte::platform::MouseEvent const& event,
                                   char** matches)
 {
         /* Need to ensure the ringview is updated. */
-        if (!m_ringview.is_updated())
-                ringview_update();
+        ringview_update();
 
         long col, row;
         if (!rowcol_from_event(event, &col, &row))
