@@ -8219,13 +8219,15 @@ Terminal::set_size(long columns,
 		if (!allocating)
 			gtk_widget_queue_resize(m_widget); // FIXMEgtk4?
 #endif
-
-                m_ringview.invalidate();
-                invalidate_all();
-                match_contents_clear();
-		/* Our visible text changed. */
-		emit_text_modified();
 	}
+
+        /* The visible bits might have changed even if the dimension in characters didn't,
+         * so call these unconditionally: https://gitlab.gnome.org/GNOME/vte/-/issues/2829 */
+        m_ringview.invalidate();
+        invalidate_all();
+        match_contents_clear();
+        /* Our visible text changed. */
+        emit_text_modified();
 }
 
 void
