@@ -664,7 +664,31 @@ endif
 config_h.set10('WITH_SYSTEMD', systemd_dep.found())
 
 # Try fast_float.h from system headers, else fall back to subproject
-if cxx.has_header('fast_float' / 'fast_float.h')
+# Since fast_float doesn't seem to have any defines to check its version,
+# try compiling a test programme to see if the version is new enough.
+
+if cxx.compiles('''
+    #include <cstdint>
+    #include <cstring>
+    #include <fast_float/fast_float.h>
+
+    int main(void) {
+      auto str = "1234";
+      auto start = str;
+      auto end = str + strlen(str);
+      auto value = uint64_t{};
+      auto rv = fast_float::from_chars(start, end, value, 16);
+      if (rv.ec != std::errc{} || rv.ptr != end)
+        return 2;
+
+      return 0;
+    }
+    ''',
+    args: [
+      cxx_std_opt,
+    ],
+    name: 'system fast_float usability check',
+  )
   fast_float_dep = dependency('', required: false)
 else
   fast_float_dep = dependency('fast_float', required: true)
