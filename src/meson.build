@@ -73,6 +73,7 @@ minifont_coverage_sources = custom_target(
   ),
   capture: false,
   command: [
+    python,
     files('minifont-coverage.py'),
     '--output', '@OUTPUT@',
     '@INPUT@',
@@ -596,6 +597,7 @@ test_minifont_sources += custom_target(
   ),
   capture: false,
   command: [
+    python,
     files('minifont-coverage.py'),
     '--output', '@OUTPUT@',
     '--tests',
