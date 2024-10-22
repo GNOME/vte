@@ -1673,7 +1673,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Emitted when the #VteTerminal:window-title property is modified.
          *
          * Deprecated: 0.78: Use the #VteTerminal:termprop-changed signal
-         *   for the %VTE_TERMPROP_TITLE termprop.
+         *   for the %VTE_TERMPROP_XTERM_TITLE termprop.
          */
         signals[SIGNAL_WINDOW_TITLE_CHANGED] =
                 g_signal_new(I_("window-title-changed"),
@@ -2828,7 +2828,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * The terminal's title.
          *
-         * Deprecated: 0.78: Use the %VTE_TERMPROP_TITLE termprop.
+         * Deprecated: 0.78: Use the %VTE_TERMPROP_XTERM_TITLE termprop.
          */
         pspecs[PROP_WINDOW_TITLE] =
                 g_param_spec_string ("window-title", NULL, NULL,
@@ -7707,7 +7707,7 @@ catch (...)
  *
  * Returns: (nullable) (transfer none): the window title, or %NULL
  *
- * Deprecated: 0.78: Use the %VTE_TERMPROP_TITLE termprop.
+ * Deprecated: 0.78: Use the %VTE_TERMPROP_XTERM_TITLE termprop.
  */
 const char *
 vte_terminal_get_window_title(VteTerminal *terminal) noexcept
