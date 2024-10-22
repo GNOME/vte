@@ -5020,7 +5020,7 @@ spawn_async_cb(GObject *source,
         SpawnAsyncCallbackData *data = reinterpret_cast<SpawnAsyncCallbackData*>(user_data);
         VtePty *pty = VTE_PTY(source);
 
-        auto pid = pid_t{-1};
+        auto pid = GPid{-1};
         auto error = vte::glib::Error{};
         if (source) {
                 vte_pty_spawn_finish(pty, result, &pid, error);
