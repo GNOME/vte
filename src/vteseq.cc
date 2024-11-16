@@ -8788,13 +8788,20 @@ Terminal::SUB(vte::parser::Sequence const& seq)
         /*
          * SUB - substitute
          * Cancel the current control-sequence and print a replacement
-         * character. Our parser already handles this so all we have to do is
-         * print the replacement character.
+         * character. Our parser already handles the state changes, so
+         * all we have to do is print the character.
+         *
+         * Use U+2426 SYMBOL FOR SUBSTITUTE FORM TWO as the character
+         * to insert, since it was specifically made for this use case
+         * (see https://www.unicode.org/L2/L1998/98353.pdf).
+         * (Previous vte versions used U+FFFD REPLACEMENT CHARACTER.)
+         * See https://gitlab.gnome.org/GNOME/vte/-/issues/2843 .
          *
          * References: ECMA-48 § 8.3.148
+         *             DEC STD 070 p5-132
          */
 
-        insert_char(0xfffdu, true);
+        insert_char(0x2426u, true);
 }
 
 void
