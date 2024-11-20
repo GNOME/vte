@@ -292,6 +292,8 @@ typedef enum {
  * @VTE_PROPERTY_ID_SHELL_PRECMD: the ID of the %VTE_TERMPROP_SHELL_PRECMD termprop
  * @VTE_PROPERTY_ID_SHELL_PREEXEC: the ID of the %VTE_TERMPROP_SHELL_PREEXEC termprop
  * @VTE_PROPERTY_ID_SHELL_POSTEXEC: the ID of the %VTE_TERMPROP_SHELL_POSTEXEC termprop
+ * @VTE_PROPERTY_ID_PROGRESS_STATE: the ID of the %VTE_TERMPROP_PROGRESS_STATE termprop. Since: 0.80
+ * @VTE_PROPERTY_ID_PROGRESS_VALUE: the ID of the %VTE_TERMPROP_PROGRESS_VALUE termprop. Since: 0.80
  *
  * An enum containing the IDs of the always-installed termprops.
  *
@@ -307,7 +309,25 @@ typedef enum {
         VTE_PROPERTY_ID_SHELL_PRECMD,
         VTE_PROPERTY_ID_SHELL_PREEXEC,
         VTE_PROPERTY_ID_SHELL_POSTEXEC,
+        VTE_PROPERTY_ID_PROGRESS_STATE,
+        VTE_PROPERTY_ID_PROGRESS_VALUE,
 	_VTE_PROPERTY_ID_MAX = 0x7ffffff, /*< skip >*/
 } VtePropertyId;
+
+/**
+ * VteProgressState:
+ * @VTE_PROGRESS_ACTIVE: in progress
+ * @VTE_PROGRESS_PAUSED: progress paused
+ * @VTE_PROGRESS_ERROR: progress aborted by error
+ *
+ * An enum describing progress state for the %VTE_TERMPROP_PROGRESS_STATE termprop.
+ *
+ * Since: 0.80
+ */
+typedef enum {
+        VTE_PROGRESS_ACTIVE,
+        VTE_PROGRESS_PAUSED,
+        VTE_PROGRESS_ERROR,
+} VteProgressState;
 
 G_END_DECLS

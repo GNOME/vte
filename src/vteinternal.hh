@@ -1839,6 +1839,9 @@ public:
         void urxvt_extension(vte::parser::Sequence const& seq,
                              vte::parser::StringTokeniser::const_iterator& token,
                              vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+        void conemu_extension(vte::parser::Sequence const& seq,
+                              vte::parser::StringTokeniser::const_iterator& token,
+                              vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
 
         // helpers
 
