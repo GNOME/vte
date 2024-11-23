@@ -344,7 +344,7 @@ check_functions = [
   ],
   [
     'pread',
-    'ssize_t (*func)(int, void*, size_t off_t)',
+    'ssize_t (*func)(int, void*, size_t, off_t)',
      ['unistd.h'],
      [],
      false,
