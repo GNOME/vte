@@ -7477,7 +7477,7 @@ Terminal::OSC(vte::parser::Sequence const& seq)
                             std::get<std::string>(*old_value) != it.string_view_remaining()) {
                                 set = true;
                                 m_termprops_dirty.at(info->id()) = true;
-                                m_termprop_values.at(info->id()) = std::move(it.string_remaining());
+                                m_termprop_values.at(info->id()) = it.string_remaining();
                         }
                 } else {
                         set = true;
