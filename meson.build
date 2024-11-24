@@ -268,11 +268,18 @@ endforeach
 # Check for symbols
 
 check_symbols_required = [
-  ['TIOCGWINSZ', 'sys/ioctl.h'],
+  ['TIOCGWINSZ', ['sys/ioctl.h', 'sys/termios.h',]],
 ]
 
 foreach symbol: check_symbols_required
-  assert(cxx.has_header_symbol(symbol[1], symbol[0]), symbol[0] + ' not found')
+  found=false
+  foreach header : symbol[1]
+    if cxx.has_header_symbol(header, symbol[0])
+      found=true
+      break
+    endif
+  endforeach
+  assert(found, symbol[0] + ' not found')
 endforeach
 
 # Check for functions
