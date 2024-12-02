@@ -77,3 +77,10 @@ support forums.
 
 If you want to provide a patch, please attach them to an issue in GNOME
 GitLab, in the format output by the git format-patch command.
+
+When providing a patch, make sure to add the correct licensing headers to
+each new file. If code was taken from somewhere else, note from where it was
+taken and under which license it was there. You must only contribute code
+that you have either written yourself, or that was copied from a source
+whose license is LGPL3+ compatible. You may not contribute any code that
+was written, whether wholly or partly, by using AI in any form.
