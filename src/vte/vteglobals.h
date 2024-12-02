@@ -180,4 +180,36 @@ gboolean vte_query_termprop_by_id(int prop,
  */
 #define VTE_TERMPROP_SHELL_POSTEXEC "vte.shell.postexec"
 
+/**
+ * VTE_TERMPROP_PROGRESS_HINT:
+ *
+ * A %VTE_PROPERTY_UINT termprop that stores a hint how to interpret
+ * the %VTE_TERMPROP_PROGRESS_VALUE termprop value. If set, this
+ * termprop's value will be from the #VteProgressHint enumeration.
+ * An unset termprop should be treated as if it had value
+ * %VTE_PROGRESS_HINT_ACTIVE.
+ *
+ * The value of this termprop should be ignored unless the
+ * %VTE_TERMPROP_PROGRESS_VALUE termprop has a value.
+ *
+ * Note that this termprop cannot be set by the termprop OSC, but instead
+ * only by OSC 9 ; 4 (ConEmu progress).
+ *
+ * Since: 0.80
+ */
+#define VTE_TERMPROP_PROGRESS_HINT "vte.progress.hint"
+
+/**
+ * VTE_TERMPROP_PROGRESS_VALUE:
+ *
+ * A %VTE_PROPERTY_UINT termprop that stores the progress of the running
+ * command as a value between 0 and 100.
+ *
+ * Note that this termprop cannot be set by the termprop OSC, but instead
+ * only by OSC 9 ; 4 (ConEmu progress).
+ *
+ * Since: 0.80
+ */
+#define VTE_TERMPROP_PROGRESS_VALUE "vte.progress.value"
+
 G_END_DECLS

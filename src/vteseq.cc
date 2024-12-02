@@ -2221,6 +2221,104 @@ catch (...)
         // nothing to do here
 }
 
+// Terminal::conemu_extension:
+//
+// Parse a ConEmu OSC 9 sequence.
+//
+// Only the "9 ; 4" subfunction to set a progress state is implemented by vte,
+// and sets the %VTE_TERMPROP_PROGRESS termprop, either to a value between 0 and
+// 100, or to -1 for an indeterminate progress. "Paused" and "error" progress states
+// are mapped to an unset termprop.
+//
+// References: ConEmu [https://github.com/ConEmu/ConEmu.github.io/blob/master/_includes/AnsiEscapeCodes.md#ConEmu_specific_OSC]
+//
+void
+Terminal::conemu_extension(vte::parser::Sequence const& seq,
+                           vte::parser::StringTokeniser::const_iterator& token,
+                           vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
+try
+{
+        if (token == endtoken)
+                return;
+
+        auto maybe_set_termprop = [&](int prop,
+                                      auto&& value) -> void {
+                if (auto const info = get_termprop_info(prop)) {
+                        m_termprops_dirty.at(info->id()) = true;
+                        m_termprop_values.at(info->id()) = std::move(value);
+                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                }
+        };
+
+        auto maybe_reset_termprop = [&](int prop) -> void {
+                if (auto const info = get_termprop_info(prop)) {
+                        m_termprops_dirty.at(info->id()) = true;
+                        m_termprop_values.at(info->id()) = {};
+                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                }
+        };
+
+        auto const subfunction = token.number();
+        ++token;
+
+        switch (subfunction.value_or(0)) {
+        case 4: { // progress
+                auto const st = (token != endtoken) ? token.number() : 0;
+                if (token != endtoken)
+                        ++token;
+
+                auto const pr = (token != endtoken) ? token.number().value_or(0) : 0;
+
+                switch (st.value_or(0)) {
+                case 0: // reset
+                        maybe_reset_termprop(VTE_PROPERTY_ID_PROGRESS_HINT);
+                        maybe_reset_termprop(VTE_PROPERTY_ID_PROGRESS_VALUE);
+                        return;
+
+                case 1: // running
+                        maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_HINT,
+                                           uint64_t(VTE_PROGRESS_HINT_ACTIVE));
+                        maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_VALUE,
+                                           uint64_t(pr));
+                        return;
+
+                case 2: // error
+                        maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_HINT,
+                                           uint64_t(VTE_PROGRESS_HINT_ERROR));
+                        maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_VALUE,
+                                           uint64_t(pr));
+                        return;
+
+                case 3: // indeterminate
+                        maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_HINT,
+                                           uint64_t(VTE_PROGRESS_HINT_INDETERMINATE));
+                        maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_VALUE,
+                                           uint64_t(0));
+                        return;
+
+                case 4: // paused
+                        maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_HINT,
+                                           uint64_t(VTE_PROGRESS_HINT_PAUSED));
+                        maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_VALUE,
+                                           uint64_t(pr));
+                        return;
+
+                case 5: // long running start, not implemented
+                case 6: // long running end, not implemented
+                default: // unkown
+                        return;
+                }
+        }
+
+        default: // other subfunctions not implemented in vte
+                return;
+        }
+}
+catch (...)
+{
+        // nothing to do here
+}
+
 // collect_rect:
 // @seq:
 // @idx:
@@ -7699,6 +7797,10 @@ Terminal::OSC(vte::parser::Sequence const& seq)
                 urxvt_extension(seq, it, cend);
                 break;
 
+        case VTE_OSC_CONEMU_EXTENSION:
+                conemu_extension(seq, it, cend);
+                break;
+
         case VTE_OSC_XTERM_SET_ICON_TITLE:
         case VTE_OSC_XTERM_SET_XPROPERTY:
         case VTE_OSC_XTERM_SET_COLOR_MOUSE_CURSOR_FG:
@@ -7718,7 +7820,6 @@ Terminal::OSC(vte::parser::Sequence const& seq)
         case VTE_OSC_XTERM_RESET_COLOR_TEK_CURSOR:
         case VTE_OSC_EMACS_51:
         case VTE_OSC_ITERM2_1337:
-        case VTE_OSC_ITERM2_GROWL:
         case VTE_OSC_KONSOLE_30:
         case VTE_OSC_KONSOLE_31:
         case VTE_OSC_RLOGIN_SET_KANJI_MODE:

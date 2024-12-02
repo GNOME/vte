@@ -3050,6 +3050,14 @@ vte_terminal_class_init(VteTerminalClass *klass)
                           vte::terminal::TermpropType::UINT,
                           vte::terminal::TermpropFlags::EPHEMERAL,
                           VTE_PROPERTY_ID_SHELL_POSTEXEC },
+                        { VTE_TERMPROP_PROGRESS_HINT,
+                          vte::terminal::TermpropType::UINT,
+                          vte::terminal::TermpropFlags::NO_OSC,
+                          VTE_PROPERTY_ID_PROGRESS_HINT },
+                        { VTE_TERMPROP_PROGRESS_VALUE,
+                          vte::terminal::TermpropType::UINT,
+                          vte::terminal::TermpropFlags::NO_OSC,
+                          VTE_PROPERTY_ID_PROGRESS_VALUE },
                 };
 
                 for (auto i = 0u; i < G_N_ELEMENTS(builtin_termprops); ++i) {
