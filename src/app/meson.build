@@ -85,3 +85,67 @@ if get_option('gtk4')
     install: not meson.is_subproject(),
   )
 endif
+
+# Desktop files
+
+desktopdatadir = vte_datadir / 'applications'
+
+if get_option('gtk3')
+  conf = configuration_data()
+  conf.set('name', 'VTE Terminal for GTK3')
+  conf.set('exec', vte_gtk3_api_name)
+
+  app_gtk3_desktop = configure_file(
+    configuration: conf,
+    input: 'vte.desktop.in',
+    install: true,
+    install_dir: vte_prefix / desktopdatadir,
+    output: 'vte-gtk3.desktop',
+  )
+
+  meson.add_install_script(
+    'meson_desktopfile.py',
+    desktopdatadir,
+    'vte-gtk3.desktop',
+  )
+endif
+
+if get_option('gtk4')
+  conf = configuration_data()
+  conf.set('name', 'VTE Terminal for GTK4')
+  conf.set('exec', vte_gtk4_api_name)
+
+  app_gtk4_desktop = configure_file(
+    configuration: conf,
+    input: 'vte.desktop.in',
+    install: true,
+    install_dir: vte_prefix / desktopdatadir,
+    output: 'vte-gtk4.desktop',
+  )
+
+  meson.add_install_script(
+    'meson_desktopfile.py',
+    desktopdatadir,
+    'vte-gtk4.desktop',
+  )
+endif
+
+# Install a symlink for xdg-terminal-exec
+
+if get_option('gtk3')
+  install_symlink(
+    'vte-gtk3.desktop',
+    install_dir: vte_datadir / 'xdg-terminals',
+    install_tag: 'runtime',
+    pointing_to: '..' / 'applications' / 'vte-gtk3.desktop',
+  )
+endif
+
+if get_option('gtk4')
+  install_symlink(
+    'vte-gtk4.desktop',
+    install_dir: vte_datadir / 'xdg-terminals',
+    install_tag: 'runtime',
+    pointing_to: '..' / 'applications' / 'vte-gtk4.desktop',
+  )
+endif
