@@ -48,15 +48,30 @@
 #include "refptr.hh"
 #include "vte-glue.hh"
 
+#define VTEAPP_APPLICATION_ID   "org.gnome.Vte.Application"
+#define VTEAPP_APPLICATION_PATH "/org/gnome/Vte/Application"
+
 /* options */
 
-static void G_GNUC_PRINTF(2, 3)
+enum {
+        VL0,
+        VL1,
+        VL2,
+        VL3
+}; // Verbosity levels
+
+static void G_GNUC_PRINTF(3, 4)
 verbose_fprintf(FILE* fp,
+                int level,
                 char const* format,
                 ...);
 
-#define verbose_print(...) verbose_fprintf(stdout, __VA_ARGS__)
-#define verbose_printerr(...) verbose_fprintf(stderr, __VA_ARGS__)
+#define verbose_print(...) verbose_fprintf(stdout, VL1, __VA_ARGS__)
+#define verbose_printerr(...) verbose_fprintf(stderr, VL1, __VA_ARGS__)
+
+#define vverbose_print(...) verbose_fprintf(stdout, __VA_ARGS__)
+#define vverbose_printerr(...) verbose_fprintf(stderr, __VA_ARGS__)
+
 
 #define CONFIG_GROUP "VteApp Configuration"
 
@@ -95,6 +110,7 @@ public:
         gboolean legacy_osc777{false};
         gboolean object_notifications{false};
         gboolean overlay_scrollbar{false};
+        gboolean progress{true};
         gboolean pty{true};
         gboolean require_systemd_scope{false};
         gboolean reverse{false};
@@ -678,6 +694,7 @@ private:
                 load_bool_option("KineticScrolling", &kinetic_scrolling);
                 load_bool_option("ObjectNotifications", &object_notifications);
                 load_bool_option("OverlayScrollbar", &overlay_scrollbar);
+                load_bool_option("Progress", &progress);
                 load_bool_option("Pty", &pty);
                 load_bool_option("RequireSystemdScope", &require_systemd_scope);
                 load_bool_option("Reverse", &reverse);
@@ -883,6 +900,7 @@ private:
                 save_bool_option("KineticScrolling" , kinetic_scrolling, defopt.kinetic_scrolling);
                 save_bool_option("ObjectNotifications" , object_notifications, defopt.object_notifications);
                 save_bool_option("OverlayScrollbar" , overlay_scrollbar, defopt.overlay_scrollbar);
+                save_bool_option("Progress" , progress, defopt.progress);
                 save_bool_option("Pty" , pty, defopt.pty);
                 save_bool_option("RequireSystemdScope" , require_systemd_scope, defopt.require_systemd_scope);
                 save_bool_option("Reverse" , reverse, defopt.reverse);
@@ -1204,6 +1222,10 @@ public:
                                 0, &legacy_osc777,
                                 "Enable legacy OSC 777 sequences",
                                 "Disable legacy OSC 777 sequences");
+                add_bool_option("progress", 0, "no-progress", 0,
+                                0, &progress,
+                                "Enable showing progress indication",
+                                "Disable showing progress indication");
                 add_bool_option("pty", 0, "no-pty", 0,
                                 0, &pty,
                                 "Enable PTY creation with --no-shell",
@@ -1528,18 +1550,52 @@ public:
 
                 return true;
         }
+
+
+        enum class Desktop {
+                UNKNOWN = -1,
+                GNOME,
+                KDE,
+        };
+
+        static bool is_desktop(Desktop desktop)
+        {
+                auto const env = g_getenv("XDG_CURRENT_DESKTOP");
+                if (!env)
+                        return false;
+
+                auto envv = vte::glib::take_strv(g_strsplit(env, G_SEARCHPATH_SEPARATOR_S, -1));
+                if (!envv)
+                        return false;
+                for (auto i = 0; envv.get()[i]; ++i) {
+                        auto const name = envv.get()[i];
+                        using enum Desktop;
+                        if (desktop == GNOME &&
+                            (g_ascii_strcasecmp(name, "gnome") == 0 ||
+                             g_ascii_strcasecmp(name, "gnome-classic") == 0))
+                            return true;
+
+                        if (desktop == KDE &&
+                            g_ascii_strcasecmp(name, "kde") == 0)
+                                return true;
+                }
+
+                return false;
+        }
+
 }; // class Options
 
 Options options{}; /* global */
 
 /* debug output */
 
-static void G_GNUC_PRINTF(2, 3)
+static void G_GNUC_PRINTF(3, 4)
 verbose_fprintf(FILE* fp,
+                int level,
                 char const* format,
                 ...)
 {
-        if (options.verbosity == 0)
+        if (options.verbosity < level)
                 return;
 
         va_list args;
@@ -2163,12 +2219,12 @@ vteapp_terminal_class_init(VteappTerminalClass *klass)
 
         } // END distro patches adding termprops
 
-        if (options.verbosity > 1) {
+        if (options.verbosity >= VL2) {
                 auto n_termprops = gsize{0};
                 auto termprops = vte::glib::take_free_ptr(vte_get_termprops(&n_termprops));
-                verbose_print("Installed termprops are:\n");
+                vverbose_print(VL2, "Installed termprops are:\n");
                 for (auto i = gsize{0}; i < n_termprops; ++i) {
-                        verbose_print("  %s\n", termprops.get()[i]);
+                        vverbose_print(VL2, "  %s\n", termprops.get()[i]);
                 }
         }
 }
@@ -2192,6 +2248,327 @@ static GtkWidget *
 vteapp_terminal_new(void)
 {
         return reinterpret_cast<GtkWidget*>(g_object_new(VTEAPP_TYPE_TERMINAL, nullptr));
+}
+
+/* taskbar */
+
+#define VTEAPP_TYPE_TASKBAR         (vteapp_taskbar_get_type())
+#define VTEAPP_TASKBAR(o)           (G_TYPE_CHECK_INSTANCE_CAST((o), VTEAPP_TYPE_TASKBAR, VteappTaskbar))
+#define VTEAPP_TASKBAR_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST((k), VTEAPP_TYPE_TASKBAR, VteappTaskbarClass))
+#define VTEAPP_IS_TASKBAR(o)        (G_TYPE_CHECK_INSTANCE_TYPE((o), VTEAPP_TYPE_TASKBAR))
+#define VTEAPP_IS_TASKBAR_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE((k), VTEAPP_TYPE_TASKBAR))
+#define VTEAPP_TASKBAR_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS((o), VTEAPP_TYPE_TASKBAR, VteappTaskbarClass))
+
+typedef struct _VteappTaskbar       VteappTaskbar;
+typedef struct _VteappTaskbarClass  VteappTaskbarClass;
+
+struct _VteappTaskbar {
+        GObject parent;
+
+        bool has_progress;
+        unsigned progress_value;
+        VteProgressHint progress_hint;
+
+        // KDE taskbar
+        bool kde_acquisition_failed;
+        char* kde_job_object_path;
+};
+
+struct _VteappTaskbarClass {
+        GObjectClass parent;
+};
+
+static GType vteapp_taskbar_get_type(void);
+
+#define KDE_JOBVIEWSERVER_NAME "org.kde.JobViewServer"
+#define KDE_JOBVIEWSERVER_OBJECT_PATH "/JobViewServer"
+#define KDE_JOBVIEWSERVER_INTERFACE_NAME "org.kde.JobViewServerV2"
+
+#define KDE_JOBVIEW_INTERFACE_NAME "org.kde.JobViewV3"
+
+#if VTE_DEBUG
+
+static void
+print_reply_cb(GObject* source,
+               GAsyncResult* result,
+               void* user_data)
+{
+        auto const method = reinterpret_cast<char const*>(user_data);
+
+        auto err = vte::glib::Error{};
+        if (auto rv = vte::take_freeable(g_dbus_connection_call_finish(G_DBUS_CONNECTION(source),
+                                                                       result,
+                                                                       err))) {
+                vverbose_printerr(VL3, "%s call successful\n", method);
+        } else {
+                vverbose_printerr(VL3, "%s call failed: error %s\n", method, err.message());
+        }
+}
+
+#endif // VTE_DEBUG
+
+static void
+taskbar_kde_update_progress(VteappTaskbar* taskbar)
+{
+        if (!taskbar->has_progress)
+                return;
+
+        if (!taskbar->kde_job_object_path)
+                return; // no job, nothing to update
+
+        auto const conn = g_application_get_dbus_connection(g_application_get_default());
+        if (!conn)
+                return;
+
+        auto builder = GVariantBuilder{};
+        g_variant_builder_init(&builder, G_VARIANT_TYPE("(a{sv})"));
+        g_variant_builder_open(&builder, G_VARIANT_TYPE("a{sv}"));
+
+        if (taskbar->progress_hint == VTE_PROGRESS_HINT_INDETERMINATE) {
+                g_variant_builder_add(&builder,
+                                      "{sv}", "percent",
+                                      g_variant_new_uint32(unsigned(-1)));
+        } else {
+                g_variant_builder_add(&builder,
+                                      "{sv}", "percent",
+                                      g_variant_new_uint32(taskbar->progress_value));
+        }
+
+        g_variant_builder_add(&builder,
+                              "{sv}", "suspended",
+                              g_variant_new_uint32(taskbar->progress_hint == VTE_PROGRESS_HINT_PAUSED));
+
+        g_variant_builder_close(&builder);
+
+        g_dbus_connection_call(conn,
+                               KDE_JOBVIEWSERVER_NAME,
+                               taskbar->kde_job_object_path,
+                               KDE_JOBVIEW_INTERFACE_NAME,
+                               "update",
+                               g_variant_builder_end(&builder),
+                               nullptr, // reply type
+                               GDBusCallFlags(G_DBUS_CALL_FLAGS_NONE),
+                               -1, // default timeout
+                               nullptr, // cancellable
+#if VTE_DEBUG
+                               print_reply_cb, (char*)KDE_JOBVIEW_INTERFACE_NAME ".update"
+#else
+                               nullptr, nullptr
+#endif
+                               );
+}
+
+static void
+taskbar_kde_remove_progress(VteappTaskbar* taskbar)
+{
+        if (!taskbar->kde_job_object_path)
+                return; // no job, nothing to remove
+
+        auto const conn = g_application_get_dbus_connection(g_application_get_default());
+        if (!conn)
+                return;
+
+        auto builder = GVariantBuilder{};
+        g_variant_builder_init(&builder, G_VARIANT_TYPE("(usa{sv})"));
+
+        // error code
+        // 0=no error, anything else is some error code
+        if (taskbar->progress_hint == VTE_PROGRESS_HINT_ERROR)
+                g_variant_builder_add(&builder, "u", 1);
+        else
+                g_variant_builder_add(&builder, "u", 0);
+
+        // error message
+        if (taskbar->progress_hint == VTE_PROGRESS_HINT_ERROR)
+                g_variant_builder_add(&builder, "s", "Operation failed");
+        else
+                g_variant_builder_add(&builder, "s", "Operation finished");
+
+        // hints
+        g_variant_builder_open(&builder, G_VARIANT_TYPE("a{sv}"));
+        g_variant_builder_close(&builder);
+
+        g_dbus_connection_call(conn,
+                               KDE_JOBVIEWSERVER_NAME,
+                               taskbar->kde_job_object_path,
+                               KDE_JOBVIEW_INTERFACE_NAME,
+                               "terminate",
+                               g_variant_builder_end(&builder),
+                               nullptr, // reply type
+                               GDBusCallFlags(G_DBUS_CALL_FLAGS_NONE),
+                               -1, // default timeout
+                               nullptr, // cancellable
+#if VTE_DEBUG
+                               print_reply_cb, (char*)KDE_JOBVIEW_INTERFACE_NAME ".terminate"
+#else
+                               nullptr, nullptr
+#endif
+                               );
+
+        g_clear_pointer(&taskbar->kde_job_object_path, GDestroyNotify(g_free));
+        taskbar->has_progress = false;
+        taskbar->kde_acquisition_failed = false;
+}
+
+static void
+taskbar_kde_acquire_view_cb(GObject* source,
+                            GAsyncResult* result,
+                            void* user_data)
+{
+        // Take the ref add in call() below
+        auto taskbar = vte::glib::take_ref(reinterpret_cast<VteappTaskbar*>(user_data));
+
+        auto err = vte::glib::Error{};
+        if (auto rv = vte::take_freeable(g_dbus_connection_call_finish(G_DBUS_CONNECTION(source),
+                                                                       result,
+                                                                       err))) {
+                g_variant_get(rv.get(), "(o)", &(taskbar->kde_job_object_path));
+                vverbose_printerr(VL3, KDE_JOBVIEWSERVER_INTERFACE_NAME ".acquireView"
+                                  " call succeeded, view path is %s\n",
+                                  taskbar->kde_job_object_path);
+
+                // Now update the progress, or remove the view if
+                // progress is already cancelled.
+                if (taskbar->has_progress)
+                        taskbar_kde_update_progress(taskbar.get());
+                else
+                        taskbar_kde_remove_progress(taskbar.get());
+        } else {
+                vverbose_printerr(VL3, KDE_JOBVIEWSERVER_INTERFACE_NAME ".acquireView"
+                                  " call failed: %s\n", err.message());
+                taskbar->kde_acquisition_failed = true;
+        }
+}
+
+static void
+taskbar_kde_acquire_view(VteappTaskbar* taskbar)
+{
+        if (taskbar->kde_acquisition_failed)
+                return;
+
+        if (taskbar->kde_job_object_path)
+                return;
+
+        // Currently we only know how to do this on kde/plasma.
+        if (!Options::is_desktop(Options::Desktop::KDE)) {
+                taskbar->kde_acquisition_failed = true;
+                return;
+        }
+
+        auto const conn = g_application_get_dbus_connection(g_application_get_default());
+        if (!conn) {
+                taskbar->kde_acquisition_failed = true;
+                return;
+        }
+
+        auto builder = GVariantBuilder{};
+        g_variant_builder_init(&builder, G_VARIANT_TYPE("(sia{sv})"));
+
+        // desktop entry
+        g_variant_builder_add(&builder, "s", "vte-gtk"
+#if VTE_GTK == 3
+                              "3"
+#elif VTE_GTK == 4
+                              "4"
+#endif
+                              "");
+
+        // capability flags:
+        // 0x1 = cancellable
+        // 0x2 = suspendable/resumable
+        g_variant_builder_add(&builder, "i", 0);
+
+        // hints
+        g_variant_builder_open(&builder, G_VARIANT_TYPE("a{sv}"));
+
+        g_variant_builder_add(&builder,
+                              "{sv}", "title",
+                              g_variant_new_string("Operation progress"));
+
+        g_variant_builder_close(&builder); // a{sv}
+
+        g_dbus_connection_call(conn,
+                               KDE_JOBVIEWSERVER_NAME,
+                               KDE_JOBVIEWSERVER_OBJECT_PATH,
+                               KDE_JOBVIEWSERVER_INTERFACE_NAME,
+                               "requestView",
+                               g_variant_builder_end(&builder), // params
+                               G_VARIANT_TYPE("(o)"),
+                               GDBusCallFlags(G_DBUS_CALL_FLAGS_NONE),
+                               -1, // default timeout
+                               nullptr, // cancellable,
+                               GAsyncReadyCallback(taskbar_kde_acquire_view_cb),
+                               g_object_ref(taskbar));
+}
+
+G_DEFINE_TYPE(VteappTaskbar, vteapp_taskbar, G_TYPE_OBJECT)
+
+static void
+vteapp_taskbar_init(VteappTaskbar* taskbar)
+{
+        taskbar->has_progress = false;
+        taskbar->progress_value = 0;
+        taskbar->progress_hint = VTE_PROGRESS_HINT_ACTIVE;
+        taskbar->kde_acquisition_failed = false;
+        taskbar->kde_job_object_path = nullptr;
+}
+
+static void
+vteapp_taskbar_dispose(GObject* object)
+{
+        VteappTaskbar* taskbar = VTEAPP_TASKBAR(object);
+
+        taskbar_kde_remove_progress(taskbar);
+        g_clear_pointer(&taskbar->kde_job_object_path, GDestroyNotify(g_free));
+
+        G_OBJECT_CLASS(vteapp_taskbar_parent_class)->dispose(object);
+}
+
+static void
+vteapp_taskbar_reset_progress(VteappTaskbar* taskbar)
+{
+        taskbar_kde_remove_progress(taskbar);
+}
+
+static void
+vteapp_taskbar_set_progress_value(VteappTaskbar* taskbar,
+                                  unsigned value)
+{
+        if (taskbar->progress_value == value && taskbar->has_progress)
+                return;
+
+        taskbar->progress_value = value;
+        taskbar->has_progress = true;
+
+        if (taskbar->kde_job_object_path)
+                taskbar_kde_update_progress(taskbar);
+        else
+                taskbar_kde_acquire_view(taskbar);
+}
+
+static void
+vteapp_taskbar_set_progress_hint(VteappTaskbar* taskbar,
+                                 VteProgressHint hint)
+{
+        if (taskbar->progress_hint == hint)
+                return;
+
+        taskbar->progress_hint = VteProgressHint(hint);
+        taskbar_kde_update_progress(taskbar);
+}
+
+static void
+vteapp_taskbar_class_init(VteappTaskbarClass* klass)
+{
+        GObjectClass* object_class = G_OBJECT_CLASS(klass);
+        object_class->dispose = vteapp_taskbar_dispose;
+}
+
+static VteappTaskbar*
+vteapp_taskbar_new(void)
+{
+        return reinterpret_cast<VteappTaskbar*>(g_object_new(VTEAPP_TYPE_TASKBAR,
+                                                             nullptr));
 }
 
 /* terminal window */
@@ -2240,6 +2617,11 @@ struct _VteappWindow {
         GdkClipboard* clipboard;
         GdkToplevelState toplevel_state{GdkToplevelState(0)};
 #endif
+
+        VteappTaskbar* taskbar;
+        bool has_progress;
+        VteProgressHint progress_hint;
+        unsigned progress_value;
 };
 
 struct _VteappWindowClass {
@@ -3216,6 +3598,44 @@ window_find_button_toggled_cb(GtkToggleButton* button,
                 gtk_widget_set_visible(GTK_WIDGET(window->search_popover), active);
 }
 
+static VteappTaskbar*
+window_ensure_taskbar(VteappWindow* window)
+{
+        if (!window->taskbar)
+                window->taskbar = vteapp_taskbar_new();
+
+        return window->taskbar;
+}
+
+static void
+window_progress_hint_changed_cb(VteappTerminal* terminal,
+                                char const* prop,
+                                VteappWindow* window)
+{
+        auto hint = uint64_t{};
+        if (vte_terminal_get_termprop_uint(VTE_TERMINAL(terminal), prop, &hint))
+                window->progress_hint = VteProgressHint(hint);
+        else
+                window->progress_hint = VTE_PROGRESS_HINT_ACTIVE;
+
+        vteapp_taskbar_set_progress_hint(window_ensure_taskbar(window),
+                                         window->progress_hint);
+}
+
+static void
+window_progress_value_changed_cb(VteappTerminal* terminal,
+                                 char const* prop,
+                                 VteappWindow* window)
+{
+        auto value = uint64_t{};
+        if (vte_terminal_get_termprop_uint(VTE_TERMINAL(terminal), prop, &value)) {
+                vteapp_taskbar_set_progress_value(window_ensure_taskbar(window),
+                                                  value);
+        } else {
+                vteapp_taskbar_reset_progress(window_ensure_taskbar(window));
+        }
+}
+
 G_DEFINE_TYPE(VteappWindow, vteapp_window, GTK_TYPE_APPLICATION_WINDOW)
 
 static void
@@ -3351,6 +3771,13 @@ vteapp_window_constructed(GObject *object)
         g_signal_connect(window->terminal, "termprop-changed::" VTE_TERMPROP_XTERM_TITLE, G_CALLBACK(window_window_title_changed_cb), window);
         if (options.object_notifications)
                 g_signal_connect(window->terminal, "notify", G_CALLBACK(window_notify_cb), window);
+
+        if (options.progress) {
+                g_signal_connect(window->terminal, "termprop-changed::" VTE_TERMPROP_PROGRESS_HINT,
+                                 G_CALLBACK(window_progress_hint_changed_cb), window);
+                g_signal_connect(window->terminal, "termprop-changed::" VTE_TERMPROP_PROGRESS_VALUE,
+                                 G_CALLBACK(window_progress_value_changed_cb), window);
+        }
 
         /* Settings */
 #if VTE_GTK == 3
@@ -3507,6 +3934,8 @@ vteapp_window_dispose(GObject *object)
                                              nullptr, // closure
                                              nullptr, // func
                                              window);
+
+        g_clear_object(&window->taskbar);
 
         G_OBJECT_CLASS(vteapp_window_parent_class)->dispose(object);
 }
@@ -3920,7 +4349,7 @@ static GApplication*
 vteapp_application_new(void)
 {
         return reinterpret_cast<GApplication*>(g_object_new(VTEAPP_TYPE_APPLICATION,
-                                                            "application-id", "org.gnome.Vte.Application",
+                                                            "application-id", VTEAPP_APPLICATION_ID,
                                                             "flags", guint(G_APPLICATION_NON_UNIQUE),
                                                             nullptr));
 }
