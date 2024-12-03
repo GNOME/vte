@@ -3959,6 +3959,22 @@ vteapp_window_realize(GtkWidget* widget)
                          G_CALLBACK(window_toplevel_notify_state_cb), window);
 #endif
 
+#ifdef GDK_WINDOWING_X11
+#if VTE_GTK == 3
+        if (GDK_IS_X11_WINDOW(win)) {
+                gdk_x11_window_set_utf8_property(win,
+                                                 "_KDE_NET_WM_DESKTOP_FILE",
+                                                 "vte-gtk3");
+        }
+#elif VTE_GTK == 4
+        if (GDK_IS_X11_SURFACE(surface)) {
+                gdk_x11_surface_set_utf8_property(surface,
+                                                  "_KDE_NET_WM_DESKTOP_FILE",
+                                                  "vte-gtk4");
+        }
+#endif // VTE_GTK
+#endif // GDK_WINDOWING_X11
+
         window_update_fullscreen_state(window);
 
         vteapp_window_resize(window);
