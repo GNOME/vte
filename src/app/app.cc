@@ -34,6 +34,14 @@
 #include <cairo/cairo-gobject.h>
 #include <vte/vte.h>
 
+#ifdef GDK_WINDOWING_X11
+#if VTE_GTK == 3
+#include <gdk/gdkx.h>
+#elif VTE_GTK == 4
+#include <gdk/x11/gdkx.h>
+#endif
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <vector>
