@@ -2288,6 +2288,7 @@ struct _VteappTaskbar {
 
         // KDE taskbar
         bool kde_acquisition_failed;
+        bool kde_acquisition_ongoing;
         char* kde_job_object_path;
 };
 
@@ -2454,12 +2455,14 @@ taskbar_kde_acquire_view_cb(GObject* source,
                                   " call failed: %s\n", err.message());
                 taskbar->kde_acquisition_failed = true;
         }
+
+        taskbar->kde_acquisition_ongoing = false;
 }
 
 static void
 taskbar_kde_acquire_view(VteappTaskbar* taskbar)
 {
-        if (taskbar->kde_acquisition_failed)
+        if (taskbar->kde_acquisition_ongoing || taskbar->kde_acquisition_failed)
                 return;
 
         if (taskbar->kde_job_object_path)
@@ -2470,6 +2473,8 @@ taskbar_kde_acquire_view(VteappTaskbar* taskbar)
                 taskbar->kde_acquisition_failed = true;
                 return;
         }
+
+        taskbar->kde_acquisition_ongoing = true;
 
         auto builder = GVariantBuilder{};
         g_variant_builder_init(&builder, G_VARIANT_TYPE("(sia{sv})"));
@@ -2614,6 +2619,7 @@ vteapp_taskbar_init(VteappTaskbar* taskbar)
         taskbar->progress_value = 0;
         taskbar->progress_hint = VTE_PROGRESS_HINT_ACTIVE;
         taskbar->kde_acquisition_failed = false;
+        taskbar->kde_acquisition_ongoing = false;
         taskbar->kde_job_object_path = nullptr;
 }
 
