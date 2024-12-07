@@ -42,6 +42,14 @@
 #endif
 #endif
 
+#ifdef GDK_WINDOWING_WAYLAND
+#if VTE_GTK == 3
+#include <gdk/gdkwayland.h>
+#elif VTE_GTK == 4
+#include <gdk/wayland/gdkwayland.h>
+#endif
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -1566,29 +1574,28 @@ public:
                 KDE,
         };
 
-        static bool is_desktop(Desktop desktop)
+        static Desktop desktop()
         {
                 auto const env = g_getenv("XDG_CURRENT_DESKTOP");
                 if (!env)
-                        return false;
+                        return Desktop::UNKNOWN;
 
                 auto envv = vte::glib::take_strv(g_strsplit(env, G_SEARCHPATH_SEPARATOR_S, -1));
                 if (!envv)
-                        return false;
+                        return Desktop::UNKNOWN;
+
                 for (auto i = 0; envv.get()[i]; ++i) {
                         auto const name = envv.get()[i];
-                        using enum Desktop;
-                        if (desktop == GNOME &&
-                            (g_ascii_strcasecmp(name, "gnome") == 0 ||
-                             g_ascii_strcasecmp(name, "gnome-classic") == 0))
-                            return true;
 
-                        if (desktop == KDE &&
-                            g_ascii_strcasecmp(name, "kde") == 0)
-                                return true;
+                        if (g_ascii_strcasecmp(name, "gnome") == 0 ||
+                            g_ascii_strcasecmp(name, "gnome-classic") == 0)
+                            return Desktop::GNOME;
+
+                        if (g_ascii_strcasecmp(name, "kde") == 0)
+                                return Desktop::KDE;
                 }
 
-                return false;
+                return Desktop::UNKNOWN;
         }
 
 }; // class Options
@@ -2277,6 +2284,8 @@ struct _VteappTaskbar {
         unsigned progress_value;
         VteProgressHint progress_hint;
 
+        Options::Desktop desktop;
+
         // KDE taskbar
         bool kde_acquisition_failed;
         char* kde_job_object_path;
@@ -2414,7 +2423,6 @@ taskbar_kde_remove_progress(VteappTaskbar* taskbar)
                                );
 
         g_clear_pointer(&taskbar->kde_job_object_path, GDestroyNotify(g_free));
-        taskbar->has_progress = false;
         taskbar->kde_acquisition_failed = false;
 }
 
@@ -2456,12 +2464,6 @@ taskbar_kde_acquire_view(VteappTaskbar* taskbar)
 
         if (taskbar->kde_job_object_path)
                 return;
-
-        // Currently we only know how to do this on kde/plasma.
-        if (!Options::is_desktop(Options::Desktop::KDE)) {
-                taskbar->kde_acquisition_failed = true;
-                return;
-        }
 
         auto const conn = g_application_get_dbus_connection(g_application_get_default());
         if (!conn) {
@@ -2509,11 +2511,105 @@ taskbar_kde_acquire_view(VteappTaskbar* taskbar)
                                g_object_ref(taskbar));
 }
 
+#define UNITY_NAME "com.canonical.Unity"
+#define UNITY_LAUNCHERENTRY_INTERFACE_NAME "com.canonical.Unity.LauncherEntry"
+
+static void
+taskbar_unity_update_progress(VteappTaskbar* taskbar)
+{
+        auto const conn = g_application_get_dbus_connection(g_application_get_default());
+        if (!conn)
+                return;
+
+        // Signal the terminal's progress via the Unity LauncherEntry API:
+        // https://wiki.ubuntu.com/Unity/LauncherAPI#Low_level_DBus_API:_com.canonical.Unity.LauncherEntry
+        auto builder = GVariantBuilder{};
+        g_variant_builder_init(&builder, G_VARIANT_TYPE("(sa{sv})"));
+        g_variant_builder_add(&builder, "s", "application://vte-gtk"
+#if VTE_GTK == 3
+                              "3"
+#elif VTE_GTK == 4
+                              "4"
+#endif
+                              ".desktop");
+
+        g_variant_builder_open(&builder, G_VARIANT_TYPE("a{sv}"));
+
+        g_variant_builder_add(&builder, "{sv}", "progress-visible",
+                              g_variant_new_boolean(taskbar->has_progress));
+        if (taskbar->has_progress) {
+                if (taskbar->progress_hint == VTE_PROGRESS_HINT_INDETERMINATE)
+                        g_variant_builder_add(&builder, "{sv}", "progress",
+                                              g_variant_new_double(0.5));
+                else
+                        g_variant_builder_add(&builder, "{sv}", "progress",
+                                              g_variant_new_double(taskbar->progress_value / 100.0));
+        }
+
+        g_variant_builder_add(&builder, "{sv}", "urgent",
+                              g_variant_new_boolean(taskbar->has_progress &&
+                                                    taskbar->progress_hint == VTE_PROGRESS_HINT_ERROR));
+
+        g_variant_builder_close(&builder); // a{sv}
+
+        auto err = vte::glib::Error{};
+        if (!g_dbus_connection_emit_signal(conn,
+                                           UNITY_NAME,
+                                           "/vte",
+                                           UNITY_LAUNCHERENTRY_INTERFACE_NAME,
+                                           "Update",
+                                           g_variant_builder_end(&builder),
+                                           err)) [[unlikely]] {
+                vverbose_printerr(VL3, UNITY_LAUNCHERENTRY_INTERFACE_NAME
+                                  ".Update signal emission failed: %s\n",
+                                  err.message());
+        }
+}
+
+static void
+taskbar_unity_remove_progress(VteappTaskbar* taskbar)
+{
+        taskbar_unity_update_progress(taskbar);
+}
+
+static void
+taskbar_update_progress(VteappTaskbar* taskbar)
+{
+        switch (taskbar->desktop) {
+                using enum Options::Desktop;
+
+        case GNOME:
+                return taskbar_unity_update_progress(taskbar);
+
+        case KDE:
+                if (taskbar->kde_job_object_path)
+                        return taskbar_kde_update_progress(taskbar);
+                else
+                        return taskbar_kde_acquire_view(taskbar);
+
+        default:
+                break;
+        }
+}
+
+static void
+taskbar_remove_progress(VteappTaskbar* taskbar)
+{
+        switch (taskbar->desktop) {
+                using enum Options::Desktop;
+
+        case GNOME: return taskbar_unity_remove_progress(taskbar);
+        case KDE: return taskbar_kde_remove_progress(taskbar);
+        default: break;
+        }
+}
+
 G_DEFINE_TYPE(VteappTaskbar, vteapp_taskbar, G_TYPE_OBJECT)
 
 static void
 vteapp_taskbar_init(VteappTaskbar* taskbar)
 {
+        taskbar->desktop = Options::desktop();
         taskbar->has_progress = false;
         taskbar->progress_value = 0;
         taskbar->progress_hint = VTE_PROGRESS_HINT_ACTIVE;
@@ -2522,20 +2618,21 @@ vteapp_taskbar_init(VteappTaskbar* taskbar)
 }
 
 static void
+vteapp_taskbar_reset_progress(VteappTaskbar* taskbar)
+{
+        taskbar->has_progress = false;
+        taskbar_remove_progress(taskbar);
+}
+
+static void
 vteapp_taskbar_dispose(GObject* object)
 {
         VteappTaskbar* taskbar = VTEAPP_TASKBAR(object);
 
-        taskbar_kde_remove_progress(taskbar);
+        vteapp_taskbar_reset_progress(taskbar);
         g_clear_pointer(&taskbar->kde_job_object_path, GDestroyNotify(g_free));
 
         G_OBJECT_CLASS(vteapp_taskbar_parent_class)->dispose(object);
-}
-
-static void
-vteapp_taskbar_reset_progress(VteappTaskbar* taskbar)
-{
-        taskbar_kde_remove_progress(taskbar);
 }
 
 static void
@@ -2547,11 +2644,7 @@ vteapp_taskbar_set_progress_value(VteappTaskbar* taskbar,
 
         taskbar->progress_value = value;
         taskbar->has_progress = true;
-
-        if (taskbar->kde_job_object_path)
-                taskbar_kde_update_progress(taskbar);
-        else
-                taskbar_kde_acquire_view(taskbar);
+        taskbar_update_progress(taskbar);
 }
 
 static void
@@ -2562,7 +2655,7 @@ vteapp_taskbar_set_progress_hint(VteappTaskbar* taskbar,
                 return;
 
         taskbar->progress_hint = VteProgressHint(hint);
-        taskbar_kde_update_progress(taskbar);
+        taskbar_update_progress(taskbar);
 }
 
 static void
@@ -3982,6 +4075,18 @@ vteapp_window_realize(GtkWidget* widget)
         }
 #endif // VTE_GTK
 #endif // GDK_WINDOWING_X11
+
+#ifdef GDK_WINDOWING_WAYLAND
+#if VTE_GTK == 3
+        if (GDK_IS_WAYLAND_WINDOW(win)) {
+                gdk_wayland_window_set_application_id(win, "vte-gtk3");
+        }
+#elif VTE_GTK == 4
+        if (GDK_IS_WAYLAND_TOPLEVEL(surface)) {
+                gdk_wayland_toplevel_set_application_id(GDK_TOPLEVEL(surface), "vte-gtk4");
+        }
+#endif // VTE_GTK
+#endif // GDK_WINDOWING_WAYLAND
 
         window_update_fullscreen_state(window);
 
