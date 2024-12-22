@@ -4436,19 +4436,45 @@ Terminal::process_incoming_decsixel(ProcessingContext& context,
         case vte::sixel::Parser::ParseStatus::CONTINUE:
                 break;
 
-        case vte::sixel::Parser::ParseStatus::COMPLETE:
+        case vte::sixel::Parser::ParseStatus::COMPLETE: try {
                 /* Like the main parser, the sequence only takes effect
                  * if introducer and terminator match (both C0 or both C1).
                  */
                 if (m_sixel_context->is_matching_controls()) {
-                        try {
+                        if (m_sixel_context->id() == vte::sixel::Context::k_termprop_icon_image_id) {
+                                auto const info = get_termprop_info(VTE_PROPERTY_ID_ICON_IMAGE);
+                                assert(info);
+                                auto const width = m_sixel_context->image_width();
+                                auto const height = m_sixel_context->image_height();
+                                if (width >= 16 && width <= 512 &&
+                                    height >= 16 && height <= 512) {
+                                        m_termprops_dirty.at(info->id()) = true;
+                                        m_termprop_values.at(info->id()) = std::move(m_sixel_context->image_cairo());
+                                } else {
+                                        reset_termprop(*info);
+                                }
+
+                                m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                        } else {
                                 insert_image(context, m_sixel_context->image_cairo());
-                        } catch (...) {
                         }
                 }
+                } catch (...) {
+                }
+                m_sixel_context->reset();
+                pop_data_syntax();
+                break;
 
-                [[fallthrough]];
-        case vte::sixel::Parser::ParseStatus::ABORT:
+        case vte::sixel::Parser::ParseStatus::ABORT: try {
+                if (m_sixel_context->id() == vte::sixel::Context::k_termprop_icon_image_id) {
+                        auto const info = get_termprop_info(VTE_PROPERTY_ID_ICON_IMAGE);
+                        assert(info);
+                        reset_termprop(*info);
+                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                }
+                } catch (...) {
+                }
+
                 m_sixel_context->reset();
                 pop_data_syntax();
                 break;

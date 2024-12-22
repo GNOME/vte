@@ -5417,6 +5417,7 @@ Terminal::DECSGR(vte::parser::Sequence const& seq)
 
 bool
 Terminal::DECSIXEL(vte::parser::Sequence const& seq)
+try
 {
         /*
          * DECSIXEL - SIXEL graphics
@@ -5518,41 +5519,67 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
                 break;
         }
 
+        auto fore = unsigned{}, back = unsigned{};
+        auto fg = vte::color::rgb{}, bg = vte::color::rgb{};
+        resolve_normal_colors(&m_defaults, &fore, &back, fg, bg);
+
+        auto private_color_registers = m_modes_private.XTERM_SIXEL_PRIVATE_COLOR_REGISTERS();
+
+        // Image ID is a nonstandard RLogin extension. Vte doesn't support
+        // image IDs for regular SIXEL images, but uses a special 65535 (-1)
+        // image ID to set the %VTE_TERMPROP_ICON_IMAGE termprop.
+        auto const id = seq.collect1(3);
+        if (id != -1) [[unlikely]] { // non-defaulted param
+                if (id == vte::sixel::Context::k_termprop_icon_image_id) {
+                        // We always set transparency for this ID, use
+                        // private colour registers, and black as fg
+                        transparent_bg = true;
+                        private_color_registers = true;
+                        fg = vte::color::rgb{0, 0, 0};
+                } else {
+                        process_sixel = false;
+                }
+        }
+
         /* Ignore the whole sequence */
         if (!process_sixel || seq.is_ripe() /* that shouldn't happen */) {
                 m_parser.ignore_until_st();
                 return false;
         }
 
-        auto fore = unsigned{}, back = unsigned{};
-        auto fg = vte::color::rgb{}, bg = vte::color::rgb{};
-        resolve_normal_colors(&m_defaults, &fore, &back, fg, bg);
+        if (!m_sixel_context)
+                m_sixel_context = std::make_unique<vte::sixel::Context>();
 
-        try {
-                if (!m_sixel_context)
-                        m_sixel_context = std::make_unique<vte::sixel::Context>();
+        m_sixel_context->prepare(id,
+                                 seq.introducer(),
+                                 fg.red >> 8, fg.green >> 8, fg.blue >> 8,
+                                 bg.red >> 8, bg.green >> 8, bg.blue >> 8,
+                                 back == VTE_DEFAULT_BG || transparent_bg,
+                                 private_color_registers);
 
-                m_sixel_context->prepare(seq.introducer(),
-                                         fg.red >> 8, fg.green >> 8, fg.blue >> 8,
-                                         bg.red >> 8, bg.green >> 8, bg.blue >> 8,
-                                         back == VTE_DEFAULT_BG || transparent_bg,
-                                         m_modes_private.XTERM_SIXEL_PRIVATE_COLOR_REGISTERS());
+        m_sixel_context->set_mode(mode);
 
-                m_sixel_context->set_mode(mode);
+        // We need to reset the main parser, so that when it is in the ground state
+        // when processing returns to the primary data syntax from DECSIXEL.
+        m_parser.reset();
 
-                /* We need to reset the main parser, so that when it is in the ground state
-                 * when processing returns to the primary data syntax from DECSIXEL
-                 */
-                m_parser.reset();
-                push_data_syntax(DataSyntax::DECSIXEL);
+        push_data_syntax(DataSyntax::DECSIXEL);
+        return true; /* switching data syntax */
 
-                return true; /* switching data syntax */
-        } catch (...) {
-        }
-#endif /* WITH_SIXEL */
+#else // !WITH_SIXEL
 
         m_parser.ignore_until_st();
-        return false;
+        return false; // not switching data syntax
+#endif /* WITH_SIXEL */
+}
+catch (...)
+{
+        // We made sure above to switch data syntax at the last opportunity,
+        // and switching doesn't throw. So we know we have still use the main
+        // data syntax and just need to tell the parser to ignore everything
+        // until ST.
+        m_parser.ignore_until_st();
+        return false; // not switching data syntax
 }
 
 void

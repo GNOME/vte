@@ -294,6 +294,8 @@ typedef enum {
  * @VTE_PROPERTY_ID_SHELL_POSTEXEC: the ID of the %VTE_TERMPROP_SHELL_POSTEXEC termprop
  * @VTE_PROPERTY_ID_PROGRESS_HINT: the ID of the %VTE_TERMPROP_PROGRESS_HINT termprop. Since: 0.80
  * @VTE_PROPERTY_ID_PROGRESS_VALUE: the ID of the %VTE_TERMPROP_PROGRESS_VALUE termprop. Since: 0.80
+ * @VTE_PROPERTY_ID_ICON_COLOR: the ID of the %VTE_TERMPROP_ICON_COLOR termprop. Since: 0.80
+ * @VTE_PROPERTY_ID_ICON_IMAGE: the ID of the %VTE_TERMPROP_ICON_IMAGE termprop. Since: 0.80
  *
  * An enum containing the IDs of the always-installed termprops.
  *
@@ -311,6 +313,8 @@ typedef enum {
         VTE_PROPERTY_ID_SHELL_POSTEXEC,
         VTE_PROPERTY_ID_PROGRESS_HINT,
         VTE_PROPERTY_ID_PROGRESS_VALUE,
+        VTE_PROPERTY_ID_ICON_COLOR,
+        VTE_PROPERTY_ID_ICON_IMAGE,
 	_VTE_PROPERTY_ID_MAX = 0x7ffffff, /*< skip >*/
 } VtePropertyId;
 

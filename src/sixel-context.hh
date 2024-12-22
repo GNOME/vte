@@ -53,10 +53,13 @@ public:
         /* Indexed colour */
         using color_index_t = uint16_t;
 
+        static inline constexpr auto const k_termprop_icon_image_id = 65535;
+
 private:
 
         uint32_t m_introducer{0};
         uint32_t m_st{0};
+        int m_id{-1};
 
         static inline constexpr unsigned const k_max_width = VTE_SIXEL_MAX_WIDTH;
 
@@ -628,7 +631,8 @@ private:
 
 public:
 
-        void prepare(uint32_t introducer,
+        void prepare(int id,
+                     uint32_t introducer,
                      unsigned fg_red,
                      unsigned fg_green,
                      unsigned fg_blue,
@@ -670,6 +674,7 @@ public:
 
         constexpr auto introducer() const noexcept { return m_introducer; }
         constexpr auto st() const noexcept { return m_st; }
+        constexpr auto id() const noexcept { return m_id; }
 
         constexpr bool
         is_matching_controls() const noexcept
