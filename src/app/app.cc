@@ -2616,6 +2616,8 @@ taskbar_kde_acquire_view_cb(GObject* source,
         // Take the ref add in call() below
         auto taskbar = vte::glib::take_ref(reinterpret_cast<VteappTaskbar*>(user_data));
 
+        taskbar->kde_acquisition_ongoing = false;
+
         auto err = vte::glib::Error{};
         if (auto rv = vte::take_freeable(g_dbus_connection_call_finish(G_DBUS_CONNECTION(source),
                                                                        result,
@@ -2636,8 +2638,6 @@ taskbar_kde_acquire_view_cb(GObject* source,
                                   " call failed: %s\n", err.message());
                 taskbar->kde_acquisition_failed = true;
         }
-
-        taskbar->kde_acquisition_ongoing = false;
 }
 
 static void
@@ -2784,10 +2784,14 @@ taskbar_remove_progress(VteappTaskbar* taskbar)
         switch (taskbar->desktop) {
                 using enum Options::Desktop;
 
-        case GNOME: return taskbar_unity_remove_progress(taskbar);
-        case KDE: return taskbar_kde_remove_progress(taskbar);
+        case GNOME: taskbar_unity_remove_progress(taskbar); break;
+        case KDE: taskbar_kde_remove_progress(taskbar); break;
         default: break;
         }
+
+        taskbar->has_progress = false;
+        taskbar->progress_value = 0;
+        taskbar->progress_hint = VTE_PROGRESS_HINT_ACTIVE;
 }
 
 G_DEFINE_TYPE(VteappTaskbar, vteapp_taskbar, G_TYPE_OBJECT)
@@ -2807,7 +2811,6 @@ vteapp_taskbar_init(VteappTaskbar* taskbar)
 static void
 vteapp_taskbar_reset_progress(VteappTaskbar* taskbar)
 {
-        taskbar->has_progress = false;
         taskbar_remove_progress(taskbar);
 }
 
@@ -3900,14 +3903,13 @@ window_progress_hint_changed_cb(VteappTerminal* terminal,
                                 char const* prop,
                                 VteappWindow* window)
 {
-        auto hint = uint64_t{};
-        if (vte_terminal_get_termprop_uint(VTE_TERMINAL(terminal), prop, &hint))
+        auto hint = int64_t{};
+        if (vte_terminal_get_termprop_int(VTE_TERMINAL(terminal), prop, &hint)) {
                 window->progress_hint = VteProgressHint(hint);
-        else
-                window->progress_hint = VTE_PROGRESS_HINT_ACTIVE;
-
-        vteapp_taskbar_set_progress_hint(window_ensure_taskbar(window),
-                                         window->progress_hint);
+                vteapp_taskbar_set_progress_hint(window_ensure_taskbar(window),
+                                                 window->progress_hint);
+        }
+        // else keep the previous hint
 }
 
 static void
