@@ -95,7 +95,6 @@
     </child>
     <child type="titlebar">
       <object class="GtkHeaderBar" id="headerbar">
-        <property name="decoration_layout">:close</property>
         <child type="start">
           <object class="GtkToggleButton" id="find_button">
             <property name="receives_default">1</property>
