@@ -97,35 +97,6 @@
       <object class="GtkHeaderBar" id="headerbar">
         <property name="decoration_layout">:close</property>
         <child type="start">
-          <object class="GtkButton" id="copy_button">
-            <property name="receives_default">1</property>
-            <property name="tooltip_text" translatable="yes">Copy</property>
-            <property name="action_name">win.copy</property>
-            <property name="action_target">&quot;text&quot;</property>
-            <property name="focus_on_click">0</property>
-            <child>
-              <object class="GtkImage" id="image2">
-                <property name="icon_name">edit-copy-symbolic</property>
-                <property name="use_fallback">1</property>
-              </object>
-            </child>
-          </object>
-        </child>
-        <child type="start">
-          <object class="GtkButton" id="paste_button">
-            <property name="receives_default">1</property>
-            <property name="tooltip_text" translatable="yes">Paste</property>
-            <property name="action_name">win.paste</property>
-            <property name="focus_on_click">0</property>
-            <child>
-              <object class="GtkImage" id="image3">
-                <property name="icon_name">edit-paste-symbolic</property>
-                <property name="use_fallback">1</property>
-              </object>
-            </child>
-          </object>
-        </child>
-        <child type="start">
           <object class="GtkToggleButton" id="find_button">
             <property name="receives_default">1</property>
             <property name="focus_on_click">0</property>
