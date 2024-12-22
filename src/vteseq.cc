@@ -4837,6 +4837,7 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
         case VTE_CMD_DECSZS:
         case VTE_CMD_DECTME:
         case VTE_CMD_XTERM_MODKEYS:
+        case VTE_CMD_XTERM_STM:
         default:
                 return reply(seq, VTE_REPLY_DECRPSS, {0});
         }
