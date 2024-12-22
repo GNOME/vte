@@ -231,7 +231,7 @@ endif
 libc_feature_defines = [
   ['_GNU_SOURCE', '1'],
   ['_POSIX_C_SOURCE', '200809L'],
-  ['_XOPEN_SOURCE', '700'],
+  ['_XOPEN_SOURCE', '800'],
   ['_XOPEN_SOURCE_EXTENDED', '1'],
 ]
 
