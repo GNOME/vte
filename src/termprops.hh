@@ -282,14 +282,32 @@ namespace impl {
 inline std::optional<TermpropValue>
 parse_termprop_base64(std::string_view const& str) noexcept
 {
-        auto const size = str.size();
+        auto const max_size = (str.size() / 4) * 3 + 3;
         auto buf = std::string{};
-        buf.resize((size / 4) * 3 + 3);
+#if defined(__cpp_lib_string_resize_and_overwrite) && __cpp_lib_string_resize_and_overwrite >= 202110l
+        auto state = 0;
+        buf.resize_and_overwrite
+                (max_size,
+                 [&](char* data,
+                     size_t buf_size) constexpr noexcept -> size_t {
+                         auto save = 0u;
+                         return g_base64_decode_step(str.data(),
+                                                     str.size(),
+                                                     reinterpret_cast<unsigned char*>(data),
+                                                     &state,
+                                                     &save);
+                 });
+
+        if (state != 0 || buf.size() > TermpropInfo::k_max_data_len)
+                return std::nullopt;
+
+#else
+        buf.resize(max_size);
 
         auto state = 0;
         auto save = 0u;
         auto len = g_base64_decode_step(str.data(),
-                                        size,
+                                        str.size(),
                                         reinterpret_cast<unsigned char*>(buf.data()),
                                         &state,
                                         &save);
@@ -298,6 +316,8 @@ parse_termprop_base64(std::string_view const& str) noexcept
                 return std::nullopt;
 
         buf.resize(len);
+#endif // C++23
+
         return buf;
 }
 
