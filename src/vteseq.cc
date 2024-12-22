@@ -2145,15 +2145,20 @@ try
 
         auto maybe_set_termprop = [&](int prop,
                                       auto&& value) -> void {
-                if (auto const info = get_termprop_info(prop)) {
+                auto propvalue = vte::terminal::TermpropValue{std::move(value)};
+                if (auto const info = get_termprop_info(prop);
+                    info &&
+                    propvalue != m_termprop_values.at(info->id())) {
                         m_termprops_dirty.at(info->id()) = true;
-                        m_termprop_values.at(info->id()) = std::move(value);
+                        m_termprop_values.at(info->id()) = std::move(propvalue);
                         m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
                 }
         };
 
         auto maybe_reset_termprop = [&](int prop) -> void {
-                if (auto const info = get_termprop_info(prop)) {
+                if (auto const info = get_termprop_info(prop);
+                    info &&
+                    !std::holds_alternative<std::monostate>(m_termprop_values.at(info->id()))) {
                         m_termprops_dirty.at(info->id()) = true;
                         m_termprop_values.at(info->id()) = {};
                         m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
@@ -2247,15 +2252,20 @@ try
 
         auto maybe_set_termprop = [&](int prop,
                                       auto&& value) -> void {
-                if (auto const info = get_termprop_info(prop)) {
+                auto propvalue = vte::terminal::TermpropValue{std::move(value)};
+                if (auto const info = get_termprop_info(prop);
+                    info &&
+                    propvalue != m_termprop_values.at(info->id())) {
                         m_termprops_dirty.at(info->id()) = true;
-                        m_termprop_values.at(info->id()) = std::move(value);
+                        m_termprop_values.at(info->id()) = std::move(propvalue);
                         m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
                 }
         };
 
         auto maybe_reset_termprop = [&](int prop) -> void {
-                if (auto const info = get_termprop_info(prop)) {
+                if (auto const info = get_termprop_info(prop);
+                    info &&
+                    !std::holds_alternative<std::monostate>(m_termprop_values.at(info->id()))) {
                         m_termprops_dirty.at(info->id()) = true;
                         m_termprop_values.at(info->id()) = {};
                         m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
