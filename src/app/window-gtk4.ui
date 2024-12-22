@@ -137,6 +137,19 @@
             </child>
           </object>
         </child>
+        <child type="start">
+          <object class="GtkImage" id="progress_image">
+            <property name="visible">0</property>
+            <property name="receives_default">0</property>
+            <property name="focus_on_click">0</property>
+            <property name="use_fallback">0</property>
+            <property name="pixel_size">16</property>
+            <property name="valign">center</property>
+	    <style>
+	      <class name="icon" />
+	    </style>
+          </object>
+        </child>
         <child type="title">
           <placeholder/>
         </child>

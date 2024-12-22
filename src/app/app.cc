@@ -146,6 +146,7 @@ public:
         gboolean use_theme_colors{false};
         gboolean version{false};
         gboolean whole_window_transparent{false};
+        gboolean window_icon{true};
         gboolean xfill{true};
         gboolean yfill{true};
         bool bg_color_set{false};
@@ -729,6 +730,7 @@ private:
                 load_bool_option("TrackClipboardTargets", &track_clipboard_targets);
                 load_bool_option("UseThemeColors", &use_theme_colors);
                 load_bool_option("WholeWindowTransparent", &whole_window_transparent);
+                load_bool_option("WIndowIcon", &window_icon);
                 load_bool_option("XFill", &xfill);
                 load_bool_option("YFill", &yfill);
 #if VTE_GTK == 3
@@ -935,6 +937,7 @@ private:
                 save_bool_option("TrackClipboardTargets" , track_clipboard_targets, defopt.track_clipboard_targets);
                 save_bool_option("UseThemeColors" , use_theme_colors, defopt.use_theme_colors);
                 save_bool_option("WholeWindowTransparent" , whole_window_transparent, defopt.whole_window_transparent);
+                save_bool_option("WindowIcon" , window_icon, defopt.window_icon);
                 save_bool_option("XFill" , xfill, defopt.xfill);
                 save_bool_option("YFill" , yfill, defopt.yfill);
 #if VTE_GTK == 3
@@ -1306,6 +1309,10 @@ public:
                                 0, &whole_window_transparent,
                                 "Make the whole window transparent",
                                 "Don't make the whole window transparent");
+                add_bool_option("window-icon", 0, "no-window-icon", 0,
+                                0, &window_icon,
+                                "Enable window icon",
+                                "Disable window icon");
                 add_bool_option("scrolled-window", 0, "no-scrolled-window", 0,
                                 0, &use_scrolled_window,
                                 "Use a GtkScrolledWindow",
@@ -2025,17 +2032,17 @@ vteapp_terminal_icon_color_changed_cb(VteappTerminal* terminal,
         if (vte_terminal_get_termprop_rgba_by_id(VTE_TERMINAL(terminal),
                                                  VTE_PROPERTY_ID_ICON_COLOR,
                                                  &color)) {
-                // There appears to be no way to look up an icon size like gtk3's
-                // gtk_icon_size_lookup, so just use a value that should work ok
-                // at scales 1 and 2.
-                auto const w = 32, h = 32;
+                auto const scale = gtk_widget_get_scale_factor(GTK_WIDGET(terminal));
+                auto const w = 32 * scale, h = 32 * scale;
+                auto const xc = w / 2, yc = h / 2;
+                auto const radius = w / 2 - 1;
 
                 auto surface = vte::take_freeable
                         (cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h));
                 auto cr = vte::take_freeable(cairo_create(surface.get()));
                 cairo_set_source_rgb(cr.get(), color.red, color.green, color.blue);
                 cairo_new_sub_path(cr.get());
-                cairo_arc(cr.get(), w / 2, h / 2, w / 2 - 1, 0, G_PI * 2);
+                cairo_arc(cr.get(), xc, yc, radius, 0, G_PI * 2);
                 cairo_close_path(cr.get());
                 cairo_fill(cr.get());
 
@@ -2885,6 +2892,7 @@ struct _VteappWindow {
         /* GtkButton* copy_button; */
         /* GtkButton* paste_button; */
         GtkToggleButton* find_button;
+        GtkWidget* progress_image;
         GtkMenuButton* gear_button;
         /* end */
 
@@ -2911,8 +2919,8 @@ struct _VteappWindow {
 
         VteappTaskbar* taskbar;
         bool has_progress;
-        VteProgressHint progress_hint;
         unsigned progress_value;
+        VteProgressHint progress_hint;
 };
 
 struct _VteappWindowClass {
@@ -3898,18 +3906,110 @@ window_ensure_taskbar(VteappWindow* window)
         return window->taskbar;
 }
 
+static vte::glib::RefPtr<GIcon>
+window_progress_icon(VteappWindow* window)
+{
+        if (!window->has_progress)
+                return {};
+
+        switch (window->progress_hint) {
+        case VTE_PROGRESS_HINT_ERROR:
+                return vte::glib::take_ref(g_themed_icon_new("dialog-error-symbolic"));
+                break;
+
+        case VTE_PROGRESS_HINT_INDETERMINATE:
+                return {};
+
+        case VTE_PROGRESS_HINT_PAUSED:
+        case VTE_PROGRESS_HINT_ACTIVE: {
+                auto const scale = gtk_widget_get_scale_factor(GTK_WIDGET(window));
+                auto const w = 32 * scale, h = 32 * scale;
+                auto const xc = w / 2, yc = h / 2;
+                auto const radius = w / 2 - 1;
+
+                auto color = GdkRGBA{};
+                G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
+                auto style_context = gtk_widget_get_style_context(GTK_WIDGET(window));
+#if VTE_GTK == 3
+                gtk_style_context_get_color(style_context, gtk_style_context_get_state(style_context), &color);
+#elif VTE_GTK == 4
+                gtk_style_context_get_color(style_context, &color);
+#endif
+                G_GNUC_END_IGNORE_DEPRECATIONS;
+
+                auto surface = vte::take_freeable(cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h));
+                auto cr = vte::take_freeable(cairo_create(surface.get()));
+
+                // First draw a shadow filled circle
+                cairo_set_source_rgba(cr.get(), color.red, color.green, color.blue, 0.25);
+                cairo_arc(cr.get(), xc, yc, radius, 0., 2 * G_PI);
+                cairo_close_path(cr.get());
+                cairo_fill(cr.get());
+
+                // Now draw progress filled circle
+                auto const fraction = std::clamp(window->progress_value / 100., 0., 1.);
+                if (fraction > 0.) {
+                        cairo_set_line_width(cr.get(), 1.);
+                        cairo_set_source_rgb(cr.get(), color.red, color.green, color.blue);
+                        cairo_new_sub_path(cr.get());
+
+                        if (fraction < 1.) {
+                                cairo_move_to(cr.get(), xc, yc);
+                                cairo_line_to(cr.get(), xc + radius, yc);
+                                cairo_arc_negative(cr.get(), xc, yc, radius, 0, 2 * G_PI * (1. - fraction));
+                                cairo_line_to(cr.get(), xc, yc);
+                        } else {
+                                cairo_arc(cr.get(), xc, yc, radius, 0, 2 * G_PI);
+                        }
+
+                        cairo_close_path(cr.get());
+                        cairo_fill(cr.get());
+                }
+
+                return vte::glib::take_ref(G_ICON(make_icon_from_surface(surface.get())));
+        }
+
+        case VTE_PROGRESS_HINT_INACTIVE:
+        default:
+                return {};
+        }
+}
+
+static void
+window_progress_update(VteappWindow* window)
+{
+        gtk_widget_set_visible(window->progress_image, window->has_progress);
+
+#if VTE_GTK == 3
+        gtk_image_set_from_gicon(GTK_IMAGE(window->progress_image),
+                                 window_progress_icon(window).get(),
+                                 GTK_ICON_SIZE_MENU);
+#elif VTE_GTK == 4
+        gtk_image_set_from_gicon(GTK_IMAGE(window->progress_image),
+                                 window_progress_icon(window).get());
+#endif
+}
+
 static void
 window_progress_hint_changed_cb(VteappTerminal* terminal,
                                 char const* prop,
                                 VteappWindow* window)
 {
-        auto hint = int64_t{};
-        if (vte_terminal_get_termprop_int(VTE_TERMINAL(terminal), prop, &hint)) {
-                window->progress_hint = VteProgressHint(hint);
-                vteapp_taskbar_set_progress_hint(window_ensure_taskbar(window),
-                                                 window->progress_hint);
+        auto hint = VteProgressHint{};
+        auto value = int64_t{};
+        if (vte_terminal_get_termprop_int(VTE_TERMINAL(terminal), prop, &value)) {
+                hint = VteProgressHint(value);
+        } else {
+                hint = VTE_PROGRESS_HINT_INACTIVE;
         }
-        // else keep the previous hint
+
+        vteapp_taskbar_set_progress_hint(window_ensure_taskbar(window), hint);
+
+        if (window->progress_hint == hint)
+                return;
+
+        window->progress_hint = hint;
+        window_progress_update(window);
 }
 
 static void
@@ -3918,12 +4018,23 @@ window_progress_value_changed_cb(VteappTerminal* terminal,
                                  VteappWindow* window)
 {
         auto value = uint64_t{};
-        if (vte_terminal_get_termprop_uint(VTE_TERMINAL(terminal), prop, &value)) {
+        auto has_progress = vte_terminal_get_termprop_uint(VTE_TERMINAL(terminal),
+                                                           prop,
+                                                           &value);
+        if (has_progress) {
                 vteapp_taskbar_set_progress_value(window_ensure_taskbar(window),
                                                   value);
         } else {
                 vteapp_taskbar_reset_progress(window_ensure_taskbar(window));
         }
+
+        if (window->has_progress == has_progress &&
+            window->progress_value == value)
+                return;
+
+        window->has_progress = has_progress;
+        window->progress_value = value;
+        window_progress_update(window);
 }
 
 static void
@@ -4092,7 +4203,10 @@ vteapp_window_constructed(GObject *object)
         g_signal_connect(window->terminal, "termprop-changed::" VTE_TERMPROP_XTERM_TITLE, G_CALLBACK(window_window_title_changed_cb), window);
         if (options.object_notifications)
                 g_signal_connect(window->terminal, "notify", G_CALLBACK(window_notify_cb), window);
-        g_signal_connect(window->terminal, "notify::icon", G_CALLBACK(window_icon_changed_cb), window);
+
+        if (options.window_icon) {
+                g_signal_connect(window->terminal, "notify::icon", G_CALLBACK(window_icon_changed_cb), window);
+        }
 
         if (options.progress) {
                 g_signal_connect(window->terminal, "termprop-changed::" VTE_TERMPROP_PROGRESS_HINT,
@@ -4395,6 +4509,7 @@ vteapp_window_class_init(VteappWindowClass* klass)
         /* gtk_widget_class_bind_template_child(widget_class, VteappWindow, copy_button); */
         /* gtk_widget_class_bind_template_child(widget_class, VteappWindow, paste_button); */
         gtk_widget_class_bind_template_child(widget_class, VteappWindow, find_button);
+        gtk_widget_class_bind_template_child(widget_class, VteappWindow, progress_image);
         gtk_widget_class_bind_template_child(widget_class, VteappWindow, gear_button);
 }
 
