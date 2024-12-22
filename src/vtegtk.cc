@@ -3051,7 +3051,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                           vte::terminal::TermpropFlags::EPHEMERAL,
                           VTE_PROPERTY_ID_SHELL_POSTEXEC },
                         { VTE_TERMPROP_PROGRESS_HINT,
-                          vte::terminal::TermpropType::UINT,
+                          vte::terminal::TermpropType::INT,
                           vte::terminal::TermpropFlags::NO_OSC,
                           VTE_PROPERTY_ID_PROGRESS_HINT },
                         { VTE_TERMPROP_PROGRESS_VALUE,

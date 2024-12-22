@@ -2238,6 +2238,10 @@ Terminal::conemu_extension(vte::parser::Sequence const& seq,
                            vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
 try
 {
+        // Note: since this is conemu OSC, and conemu allows BEL
+        // termination, we also allow BEL termination here; so no
+        // `seq.is_st_bel()` early return check here.
+
         if (token == endtoken)
                 return;
 
@@ -2277,28 +2281,28 @@ try
 
                 case 1: // running
                         maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_HINT,
-                                           uint64_t(VTE_PROGRESS_HINT_ACTIVE));
+                                           int64_t(VTE_PROGRESS_HINT_ACTIVE));
                         maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_VALUE,
                                            uint64_t(pr));
                         return;
 
                 case 2: // error
                         maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_HINT,
-                                           uint64_t(VTE_PROGRESS_HINT_ERROR));
+                                           int64_t(VTE_PROGRESS_HINT_ERROR));
                         maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_VALUE,
                                            uint64_t(pr));
                         return;
 
                 case 3: // indeterminate
                         maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_HINT,
-                                           uint64_t(VTE_PROGRESS_HINT_INDETERMINATE));
+                                           int64_t(VTE_PROGRESS_HINT_INDETERMINATE));
                         maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_VALUE,
                                            uint64_t(0));
                         return;
 
                 case 4: // paused
                         maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_HINT,
-                                           uint64_t(VTE_PROGRESS_HINT_PAUSED));
+                                           int64_t(VTE_PROGRESS_HINT_PAUSED));
                         maybe_set_termprop(VTE_PROPERTY_ID_PROGRESS_VALUE,
                                            uint64_t(pr));
                         return;

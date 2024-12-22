@@ -2791,7 +2791,7 @@ taskbar_remove_progress(VteappTaskbar* taskbar)
 
         taskbar->has_progress = false;
         taskbar->progress_value = 0;
-        taskbar->progress_hint = VTE_PROGRESS_HINT_ACTIVE;
+        taskbar->progress_hint = VTE_PROGRESS_HINT_INACTIVE;
 }
 
 G_DEFINE_TYPE(VteappTaskbar, vteapp_taskbar, G_TYPE_OBJECT)
@@ -2802,7 +2802,7 @@ vteapp_taskbar_init(VteappTaskbar* taskbar)
         taskbar->desktop = Options::desktop();
         taskbar->has_progress = false;
         taskbar->progress_value = 0;
-        taskbar->progress_hint = VTE_PROGRESS_HINT_ACTIVE;
+        taskbar->progress_hint = VTE_PROGRESS_HINT_INACTIVE;
         taskbar->kde_acquisition_failed = false;
         taskbar->kde_acquisition_ongoing = false;
         taskbar->kde_job_object_path = nullptr;

@@ -320,10 +320,11 @@ typedef enum {
 
 /**
  * VteProgressHint:
+ * @VTE_PROGRESS_HINT_INACTIVE: no progress current
  * @VTE_PROGRESS_HINT_ACTIVE: progress is normal
+ * @VTE_PROGRESS_HINT_ERROR: progress is aborted by an error
  * @VTE_PROGRESS_HINT_INDETERMINATE: progress is indeterminate
  * @VTE_PROGRESS_HINT_PAUSED: progress is paused
- * @VTE_PROGRESS_HINT_ERROR: progress is aborted by an error
  *
  * An enum describing how to interpret progress state, for the
  * %VTE_TERMPROP_PROGRESS_HINT termprop.
@@ -331,10 +332,11 @@ typedef enum {
  * Since: 0.80
  */
 typedef enum {
-        VTE_PROGRESS_HINT_ACTIVE = 0u,
-        VTE_PROGRESS_HINT_INDETERMINATE,
-        VTE_PROGRESS_HINT_PAUSED,
-        VTE_PROGRESS_HINT_ERROR,
+        VTE_PROGRESS_HINT_INACTIVE = 0,
+        VTE_PROGRESS_HINT_ACTIVE = 1,
+        VTE_PROGRESS_HINT_ERROR = 2,
+        VTE_PROGRESS_HINT_INDETERMINATE = 3,
+        VTE_PROGRESS_HINT_PAUSED = 4,
 } VteProgressHint;
 
 G_END_DECLS

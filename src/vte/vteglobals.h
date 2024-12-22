@@ -183,11 +183,15 @@ gboolean vte_query_termprop_by_id(int prop,
 /**
  * VTE_TERMPROP_PROGRESS_HINT:
  *
- * A %VTE_PROPERTY_UINT termprop that stores a hint how to interpret
+ * A %VTE_PROPERTY_INT termprop that stores a hint how to interpret
  * the %VTE_TERMPROP_PROGRESS_VALUE termprop value. If set, this
  * termprop's value will be from the #VteProgressHint enumeration.
  * An unset termprop should be treated as if it had value
- * %VTE_PROGRESS_HINT_ACTIVE.
+ * %VTE_PROGRESS_HINT_ACTIVE if the %VTE_TERMPROP_PROGRESS_VALUE
+ * termprop has a value
+ *
+ * Note that this termprop never will have the value
+ * %VTE_PROGRESS_HINT_INACTIVE.
  *
  * The value of this termprop should be ignored unless the
  * %VTE_TERMPROP_PROGRESS_VALUE termprop has a value.
