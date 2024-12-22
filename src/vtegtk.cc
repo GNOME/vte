@@ -3133,7 +3133,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
  * SET_STATEMENT    = KEY, "=", VALUE;
  * QUERY_STATEMENT  = KEY, "?";
  * SIGNAL_STATEMENT = KEY, "!";
- * RESET_STATEMENT  = KEY;
+ * RESET_STATEMENT  = KEY | KEY, ".";
  * ```
  *
  * Note that there is a limit on the total length of the `CONTROL_STRING` of 4096
@@ -3145,9 +3145,12 @@ vte_terminal_class_init(VteTerminalClass *klass)
  * the set-statement behaves identical to a reset-statement.  If the name does not
  * refer to a registered termprop, the set-statement is ignored.
  *
- * A `RESET_STATEMENT` consists of just the name of the termprop; it will reset the
- * termprop to having no value set.  If the name does not refer to a registered termprop,
- * the reset-statement is ignored.
+ * A `RESET_STATEMENT` consists of just the name of the termprop, or a prefix
+ * of termprop names ending with a '.'. When given the name of a registered termprop,
+ * it will reset the termprop to having no value set.  If the name does not refer to
+ * a registered termprop, the reset-statement is ignored. If given a prefix of termprop
+ * names ending with a '.', all registered termprops whose name starts with the given
+ * prefix are reset.
  *
  * A `SIGNAL_STATEMENT` consists of the name of a valueless termprop, followed by
  * an exclamation mark ('!').  If the name does not refer to a registered termprop,

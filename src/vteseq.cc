@@ -2023,6 +2023,21 @@ try
                         m_termprops_dirty.at(info->id()) = !is_valueless;
                         m_termprop_values.at(info->id()) = {};
                 }
+
+                // Prefix reset
+                // Reset all termprops whose name starts with the prefix
+                else if (!info && str.ends_with('.')) {
+                        for (auto const& prop_info : s_registered_termprops) {
+                                if (!std::string_view{prop_info.name()}.starts_with(str))
+                                        continue;
+
+                                if (!std::holds_alternative<std::monostate>(m_termprop_values.at(prop_info.id()))) {
+                                        set = true;
+                                        m_termprops_dirty.at(prop_info.id()) = prop_info.type() != vte::terminal::TermpropType::VALUELESS;
+                                        m_termprop_values.at(prop_info.id()) = {};
+                                }
+                        }
+                }
         } else if (str[pos] == '=' &&
                    info &&
                    !is_valueless &&
