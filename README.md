@@ -44,13 +44,13 @@ run the configure script before, you should also pass `--reconfigure` option to 
 * If you wish to test VTE before installing it, you may execute it directly from
 its build directory. As `_build` directory, it should be `_build/src/app/vte-[version]`.
 
-* You can pass `-Ddebugg=true` option to meson if you wish to enable debug function.
+* You can pass `-Ddbg=true` option to meson if you wish to enable debug function.
 
 
 Debugging
 ---------
 
-After installing VTE with `-Ddebugg=true` flag, you can use `VTE_DEBUG` variable to control
+After installing VTE with `-Ddbg=true` flag, you can use `VTE_DEBUG` variable to control
 VTE to print out the debug information
 
 ```
