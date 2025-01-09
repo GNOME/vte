@@ -4000,9 +4000,10 @@ Terminal::process_incoming()
 
         if (context.m_modified) {
                 /* Keep the cursor on-screen if we scroll on output, or if
-                 * we're currently at the bottom of the buffer. */
+                 * we're currently at the bottom of the buffer.
+                 * Also make sure the alternate screen is correctly positioned. */
                 update_insert_delta();
-                if (m_scroll_on_output || context.m_bottom) {
+                if (m_scroll_on_output || context.m_bottom || m_screen == &m_alternate_screen) {
                         scroll_to_bottom();
                 }
                 /* Deselect the current selection if its contents are changed
