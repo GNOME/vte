@@ -600,10 +600,12 @@ Widget::Widget(VteTerminal* t)
 Widget::~Widget() noexcept
 try
 {
-        g_signal_handlers_disconnect_matched(m_settings.get(),
-                                             G_SIGNAL_MATCH_DATA,
-                                             0, 0, NULL, NULL,
-                                             this);
+        if (m_settings) {
+                g_signal_handlers_disconnect_matched(m_settings.get(),
+                                                     G_SIGNAL_MATCH_DATA,
+                                                     0, 0, NULL, NULL,
+                                                     this);
+        }
 
         if (m_vadjustment) {
                 g_signal_handlers_disconnect_by_func(m_vadjustment.get(),
