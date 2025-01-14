@@ -3127,7 +3127,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
  * OSC              = INTRODUCER, CONTROL_STRING, ST;
  * INTRODUCER       = ( U+001B, U+005D ) | U+009D;
  * ST               = ( U+001B, U+005C ) | U+009C;
- * CONTROL_STRING   = SELECTOR, ";", COMMAND, { ";", STATEMENT };
+ * CONTROL_STRING   = SELECTOR, { ";", STATEMENT };
  * SELECTOR         = "666";
  * STATEMENT        = SET_STATEMENT | RESET_STATEMENT | SIGNAL_STATEMENT | QUERY_STATEMENT;
  * SET_STATEMENT    = KEY, "=", VALUE;
@@ -3148,9 +3148,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
  * A `RESET_STATEMENT` consists of just the name of the termprop, or a prefix
  * of termprop names ending with a '.'. When given the name of a registered termprop,
  * it will reset the termprop to having no value set.  If the name does not refer to
- * a registered termprop, the reset-statement is ignored. If given a prefix of termprop
- * names ending with a '.', all registered termprops whose name starts with the given
- * prefix are reset.
+ * a registered termprop, the reset-statement is ignored. Since 0.80, it may also be
+ * given a prefix of termprop names ending with a '.', which resets all registered
+ * termprops whose name starts with the given prefix.
  *
  * A `SIGNAL_STATEMENT` consists of the name of a valueless termprop, followed by
  * an exclamation mark ('!').  If the name does not refer to a registered termprop,
@@ -3253,7 +3253,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
  *   Note that currently termprops of this type cannot be created
  *   via the API, and not set, but can be reset, via OSC 666, only
  *   built-in termprops of this type are available, and they can
- *   only be set via their own special sequence.
+ *   only be set via their own special sequence. Since: 0.80
  *
  * Note that any values any termprop has must be treated as *untrusted*.
  *
@@ -3264,7 +3264,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
  * or for textual user notifications.  Also you must never feed the data
  * received, or any derivation thereof, back to the terminal, in full or
  * in part. Also note that %VTE_TERMPROP_STRING and %VTE_TERMPROP_DATA
- * termprops must not to be used when the data fits one of th other
+ * termprops must not to be used when the data fits one of the other
  * termprop types (e.g. a string termprop may not be used for a number).
  *
  * If you do perform any further parsing on the contents of a termprop value,
