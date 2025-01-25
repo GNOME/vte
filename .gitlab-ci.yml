@@ -32,6 +32,7 @@ variables:
     clang
     clang-analyzer
     clang-tools-extra
+    fast_float-devel
     fribidi-devel
     gcc-c++
     gettext-devel
