@@ -238,10 +238,7 @@ gboolean vte_query_termprop_by_id(int prop,
  * Applications should prefer to use this termprop, if set, over
  * the %VTE_TERMPROP_ICON_COLOR color.
  *
- * Note that this termprop is not settable via the termprop OSC.
- * Instead, if the #VteTerminal:enable-sixel property is %TRUE,
- * this termprop can be set from a SIXEL image sequence with the
- * fourth parameter (ID) set to 65535.
+ * Note that in this vte version, this termprop is always unset.
  *
  * Since: 0.80
  */
