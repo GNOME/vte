@@ -9344,10 +9344,10 @@ catch (...)
  * @terminal: a #VteTerminal
  * @prop: a termprop name
  *
- * Returns the value of a %VTE_PROPERTY_IMAGE termprop as a #GImage, or %NULL if
+ * Returns the value of a %VTE_PROPERTY_IMAGE termprop as a #GdkPixbuf, or %NULL if
  *   @prop is unset, or @prop is not a registered property.
  *
- * Returns: (transfer full) (nullable): the property's value as a #GImage, or %NULL
+ * Returns: (transfer full) (nullable): the property's value as a #GdkPixbuf, or %NULL
  *
  * Since: 0.80
  */
@@ -9450,10 +9450,10 @@ catch (...)
  * @terminal: a #VteTerminal
  * @prop: a termprop name
  *
- * Returns the value of a %VTE_PROPERTY_IMAGE termprop as a #GImage, or %NULL if
+ * Returns the value of a %VTE_PROPERTY_IMAGE termprop as a #GdkTexture, or %NULL if
  *   @prop is unset, or @prop is not a registered property.
  *
- * Returns: (transfer full) (nullable): the property's value as a #GImage, or %NULL
+ * Returns: (transfer full) (nullable): the property's value as a #GdkTexture, or %NULL
  *
  * Since: 0.80
  */
