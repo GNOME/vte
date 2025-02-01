@@ -7344,7 +7344,7 @@ catch (...)
  *
  * Returns the #VtePty of @terminal.
  *
- * Returns: (transfer none): a #VtePty, or %NULL
+ * Returns: (transfer none) (nullable): a #VtePty, or %NULL
  */
 VtePty *
 vte_terminal_get_pty(VteTerminal *terminal) noexcept
@@ -8966,7 +8966,7 @@ vte_terminal_dup_termprop_string(VteTerminal* terminal,
  * Like vte_terminal_get_termprop_data() except that it takes the termprop
  * by ID. See that function for more information.
  *
- * Returns: (transfer none) (element-type guint8) (array length=size): the property's value, or %NULL
+ * Returns: (transfer none) (element-type guint8) (array length=size) (nullable): the property's value, or %NULL
  *
  * Since: 0.78
  */
@@ -9015,7 +9015,7 @@ catch (...)
  * Returns the value of a %VTE_PROPERTY_DATA termprop, or %NULL if
  *   @prop is unset, or @prop is not a registered property.
  *
- * Returns: (transfer none) (element-type guint8) (array length=size): the property's value, or %NULL
+ * Returns: (transfer none) (element-type guint8) (array length=size) (nullable): the property's value, or %NULL
  *
  * Since: 0.78
  */
@@ -9039,7 +9039,7 @@ vte_terminal_get_termprop_data(VteTerminal* terminal,
  * Like vte_terminal_ref_termprop_data_bytes() except that it takes the termprop
  * by ID. See that function for more information.
  *
- * Returns: (transfer full): the property's value as a #GBytes, or %NULL
+ * Returns: (transfer full) (nullable): the property's value as a #GBytes, or %NULL
  *
  * Since: 0.78
  */
@@ -9081,7 +9081,7 @@ catch (...)
  * Returns the value of a %VTE_PROPERTY_DATA termprop as a #GBytes, or %NULL if
  *   @prop is unset, or @prop is not a registered property.
  *
- * Returns: (transfer full): the property's value as a #GBytes, or %NULL
+ * Returns: (transfer full) (nullable): the property's value as a #GBytes, or %NULL
  *
  * Since: 0.78
  */
@@ -9103,7 +9103,7 @@ vte_terminal_ref_termprop_data_bytes(VteTerminal* terminal,
  * Like vte_terminal_dup_termprop_uuid() except that it takes the termprop
  * by ID. See that function for more information.
  *
- * Returns: (transfer full): the property's value as a #VteUuid, or %NULL
+ * Returns: (transfer full) (nullable): the property's value as a #VteUuid, or %NULL
  *
  * Since: 0.78
  */
@@ -9144,7 +9144,7 @@ catch (...)
  * Returns the value of a %VTE_PROPERTY_UUID termprop as a #VteUuid, or %NULL if
  *   @prop is unset, or @prop is not a registered property.
  *
- * Returns: (transfer full): the property's value as a #VteUuid, or %NULL
+ * Returns: (transfer full) (nullable): the property's value as a #VteUuid, or %NULL
  *
  * Since: 0.78
  */
@@ -9166,7 +9166,7 @@ vte_terminal_dup_termprop_uuid(VteTerminal* terminal,
  * Like vte_terminal_ref_termprop_uri() except that it takes the termprop
  * by ID. See that function for more information.
  *
- * Returns: (transfer full): the property's value as a #GUri, or %NULL
+ * Returns: (transfer full) (nullable): the property's value as a #GUri, or %NULL
  *
  * Since: 0.78
  */
@@ -9207,7 +9207,7 @@ catch (...)
  * Returns the value of a %VTE_PROPERTY_URI termprop as a #GUri, or %NULL if
  *   @prop is unset, or @prop is not a registered property.
  *
- * Returns: (transfer full): the property's value as a #GUri, or %NULL
+ * Returns: (transfer full) (nullable): the property's value as a #GUri, or %NULL
  *
  * Since: 0.78
  */
@@ -9229,7 +9229,7 @@ vte_terminal_ref_termprop_uri(VteTerminal* terminal,
  * Like vte_terminal_ref_termprop_image_surface() except that it takes the
  * termprop by ID. See that function for more information.
  *
- * Returns: (transfer full): the property's value as a #cairo_surface_t, or %NULL
+ * Returns: (transfer full) (nullable): the property's value as a #cairo_surface_t, or %NULL
  *
  * Since: 0.80
  */
@@ -9276,7 +9276,7 @@ catch (...)
  * Note that the returned surface is owned by @terminal and its contents
  * must not be modified.
  *
- * Returns: (transfer full): the property's value as a #cairo_surface_t, or %NULL
+ * Returns: (transfer full) (nullable): the property's value as a #cairo_surface_t, or %NULL
  *
  * Since: 0.80
  */
@@ -9300,7 +9300,7 @@ vte_terminal_ref_termprop_image_surface(VteTerminal* terminal,
  * Like vte_terminal_ref_termprop_image_pixbuf() except that it takes the
  * termprop by ID. See that function for more information.
  *
- * Returns: (transfer full): the property's value as a #GdkPixbuf, or %NULL
+ * Returns: (transfer full) (nullable): the property's value as a #GdkPixbuf, or %NULL
  *
  * Since: 0.80
  */
@@ -9347,7 +9347,7 @@ catch (...)
  * Returns the value of a %VTE_PROPERTY_IMAGE termprop as a #GImage, or %NULL if
  *   @prop is unset, or @prop is not a registered property.
  *
- * Returns: (transfer full): the property's value as a #GImage, or %NULL
+ * Returns: (transfer full) (nullable): the property's value as a #GImage, or %NULL
  *
  * Since: 0.80
  */
@@ -9411,7 +9411,7 @@ texture_from_surface(cairo_surface_t* surface)
  * Like vte_terminal_ref_termprop_image_texture() except that it takes the
  * termprop by ID. See that function for more information.
  *
- * Returns: (transfer full): the property's value as a #GdkTexture, or %NULL
+ * Returns: (transfer full) (nullable): the property's value as a #GdkTexture, or %NULL
  *
  * Since: 0.80
  */
@@ -9453,7 +9453,7 @@ catch (...)
  * Returns the value of a %VTE_PROPERTY_IMAGE termprop as a #GImage, or %NULL if
  *   @prop is unset, or @prop is not a registered property.
  *
- * Returns: (transfer full): the property's value as a #GImage, or %NULL
+ * Returns: (transfer full) (nullable): the property's value as a #GImage, or %NULL
  *
  * Since: 0.80
  */
@@ -9688,7 +9688,7 @@ vte_terminal_get_termprop_value(VteTerminal* terminal,
  * Like vte_terminal_ref_termprop_variant() except that it takes the termprop
  * by ID. See that function for more information.
  *
- * Returns: (transfer full): a floating #GVariant, or %NULL
+ * Returns: (transfer full) (nullable): a floating #GVariant, or %NULL
  *
  * Since: 0.78
  */
@@ -9818,7 +9818,7 @@ catch (...)
  * * A %VTE_PROPERTY_IMAGE termprop returns %NULL since an image has no
  *   variant representation.
  *
- * Returns: (transfer full): a floating #GVariant, or %NULL
+ * Returns: (transfer full) (nullable): a floating #GVariant, or %NULL
  *
  * Since: 0.78
  */
