@@ -23,6 +23,7 @@
 
 #include <glib.h>
 
+#include "vtemacros.h"
 #include "vteenums.h"
 
 G_BEGIN_DECLS

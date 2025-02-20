@@ -196,8 +196,8 @@ gboolean vte_query_termprop_by_id(int prop,
  * The value of this termprop should be ignored unless the
  * %VTE_TERMPROP_PROGRESS_VALUE termprop has a value.
  *
- * Note that this termprop cannot be set by the termprop OSC, but instead
- * only by OSC 9 ; 4 (ConEmu progress).
+ * Note that before version 0.82, this termprop could not be set by
+ * the termprop OSC, but instead only by OSC 9 ; 4 (ConEmu progress).
  *
  * Since: 0.80
  */
@@ -209,8 +209,8 @@ gboolean vte_query_termprop_by_id(int prop,
  * A %VTE_PROPERTY_UINT termprop that stores the progress of the running
  * command as a value between 0 and 100.
  *
- * Note that this termprop cannot be set by the termprop OSC, but instead
- * only by OSC 9 ; 4 (ConEmu progress).
+ * Note that before version 0.82, this termprop could not be set by
+ * the termprop OSC, but instead only by OSC 9 ; 4 (ConEmu progress).
  *
  * Since: 0.80
  */

@@ -28,6 +28,7 @@
 #include <string>
 
 #include "vtegtk.hh"
+#include "vtepropertiesinternal.hh"
 #include "vteptyinternal.hh"
 #include "debug.h"
 #include "gobject-glue.hh"
@@ -1734,8 +1735,6 @@ void
 Widget::notify_termprops_changed(int const* props,
                                  int n_props) noexcept
 {
-        m_in_termprops_changed_emission = true;
-
         auto retval = gboolean{};
         g_signal_emit(object(),
                       signals[SIGNAL_TERMPROPS_CHANGED],
@@ -1743,8 +1742,6 @@ Widget::notify_termprops_changed(int const* props,
                       props,
                       n_props,
                       &retval);
-
-        m_in_termprops_changed_emission = false;
 }
 
 #if VTE_GTK == 3

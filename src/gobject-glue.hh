@@ -19,6 +19,18 @@
 
 #include <glib-object.h>
 
+#include "std-glue.hh"
+#include "glib-glue.hh"
+
+#include <string>
+#include <string_view>
+
+namespace vte {
+
+VTE_DECLARE_FREEABLE(GTypeClass, g_type_class_unref);
+
+} // namespace vte
+
 namespace vte::glib {
 
 class FreezeObjectNotify {
@@ -45,5 +57,52 @@ public:
 private:
         GObject* m_object;
 }; // class FreezeObjectNotify
+
+        // FIXME: reimplement the following two functions to take string_view
+
+        inline bool parse_enum(std::string const& str,
+                               GType type,
+                               int64_t* valuep) noexcept
+        {
+                auto klass = vte::take_freeable
+                        (reinterpret_cast<GTypeClass*>(g_type_class_ref(type)));
+                auto enum_class = reinterpret_cast<GEnumClass*>(klass.get());
+                if (auto const ev = g_enum_get_value_by_nick(enum_class, str.c_str())) {
+                        if (valuep) [[likely]]
+                                *valuep = int64_t(ev->value);
+
+                        return true;
+                }
+
+                if (valuep) [[likely]]
+                        *valuep = 0;
+                return false;
+        }
+
+        inline bool parse_flags(std::string const& str,
+                                GType type,
+                                bool ignore_unknown_flags,
+                                uint64_t* valuep) noexcept
+        {
+                auto klass = vte::take_freeable
+                        (reinterpret_cast<GTypeClass*>(g_type_class_ref(type)));
+                auto flags_class = reinterpret_cast<GFlagsClass*>(klass.get());
+
+                auto flags = vte::glib::take_strv(g_strsplit(str.c_str(), "|", 0));
+                auto value = uint64_t{0};
+                for (auto flag = flags.get(); *flag; ++flag) {
+                        if (auto const fv = g_flags_get_value_by_nick(flags_class, *flag)) {
+                                value |= uint64_t(fv->value);
+                        } else if (!ignore_unknown_flags) {
+                                if (valuep) [[likely]]
+                                        *valuep = 0;
+                                return false;
+                        }
+                }
+
+                if (valuep) [[likely]]
+                        *valuep = value;
+                return true;
+        }
 
 } // namespace vte::glib

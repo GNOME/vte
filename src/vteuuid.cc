@@ -123,8 +123,8 @@ catch (...)
 /**
  * vte_uuid_new_v5:
  * @ns: (nullable): the namespace #VteUuid
- * @str: string data
- * @len: the length of @str, or -1 if @str is NUL terminated
+ * @data: string data
+ * @len: the length of @data, or -1 if @str is NUL terminated
  *
  * Creates a new UUID for @ns and @str.
  *
@@ -134,21 +134,21 @@ catch (...)
  */
 VteUuid*
 vte_uuid_new_v5(VteUuid const* ns,
-                char const* str,
+                char const* data,
                 gssize len) noexcept
 try
 {
         g_return_val_if_fail(ns, nullptr);
-        g_return_val_if_fail(str, nullptr);
+        g_return_val_if_fail(data, nullptr);
 
         return WRAP(new vte::uuid(vte::uuid_v5,
                                   _vte_uuid_unwrap(ns),
-                                  {str, len == -1 ? strlen(str) : size_t(len)}));
+                                  {data, len == -1 ? strlen(data) : size_t(len)}));
 }
 catch (...)
 {
         return nullptr;
- }
+}
 
 /**
  * vte_uuid_new_from_string:
@@ -254,10 +254,10 @@ catch (...)
 }
 
 /**
- * vte_uuid_free_to_string:
+ * vte_uuid_to_string:
  * @uuid: a #VteUuid
  * @fmt: a #VteUuidFormat
- * @len: (optional): a location to store the length of the returned string, or %NULL
+ * @len: (out) (optional): a location to store the length of the returned string, or %NULL
  *
  * Returns the string representation of @uuid.
  *

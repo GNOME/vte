@@ -29,8 +29,9 @@
 #include <pango/pango.h>
 #include <gtk/gtk.h>
 
-#include "vteenums.h"
 #include "vtemacros.h"
+#include "vteenums.h"
+#include "vteproperties.h"
 #include "vtepty.h"
 #include "vteregex.h"
 #include "vteuuid.h"
@@ -829,6 +830,34 @@ GVariant* vte_terminal_ref_termprop_variant(VteTerminal* terminal,
 _VTE_PUBLIC
 GVariant* vte_terminal_ref_termprop_variant_by_id(VteTerminal* terminal,
                                                   int prop) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_enum(VteTerminal* terminal,
+                                        char const* prop,
+                                        GType gtype,
+                                        int64_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_enum_by_id(VteTerminal* terminal,
+                                              int prop,
+                                              GType gtype,
+                                              int64_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_flags(VteTerminal* terminal,
+                                         char const* prop,
+                                         GType gtype,
+                                         gboolean ignore_unknown_flags,
+                                         uint64_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_termprop_flags_by_id(VteTerminal* terminal,
+                                               int prop,
+                                               GType gtype,
+                                               gboolean ignore_unknown_flags,
+                                               uint64_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+VteProperties const* vte_terminal_get_termprops(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VteTerminal, g_object_unref)
 

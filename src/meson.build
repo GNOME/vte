@@ -140,6 +140,10 @@ pcre2_glue_sources = files(
   'pcre2-glue.hh',
 )
 
+properties_sources = files(
+  'properties.hh',
+)
+
 pty_sources = files(
   'pty.cc',
   'pty.hh',
@@ -179,10 +183,6 @@ systemd_sources = files(
   'systemd.hh',
 )
 
-termprop_sources = files(
-  'properties.hh',
-)
-
 unicode_width_sources = files(
   'unicode-width.hh',
 )
@@ -206,7 +206,7 @@ vte_glue_sources = files(
   'vte-glue.hh',
 )
 
-libvte_common_sources = cairo_glue_sources + color_sources + config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + termprop_sources + utf8_sources + uuid_sources + vte_uuid_sources + vte_glue_sources + files(
+libvte_common_sources = cairo_glue_sources + color_sources + config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + properties_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + uuid_sources + vte_uuid_sources + vte_glue_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
@@ -246,6 +246,8 @@ libvte_common_sources = cairo_glue_sources + color_sources + config_sources + de
   'sgr.hh',
   'spawn.cc',
   'spawn.hh',
+  'termpropsregistry.cc',
+  'termpropsregistry.hh',
   'unicode-width.hh',
   'utf8.cc',
   'utf8.hh',
@@ -254,6 +256,8 @@ libvte_common_sources = cairo_glue_sources + color_sources + config_sources + de
   'vtegtk.cc',
   'vtegtk.hh',
   'vteinternal.hh',
+  'vteproperties.cc',
+  'vtepropertiesinternal.hh',
   'vteregex.cc',
   'vteregexinternal.hh',
   'vterowdata.cc',
@@ -300,8 +304,10 @@ endif
 libvte_common_doc_sources = files(
   # These file contain gtk-doc comments to be extracted for docs and gir
   'vtegtk.cc',
+  'vteproperties.cc',
   'vtepty.cc',
   'vteregex.cc',
+  'vteuuid.cc',
 )
 
 libvte_common_sources += gnome.compile_resources(
@@ -845,12 +851,12 @@ test_tabstops = executable(
   install: false,
 )
 
-test_termprops_sources = cairo_glue_sources + color_sources + config_sources + debug_sources + glib_glue_sources + termprop_sources + uuid_sources + files(
+test_properties_sources = cairo_glue_sources + color_sources + config_sources + debug_sources + glib_glue_sources + properties_sources + uuid_sources + files(
   'properties-test.cc',
 )
 
-test_termprops = executable(
-  'test-termprops',
+test_properties = executable(
+  'test-properties',
   dependencies: [
     glib_dep,
     cairo_dep,
@@ -859,7 +865,7 @@ test_termprops = executable(
   ],
   include_directories: top_inc,
   install: false,
-  sources: test_termprops_sources,
+  sources: test_properties_sources,
 )
 
 test_unicode_width_sources = config_sources + unicode_width_sources + files(
@@ -924,11 +930,11 @@ test_units = [
   ['modes', test_modes],
   ['parser', test_parser],
   ['pastify', test_pastify],
+  ['properties', test_properties],
   ['reaper', test_reaper],
   ['refptr', test_refptr],
   ['stream', test_stream],
   ['tabstops', test_tabstops],
-  ['termprops', test_termprops],
   ['unicode-width', test_unicode_width],
   ['utf8', test_utf8],
   ['uuid', test_uuid],

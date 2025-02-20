@@ -845,45 +845,34 @@ public:
         guint m_bidi_rtl : 1;
 
         // Termprops
-        std::vector<TermpropValue> m_termprop_values{};
-        std::vector<bool> m_termprops_dirty{}; // FIMXE: make this a dynamic_bitset
+        vte::property::TrackingStore m_termprops;
 
-        auto get_termprop_info(std::string_view const& name) const
+        auto const& termprops() const noexcept
         {
-                return vte::terminal::get_termprop_info(name);
+                return m_termprops;
         }
 
-        auto get_termprop_info(int id) const
+        auto& termprops() noexcept
         {
-                return vte::terminal::get_termprop_info(id);
+                return m_termprops;
         }
 
-        auto get_termprop(TermpropInfo const& info) const
+        void reset_termprop(vte::property::Registry::Property const& info)
         {
-                return std::addressof(m_termprop_values.at(info.id()));
-        }
-
-        auto get_termprop(TermpropInfo const& info)
-        {
-                return std::addressof(m_termprop_values.at(info.id()));
-        }
-
-        void reset_termprop(TermpropInfo const& info)
-        {
-                auto const is_valueless = info.type() == vte::terminal::TermpropType::VALUELESS;
-                auto value = get_termprop(info);
+                auto const is_valueless = info.type() == vte::property::Type::VALUELESS;
+                auto value = m_termprops.value(info);
                 if (value &&
                     !std::holds_alternative<std::monostate>(*value)) {
                         *value = {};
-                        m_termprops_dirty.at(info.id()) = !is_valueless;
+                        m_termprops.dirty(info.id()) = !is_valueless;
                 } else if (is_valueless) {
-                        m_termprops_dirty.at(info.id()) = false;
+                        m_termprops.dirty(info.id()) = false;
                 }
         }
 
         void reset_termprops()
         {
-                for (auto const& info: vte::terminal::s_registered_termprops) {
+                for (auto const& info: m_termprops.registry().get_all()) {
                         reset_termprop(info);
                 }
 
@@ -1803,7 +1792,7 @@ public:
                             bool& query) noexcept;
         #if VTE_DEBUG
         void reply_termprop_query(vte::parser::Sequence const& seq,
-                                  vte::terminal::TermpropInfo const* info);
+                                  vte::property::Registry::Property const* info);
         #endif
 
         /* OSC handlers */

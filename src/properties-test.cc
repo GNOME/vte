@@ -1,4 +1,4 @@
-// Copyright © 2021, 2022, 2023 Christian Persch
+// Copyright © 2021, 2022, 2023, 2025 Christian Persch
 //
 // This library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published
@@ -21,6 +21,7 @@
 #include <string>
 
 using namespace std::literals;
+using namespace vte::property;
 using namespace vte::terminal;
 
 static void
@@ -84,7 +85,7 @@ test_termprops_names(void)
 }
 
 static void
-assert_termprop_parse_nothing(TermpropType type,
+assert_termprop_parse_nothing(vte::property::Type type,
                               std::string_view const& str,
                               int line = __builtin_LINE()) noexcept
 {
@@ -93,11 +94,12 @@ assert_termprop_parse_nothing(TermpropType type,
 }
 
 static void
-assert_registered(char const* name,
-                  TermpropType type) noexcept
+assert_registered(vte::property::Registry& registry,
+                  char const* name,
+                  vte::property::Type type) noexcept
 {
-        register_termprop(name, g_quark_from_string(name), type);
-        auto const info = get_termprop_info(name);
+        registry.install(name, type);
+        auto const info = registry.lookup(name);
         assert(info);
         assert(info->type() == type);
 }
@@ -105,21 +107,20 @@ assert_registered(char const* name,
 static void
 test_termprops_register(void)
 {
-        assert_registered("test.valueless", TermpropType::VALUELESS);
-        assert_registered("test.bool", TermpropType::BOOL);
-        assert_registered("test.uint", TermpropType::UINT);
-        assert_registered("test.string", TermpropType::STRING);
-        assert_registered("test.data", TermpropType::DATA);
+        auto registry = vte::property::Registry{};
+        assert_registered(registry, "test.valueless", Type::VALUELESS);
+        assert_registered(registry, "test.bool", Type::BOOL);
+        assert_registered(registry, "test.uint", Type::UINT);
+        assert_registered(registry, "test.string", Type::STRING);
+        assert_registered(registry, "test.data", Type::DATA);
 }
 
 template<typename T>
 static void
-assert_termprop_parse_value(TermpropType type,
-                            std::string_view const& str,
-                            T const& expected_value = {},
-                            int line = __builtin_LINE()) noexcept
+assert_property_value(std::optional<vte::property::Value> const& value,
+                      T const& expected_value = {},
+                      int line = __builtin_LINE()) noexcept
 {
-        auto const value = parse_termprop_value(type, str);
         assert(value);
         assert(!value->valueless_by_exception());
         assert(std::holds_alternative<T>(*value));
@@ -127,20 +128,29 @@ assert_termprop_parse_value(TermpropType type,
 #pragma GCC diagnostic ignored "-Wfloat-equal"
         assert(std::get<T>(*value) == expected_value);
 #pragma GCC diagnostic pop
+}
+
+template<typename T>
+static void
+assert_termprop_parse_value(vte::property::Type type,
+                            std::string_view const& str,
+                            T const& expected_value = {},
+                            int line = __builtin_LINE()) noexcept
+{
+        auto const value = parse_termprop_value(type, str);
+        assert_property_value(value, expected_value);
 
         auto tstr = unparse_termprop_value(type, *value);
         assert(tstr);
         auto const tvalue = parse_termprop_value(type, *tstr);
-        assert(tvalue);
-        assert(!tvalue->valueless_by_exception());
-        assert(std::holds_alternative<T>(*tvalue));
+        assert_property_value(tvalue, expected_value);
         assert(value == tvalue);
         assert(*value == *tvalue);
 }
 
 template<std::integral T>
 static void
-assert_termprop_parse_integral_value(TermpropType type,
+assert_termprop_parse_integral_value(vte::property::Type type,
                                      std::string_view const& str,
                                      T const& expected_value = {},
                                      int line = __builtin_LINE()) noexcept
@@ -153,14 +163,14 @@ static void
 assert_termprop_parse_uri(std::string_view const& str,
                           int line = __builtin_LINE()) noexcept
 {
-        auto const value = parse_termprop_value(TermpropType::URI, str);
+        auto const value = parse_termprop_value(Type::URI, str);
         assert(value);
         assert(!value->valueless_by_exception());
-        assert(std::holds_alternative<vte::terminal::TermpropURIValue>(*value));
+        assert(std::holds_alternative<vte::property::URIValue>(*value));
 
-        assert(str == std::get<vte::terminal::TermpropURIValue>(*value).second);
+        assert(str == std::get<vte::property::URIValue>(*value).second);
 
-        auto ustr = vte::glib::take_string(g_uri_to_string(std::get<vte::terminal::TermpropURIValue>(*value).first.get()));
+        auto ustr = vte::glib::take_string(g_uri_to_string(std::get<vte::property::URIValue>(*value).first.get()));
         assert(ustr);
         assert(str == ustr.get());
 }
@@ -168,134 +178,134 @@ assert_termprop_parse_uri(std::string_view const& str,
 static void
 test_termprops_valueless(void)
 {
-        assert_termprop_parse_nothing(TermpropType::VALUELESS, ""sv);
-        assert_termprop_parse_nothing(TermpropType::VALUELESS, "0"sv);
-        assert_termprop_parse_nothing(TermpropType::VALUELESS, "1"sv);
-        assert_termprop_parse_nothing(TermpropType::VALUELESS, "a"sv);
+        assert_termprop_parse_nothing(Type::VALUELESS, ""sv);
+        assert_termprop_parse_nothing(Type::VALUELESS, "0"sv);
+        assert_termprop_parse_nothing(Type::VALUELESS, "1"sv);
+        assert_termprop_parse_nothing(Type::VALUELESS, "a"sv);
 }
 
 static void
 test_termprops_bool(void)
 {
-        assert_termprop_parse_value<bool>(TermpropType::BOOL, "0"sv, false);
-        assert_termprop_parse_value<bool>(TermpropType::BOOL, "1"sv, true);
-        assert_termprop_parse_value<bool>(TermpropType::BOOL, "false"sv, false);
-        assert_termprop_parse_value<bool>(TermpropType::BOOL, "true"sv, true);
+        assert_termprop_parse_value<bool>(Type::BOOL, "0"sv, false);
+        assert_termprop_parse_value<bool>(Type::BOOL, "1"sv, true);
+        assert_termprop_parse_value<bool>(Type::BOOL, "false"sv, false);
+        assert_termprop_parse_value<bool>(Type::BOOL, "true"sv, true);
 
         // Case variants
-        assert_termprop_parse_value<bool>(TermpropType::BOOL, "False"sv, false);
-        assert_termprop_parse_value<bool>(TermpropType::BOOL, "True"sv, true);
-        assert_termprop_parse_value<bool>(TermpropType::BOOL, "FALSE"sv, false);
-        assert_termprop_parse_value<bool>(TermpropType::BOOL, "TRUE"sv, true);
+        assert_termprop_parse_value<bool>(Type::BOOL, "False"sv, false);
+        assert_termprop_parse_value<bool>(Type::BOOL, "True"sv, true);
+        assert_termprop_parse_value<bool>(Type::BOOL, "FALSE"sv, false);
+        assert_termprop_parse_value<bool>(Type::BOOL, "TRUE"sv, true);
 
         // Invalid case variants
-        assert_termprop_parse_nothing(TermpropType::BOOL, "tRue"sv);
-        assert_termprop_parse_nothing(TermpropType::BOOL, "FaLSe"sv);
+        assert_termprop_parse_nothing(Type::BOOL, "tRue"sv);
+        assert_termprop_parse_nothing(Type::BOOL, "FaLSe"sv);
 
         // No other names
-        assert_termprop_parse_nothing(TermpropType::BOOL, "yes"sv);
-        assert_termprop_parse_nothing(TermpropType::BOOL, "no"sv);
+        assert_termprop_parse_nothing(Type::BOOL, "yes"sv);
+        assert_termprop_parse_nothing(Type::BOOL, "no"sv);
 }
 
 static void
 test_termprops_int(void)
 {
-        assert_termprop_parse_integral_value(TermpropType::INT, "0"sv, 0ll);
-        assert_termprop_parse_integral_value(TermpropType::INT, "1"sv, 1ll);
-        assert_termprop_parse_integral_value(TermpropType::INT, "9223372036854775807"sv, 9223372036854775807ll);
-        assert_termprop_parse_integral_value(TermpropType::INT, "-1"sv, -1ll);
-        assert_termprop_parse_integral_value(TermpropType::INT, "-9223372036854775808"sv, INT64_MIN);
-        assert_termprop_parse_nothing(TermpropType::INT, "9223372036854775808"sv);
-        assert_termprop_parse_nothing(TermpropType::INT, "-9223372036854775809"sv);
-        assert_termprop_parse_nothing(TermpropType::INT, "0a"sv);
-        assert_termprop_parse_nothing(TermpropType::INT, "a0"sv);
-        assert_termprop_parse_nothing(TermpropType::INT, "-"sv);
-        assert_termprop_parse_nothing(TermpropType::INT, "-a"sv);
+        assert_termprop_parse_integral_value(Type::INT, "0"sv, 0ll);
+        assert_termprop_parse_integral_value(Type::INT, "1"sv, 1ll);
+        assert_termprop_parse_integral_value(Type::INT, "9223372036854775807"sv, 9223372036854775807ll);
+        assert_termprop_parse_integral_value(Type::INT, "-1"sv, -1ll);
+        assert_termprop_parse_integral_value(Type::INT, "-9223372036854775808"sv, INT64_MIN);
+        assert_termprop_parse_nothing(Type::INT, "9223372036854775808"sv);
+        assert_termprop_parse_nothing(Type::INT, "-9223372036854775809"sv);
+        assert_termprop_parse_nothing(Type::INT, "0a"sv);
+        assert_termprop_parse_nothing(Type::INT, "a0"sv);
+        assert_termprop_parse_nothing(Type::INT, "-"sv);
+        assert_termprop_parse_nothing(Type::INT, "-a"sv);
 }
 
 static void
 test_termprops_uint(void)
 {
-        assert_termprop_parse_integral_value(TermpropType::UINT, "0"sv, 0ull);
-        assert_termprop_parse_integral_value(TermpropType::UINT, "1"sv, 1ull);
-        assert_termprop_parse_integral_value(TermpropType::UINT, "18446744073709551614"sv, 18446744073709551614ull);
-        assert_termprop_parse_integral_value(TermpropType::UINT, "18446744073709551615"sv, 18446744073709551615ull);
-        assert_termprop_parse_nothing(TermpropType::UINT, "-1"sv);
-        assert_termprop_parse_nothing(TermpropType::UINT, "0a"sv);
-        assert_termprop_parse_nothing(TermpropType::UINT, "a0"sv);
-        assert_termprop_parse_nothing(TermpropType::UINT, "18446744073709551616"sv);
+        assert_termprop_parse_integral_value(Type::UINT, "0"sv, 0ull);
+        assert_termprop_parse_integral_value(Type::UINT, "1"sv, 1ull);
+        assert_termprop_parse_integral_value(Type::UINT, "18446744073709551614"sv, 18446744073709551614ull);
+        assert_termprop_parse_integral_value(Type::UINT, "18446744073709551615"sv, 18446744073709551615ull);
+        assert_termprop_parse_nothing(Type::UINT, "-1"sv);
+        assert_termprop_parse_nothing(Type::UINT, "0a"sv);
+        assert_termprop_parse_nothing(Type::UINT, "a0"sv);
+        assert_termprop_parse_nothing(Type::UINT, "18446744073709551616"sv);
 }
 
 static void
 test_termprops_double(void)
 {
-        assert_termprop_parse_value(TermpropType::DOUBLE, "0"sv, 0.0);
-        assert_termprop_parse_value(TermpropType::DOUBLE, "0.1"sv, 0.1);
-        assert_termprop_parse_value(TermpropType::DOUBLE, "1.0"sv, 1.0);
-        assert_termprop_parse_value(TermpropType::DOUBLE, "2.0E8"sv, 2.0E8);
+        assert_termprop_parse_value(Type::DOUBLE, "0"sv, 0.0);
+        assert_termprop_parse_value(Type::DOUBLE, "0.1"sv, 0.1);
+        assert_termprop_parse_value(Type::DOUBLE, "1.0"sv, 1.0);
+        assert_termprop_parse_value(Type::DOUBLE, "2.0E8"sv, 2.0E8);
 
         // No leading whitespace
-        assert_termprop_parse_nothing(TermpropType::DOUBLE, " 1.0"sv);
+        assert_termprop_parse_nothing(Type::DOUBLE, " 1.0"sv);
 
         // No trailing whitespace
-        assert_termprop_parse_nothing(TermpropType::DOUBLE, "1.0 "sv);
+        assert_termprop_parse_nothing(Type::DOUBLE, "1.0 "sv);
 
         // No hex format
-        assert_termprop_parse_nothing(TermpropType::DOUBLE, "0x12345678"sv);
+        assert_termprop_parse_nothing(Type::DOUBLE, "0x12345678"sv);
 
         // No infinities
-        assert_termprop_parse_nothing(TermpropType::DOUBLE, "Inf"sv);
-        assert_termprop_parse_nothing(TermpropType::DOUBLE, "-Inf"sv);
+        assert_termprop_parse_nothing(Type::DOUBLE, "Inf"sv);
+        assert_termprop_parse_nothing(Type::DOUBLE, "-Inf"sv);
 
         // No NaNs
-        assert_termprop_parse_nothing(TermpropType::DOUBLE, "NaN"sv);
+        assert_termprop_parse_nothing(Type::DOUBLE, "NaN"sv);
 }
 
 static void
 test_termprops_rgb(void)
 {
-        assert_termprop_parse_value<vte::terminal::termprop_rgba>(TermpropType::RGB, "#123456"sv, vte::color::from_bits<vte::terminal::termprop_rgba>(0x123456, 8, false));
-        assert_termprop_parse_value<vte::terminal::termprop_rgba>(TermpropType::RGB, "#abcdef"sv, vte::color::from_bits<vte::terminal::termprop_rgba>(0xabcdef, 8, false));
-        assert_termprop_parse_value<vte::terminal::termprop_rgba>(TermpropType::RGB, "#ABCDEF"sv, vte::color::from_bits<vte::terminal::termprop_rgba>(0xabcdef, 8, false));
-        assert_termprop_parse_value<vte::terminal::termprop_rgba>(TermpropType::RGB, "#000"sv, vte::color::from_bits<vte::terminal::termprop_rgba>(0, 8, false));
-        assert_termprop_parse_value<vte::terminal::termprop_rgba>(TermpropType::RGB, "#0000"sv, vte::color::from_bits<vte::terminal::termprop_rgba>(0, 8, false));
-        assert_termprop_parse_nothing(TermpropType::RGB, "0"sv);
-        assert_termprop_parse_nothing(TermpropType::RGB, "00"sv);
-        assert_termprop_parse_nothing(TermpropType::RGB, "000"sv);
-        assert_termprop_parse_nothing(TermpropType::RGB, "0000"sv);
-        assert_termprop_parse_nothing(TermpropType::RGB, "00000"sv);
-        assert_termprop_parse_nothing(TermpropType::RGB, "000000"sv);
-        assert_termprop_parse_nothing(TermpropType::RGB, "#0"sv);
-        assert_termprop_parse_nothing(TermpropType::RGB, "#00"sv);
-        assert_termprop_parse_nothing(TermpropType::RGB, "#00000"sv);
-        //assert_termprop_parse_nothing(TermpropType::RGB, "rgb(1,2,3)"sv);
+        assert_termprop_parse_value<vte::property::property_rgba>(Type::RGB, "#123456"sv, vte::color::from_bits<vte::property::property_rgba>(0x123456, 8, false));
+        assert_termprop_parse_value<vte::property::property_rgba>(Type::RGB, "#abcdef"sv, vte::color::from_bits<vte::property::property_rgba>(0xabcdef, 8, false));
+        assert_termprop_parse_value<vte::property::property_rgba>(Type::RGB, "#ABCDEF"sv, vte::color::from_bits<vte::property::property_rgba>(0xabcdef, 8, false));
+        assert_termprop_parse_value<vte::property::property_rgba>(Type::RGB, "#000"sv, vte::color::from_bits<vte::property::property_rgba>(0, 8, false));
+        assert_termprop_parse_value<vte::property::property_rgba>(Type::RGB, "#0000"sv, vte::color::from_bits<vte::property::property_rgba>(0, 8, false));
+        assert_termprop_parse_nothing(Type::RGB, "0"sv);
+        assert_termprop_parse_nothing(Type::RGB, "00"sv);
+        assert_termprop_parse_nothing(Type::RGB, "000"sv);
+        assert_termprop_parse_nothing(Type::RGB, "0000"sv);
+        assert_termprop_parse_nothing(Type::RGB, "00000"sv);
+        assert_termprop_parse_nothing(Type::RGB, "000000"sv);
+        assert_termprop_parse_nothing(Type::RGB, "#0"sv);
+        assert_termprop_parse_nothing(Type::RGB, "#00"sv);
+        assert_termprop_parse_nothing(Type::RGB, "#00000"sv);
+        //assert_termprop_parse_nothing(Type::RGB, "rgb(1,2,3)"sv);
 }
 
 static void
 test_termprops_rgba(void)
 {
-        assert_termprop_parse_value<vte::terminal::termprop_rgba>(TermpropType::RGBA, "#123456"sv, vte::color::from_bits<vte::terminal::termprop_rgba>(0x123456ff, 8, true));
-        assert_termprop_parse_value<vte::terminal::termprop_rgba>(TermpropType::RGBA, "#abcdef"sv, vte::color::from_bits<vte::terminal::termprop_rgba>(0xabcdefff, 8, true));
-        assert_termprop_parse_value<vte::terminal::termprop_rgba>(TermpropType::RGBA, "#ABCDEF"sv, vte::color::from_bits<vte::terminal::termprop_rgba>(0xabcdefff, 8, true));
+        assert_termprop_parse_value<vte::property::property_rgba>(Type::RGBA, "#123456"sv, vte::color::from_bits<vte::property::property_rgba>(0x123456ff, 8, true));
+        assert_termprop_parse_value<vte::property::property_rgba>(Type::RGBA, "#abcdef"sv, vte::color::from_bits<vte::property::property_rgba>(0xabcdefff, 8, true));
+        assert_termprop_parse_value<vte::property::property_rgba>(Type::RGBA, "#ABCDEF"sv, vte::color::from_bits<vte::property::property_rgba>(0xabcdefff, 8, true));
 
-        assert_termprop_parse_value<vte::terminal::termprop_rgba>(TermpropType::RGBA, "#12345678"sv, vte::color::from_bits<vte::terminal::termprop_rgba>(0x12345678, 8, true));
-        assert_termprop_parse_value<vte::terminal::termprop_rgba>(TermpropType::RGBA, "#abcdef01"sv, vte::color::from_bits<vte::terminal::termprop_rgba>(0xabcdef01, 8, true));
-        assert_termprop_parse_value<vte::terminal::termprop_rgba>(TermpropType::RGBA, "#ABCDEF76"sv, vte::color::from_bits<vte::terminal::termprop_rgba>(0xabcdef76, 8, true));
-        assert_termprop_parse_value<vte::terminal::termprop_rgba>(TermpropType::RGBA, "#000"sv, vte::color::from_bits<vte::terminal::termprop_rgba>(0, 8, false));
-        assert_termprop_parse_value<vte::terminal::termprop_rgba>(TermpropType::RGBA, "#0000"sv, vte::color::from_bits<vte::terminal::termprop_rgba>(0, 8, true));
-        assert_termprop_parse_nothing(TermpropType::RGBA, "0"sv);
-        assert_termprop_parse_nothing(TermpropType::RGBA, "00"sv);
-        assert_termprop_parse_nothing(TermpropType::RGBA, "000"sv);
-        assert_termprop_parse_nothing(TermpropType::RGBA, "0000"sv);
-        assert_termprop_parse_nothing(TermpropType::RGBA, "00000"sv);
-        assert_termprop_parse_nothing(TermpropType::RGBA, "000000"sv);
-        assert_termprop_parse_nothing(TermpropType::RGBA, "0000000"sv);
-        assert_termprop_parse_nothing(TermpropType::RGBA, "00000000"sv);
-        assert_termprop_parse_nothing(TermpropType::RGBA, "#0"sv);
-        assert_termprop_parse_nothing(TermpropType::RGBA, "#00"sv);
-        assert_termprop_parse_nothing(TermpropType::RGBA, "#00000"sv);
-        //assert_termprop_parse_nothing(TermpropType::RGBA, "rgb(1,2,3)"sv);
-        //assert_termprop_parse_nothing(TermpropType::RGBA, "rgba(1,2,3,4)"sv);
+        assert_termprop_parse_value<vte::property::property_rgba>(Type::RGBA, "#12345678"sv, vte::color::from_bits<vte::property::property_rgba>(0x12345678, 8, true));
+        assert_termprop_parse_value<vte::property::property_rgba>(Type::RGBA, "#abcdef01"sv, vte::color::from_bits<vte::property::property_rgba>(0xabcdef01, 8, true));
+        assert_termprop_parse_value<vte::property::property_rgba>(Type::RGBA, "#ABCDEF76"sv, vte::color::from_bits<vte::property::property_rgba>(0xabcdef76, 8, true));
+        assert_termprop_parse_value<vte::property::property_rgba>(Type::RGBA, "#000"sv, vte::color::from_bits<vte::property::property_rgba>(0, 8, false));
+        assert_termprop_parse_value<vte::property::property_rgba>(Type::RGBA, "#0000"sv, vte::color::from_bits<vte::property::property_rgba>(0, 8, true));
+        assert_termprop_parse_nothing(Type::RGBA, "0"sv);
+        assert_termprop_parse_nothing(Type::RGBA, "00"sv);
+        assert_termprop_parse_nothing(Type::RGBA, "000"sv);
+        assert_termprop_parse_nothing(Type::RGBA, "0000"sv);
+        assert_termprop_parse_nothing(Type::RGBA, "00000"sv);
+        assert_termprop_parse_nothing(Type::RGBA, "000000"sv);
+        assert_termprop_parse_nothing(Type::RGBA, "0000000"sv);
+        assert_termprop_parse_nothing(Type::RGBA, "00000000"sv);
+        assert_termprop_parse_nothing(Type::RGBA, "#0"sv);
+        assert_termprop_parse_nothing(Type::RGBA, "#00"sv);
+        assert_termprop_parse_nothing(Type::RGBA, "#00000"sv);
+        //assert_termprop_parse_nothing(Type::RGBA, "rgb(1,2,3)"sv);
+        //assert_termprop_parse_nothing(Type::RGBA, "rgba(1,2,3,4)"sv);
 }
 
 // Note that our OSC parser makes sure no C0 and C1 controls are
@@ -305,59 +315,60 @@ test_termprops_rgba(void)
 static void
 test_termprops_string(void)
 {
-        assert_termprop_parse_value<std::string>(TermpropType::STRING, ""sv, ""s);
-        assert_termprop_parse_value<std::string>(TermpropType::STRING, "abc"sv, "abc"s);
+        assert_termprop_parse_value<std::string>(Type::STRING, ""sv, ""s);
+        assert_termprop_parse_value<std::string>(Type::STRING, "abc"sv, "abc"s);
 
-        auto const max_len = TermpropInfo::k_max_string_len;
+        auto const max_len = vte::property::Registry::k_max_string_len;
 
         auto str = std::string{};
         str.resize(max_len, 'a');
-        assert_termprop_parse_value<std::string>(TermpropType::STRING, str, str);
+        assert_termprop_parse_value<std::string>(Type::STRING, str, str);
 
         str.push_back('a');
-        assert_termprop_parse_nothing(TermpropType::STRING, str);
+        assert_termprop_parse_nothing(Type::STRING, str);
 
         // Test escapes
-        assert_termprop_parse_value<std::string>(TermpropType::STRING, "a\\sb\\nc\\\\d"sv, "a;b\nc\\d"s);
+        assert_termprop_parse_value<std::string>(Type::STRING, "a\\sb\\nc\\\\d"sv, "a;b\nc\\d"s);
 
         // Test string value containing the termprop assignment characters ! or =
-        assert_termprop_parse_value<std::string>(TermpropType::STRING, "a=b"sv, "a=b"s);
-        assert_termprop_parse_value<std::string>(TermpropType::STRING, "a!"sv, "a!"s);
+        assert_termprop_parse_value<std::string>(Type::STRING, "a=b"sv, "a=b"s);
+        assert_termprop_parse_value<std::string>(Type::STRING, "a!"sv, "a!"s);
 
         // Missing or invalid escapes
-        assert_termprop_parse_nothing(TermpropType::STRING, "a;b");
-        assert_termprop_parse_nothing(TermpropType::STRING, "a\\");
-        assert_termprop_parse_nothing(TermpropType::STRING, "a\\"sv);
-        assert_termprop_parse_nothing(TermpropType::STRING, "a\\a"sv);
+        assert_termprop_parse_nothing(Type::STRING, "a;b");
+        assert_termprop_parse_nothing(Type::STRING, "a\\");
+        assert_termprop_parse_nothing(Type::STRING, "a\\"sv);
+        assert_termprop_parse_nothing(Type::STRING, "a\\a"sv);
 }
 
 static void
 test_termprops_data(void)
 {
-        assert_termprop_parse_value<std::string>(TermpropType::DATA, ""sv, ""s);
-        assert_termprop_parse_value<std::string>(TermpropType::DATA, "YQ=="sv, "a"s);
-        assert_termprop_parse_value<std::string>(TermpropType::DATA, "YWE="sv, "aa"s);
-        assert_termprop_parse_value<std::string>(TermpropType::DATA, "YWFh"sv, "aaa"s);
-        assert_termprop_parse_value<std::string>(TermpropType::DATA, "AA=="sv, "\0"s);
-        assert_termprop_parse_value<std::string>(TermpropType::DATA, "YQBi"sv, "a\0b"s);
-        assert_termprop_parse_value<std::string>(TermpropType::DATA, "YQBi"sv, "a\0b"s);
-        assert_termprop_parse_value<std::string>(TermpropType::DATA, "gMH/YWJj"sv, "\x80\xc1\xff""abc"s); // Note: not valid UTF-8 after decoding
-        assert_termprop_parse_nothing(TermpropType::DATA, "YQ="sv);
-        assert_termprop_parse_nothing(TermpropType::DATA, "YQ"sv);
-        assert_termprop_parse_nothing(TermpropType::DATA, "Y"sv);
+        assert_termprop_parse_value<std::string>(Type::DATA, ""sv, ""s);
+        assert_termprop_parse_value<std::string>(Type::DATA, "YQ=="sv, "a"s);
+        assert_termprop_parse_value<std::string>(Type::DATA, "YWE="sv, "aa"s);
+        assert_termprop_parse_value<std::string>(Type::DATA, "YWFh"sv, "aaa"s);
+        assert_termprop_parse_value<std::string>(Type::DATA, "AA=="sv, "\0"s);
+        assert_termprop_parse_value<std::string>(Type::DATA, "YQBi"sv, "a\0b"s);
+        assert_termprop_parse_value<std::string>(Type::DATA, "YQBi"sv, "a\0b"s);
+        assert_termprop_parse_value<std::string>(Type::DATA, "gMH/YWJj"sv, "\x80\xc1\xff""abc"s); // Note: not valid UTF-8 after decoding
+        assert_termprop_parse_nothing(Type::DATA, "YQ="sv);
+        assert_termprop_parse_nothing(Type::DATA, "YQ"sv);
+        assert_termprop_parse_nothing(Type::DATA, "Y"sv);
 }
 
 static void
 test_termprops_uuid(void)
 {
         auto const uuid = VTE_DEFINE_UUID(49ec5248, 2d9a, 493f, 99fa, 9e1cfb95b430);
-        assert_termprop_parse_value<vte::uuid>(TermpropType::UUID, "49ec5248-2d9a-493f-99fa-9e1cfb95b430"sv, uuid);
-        assert_termprop_parse_value<vte::uuid>(TermpropType::UUID, "{49ec5248-2d9a-493f-99fa-9e1cfb95b430}"sv, uuid);
-        assert_termprop_parse_value<vte::uuid>(TermpropType::UUID, "urn:uuid:49ec5248-2d9a-493f-99fa-9e1cfb95b430"sv, uuid);
-        assert_termprop_parse_nothing(TermpropType::UUID, "49ec5248-2d9a-493f-99fa-9e1cfb95b43"sv);
-        assert_termprop_parse_nothing(TermpropType::UUID, "{49ec5248-2d9a-493f-99fa-9e1cfb95b430"sv);
-        assert_termprop_parse_nothing(TermpropType::UUID, "urn:49ec5248-2d9a-493f-99fa-9e1cfb95b430"sv);
-        assert_termprop_parse_nothing(TermpropType::UUID, "{urn:uuid:49ec5248-2d9a-493f-99fa-9e1cfb95b430}"sv);
+        assert_termprop_parse_value<vte::uuid>(Type::UUID, "49ec5248-2d9a-493f-99fa-9e1cfb95b430"sv, uuid);
+        assert_termprop_parse_value<vte::uuid>(Type::UUID, "{49ec5248-2d9a-493f-99fa-9e1cfb95b430}"sv, uuid);
+        assert_termprop_parse_value<vte::uuid>(Type::UUID, "urn:uuid:49ec5248-2d9a-493f-99fa-9e1cfb95b430"sv, uuid);
+        assert_termprop_parse_nothing(Type::UUID, "49ec5248-2d9a-493f-99fa-9e1cfb95b43"sv);
+        assert_termprop_parse_nothing(Type::UUID, "{49ec5248-2d9a-493f-99fa-9e1cfb95b430"sv);
+        assert_termprop_parse_nothing(Type::UUID, "urn:49ec5248-2d9a-493f-99fa-9e1cfb95b430"sv);
+        assert_termprop_parse_nothing(Type::UUID, "{urn:uuid:49ec5248-2d9a-493f-99fa-9e1cfb95b430}"sv);
+        assert_termprop_parse_nothing(Type::UUID, "49ec52482d9a493f99fa9e1cfb95b430"sv); // ID128 form not accepted here
 }
 
 static void
@@ -365,8 +376,8 @@ test_termprops_uri(void)
 {
         assert_termprop_parse_uri("https://www.gnome.org/index.html"sv);
         assert_termprop_parse_uri("file:///uri/bin"sv);
-        assert_termprop_parse_nothing(TermpropType::URI, "data:text/plain;base64,QQo=");
-        assert_termprop_parse_nothing(TermpropType::URI, "data:text/plain%3BQbase64,Qo=");
+        assert_termprop_parse_nothing(Type::URI, "data:text/plain;base64,QQo=");
+        assert_termprop_parse_nothing(Type::URI, "data:text/plain%3BQbase64,Qo=");
 }
 
 int
@@ -375,19 +386,20 @@ main(int argc,
 {
         g_test_init(&argc, &argv, nullptr);
 
-        g_test_add_func("/vte/terminal/termprops/names", test_termprops_names);
-        g_test_add_func("/vte/terminal/termprops/register", test_termprops_register);
-        g_test_add_func("/vte/terminal/termprops/type/valueless", test_termprops_valueless);
-        g_test_add_func("/vte/terminal/termprops/type/bool", test_termprops_bool);
-        g_test_add_func("/vte/terminal/termprops/type/int", test_termprops_int);
-        g_test_add_func("/vte/terminal/termprops/type/uint", test_termprops_uint);
-        g_test_add_func("/vte/terminal/termprops/type/double", test_termprops_double);
-        g_test_add_func("/vte/terminal/termprops/type/rgb", test_termprops_rgb);
-        g_test_add_func("/vte/terminal/termprops/type/rgba", test_termprops_rgba);
-        g_test_add_func("/vte/terminal/termprops/type/string", test_termprops_string);
-        g_test_add_func("/vte/terminal/termprops/type/data", test_termprops_data);
-        g_test_add_func("/vte/terminal/termprops/type/uuid", test_termprops_uuid);
-        g_test_add_func("/vte/terminal/termprops/type/uri", test_termprops_uri);
+        g_test_add_func("/vte/property/termprops/names", test_termprops_names);
+        g_test_add_func("/vte/property/termprops/register", test_termprops_register);
+        g_test_add_func("/vte/property/termprops/type/valueless", test_termprops_valueless);
+        g_test_add_func("/vte/property/termprops/type/bool", test_termprops_bool);
+        g_test_add_func("/vte/property/termprops/type/int", test_termprops_int);
+        g_test_add_func("/vte/property/termprops/type/uint", test_termprops_uint);
+        g_test_add_func("/vte/property/termprops/type/double", test_termprops_double);
+        g_test_add_func("/vte/property/termprops/type/rgb", test_termprops_rgb);
+        g_test_add_func("/vte/property/termprops/type/rgba", test_termprops_rgba);
+        g_test_add_func("/vte/property/termprops/type/string", test_termprops_string);
+        g_test_add_func("/vte/property/termprops/type/data", test_termprops_data);
+        g_test_add_func("/vte/property/termprops/type/uuid", test_termprops_uuid);
+        g_test_add_func("/vte/property/termprops/type/uri", test_termprops_uri);
+;
 
         return g_test_run();
 }

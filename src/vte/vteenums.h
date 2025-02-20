@@ -221,7 +221,7 @@ typedef enum {
  * @VTE_UUID_FORMAT_URN: urn format
  * @VTE_UUID_FORMAT_ANY: any format of the above
  *
- * An enumeration that specifies the format of an UUID.
+ * An enumeration that specifies the format of a #VteUuid.
  *
  * Since: 0.78
  */

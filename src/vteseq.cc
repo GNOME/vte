@@ -1810,7 +1810,7 @@ Terminal::set_termprop_uri(vte::parser::Sequence const& seq,
                            int termprop_id,
                            PendingChanges legacy_pending_change) noexcept
 {
-        auto const info = get_termprop_info(termprop_id);
+        auto const info = m_termprops.registry().lookup(termprop_id);
         assert(info);
 
         auto set = false;
@@ -1819,10 +1819,10 @@ Terminal::set_termprop_uri(vte::parser::Sequence const& seq,
 
                 // Only parse the URI if the termprop doesn't already have the
                 // same string value
-                if (auto const old_value = get_termprop(*info);
+                if (auto const old_value = m_termprops.value(*info);
                     !old_value ||
-                    !std::holds_alternative<vte::terminal::TermpropURIValue>(*old_value) ||
-                    std::get<vte::terminal::TermpropURIValue>(*old_value).second != str) {
+                    !std::holds_alternative<vte::property::URIValue>(*old_value) ||
+                    std::get<vte::property::URIValue>(*old_value).second != str) {
 
                         if (auto uri = vte::take_freeable(g_uri_parse(str.c_str(),
                                                                       GUriFlags(G_URI_FLAGS_ENCODED),
@@ -1831,9 +1831,9 @@ Terminal::set_termprop_uri(vte::parser::Sequence const& seq,
                             g_strcmp0(g_uri_get_scheme(uri.get()), "file") == 0) {
 
                                 set = true;
-                                m_termprops_dirty.at(info->id()) = true;
-                                m_termprop_values.at(info->id()) =
-                                        vte::terminal::TermpropValue{std::in_place_type<vte::terminal::TermpropURIValue>,
+                                m_termprops.dirty(info->id()) = true;
+                                *m_termprops.value(info->id()) =
+                                        vte::property::Value{std::in_place_type<vte::property::URIValue>,
                                                                      std::move(uri),
                                                                      str};
                         } else {
@@ -1844,7 +1844,7 @@ Terminal::set_termprop_uri(vte::parser::Sequence const& seq,
                 }
         } else {
                 // Only reset the termprop if it's not already reset
-                if (auto const old_value = get_termprop(*info);
+                if (auto const old_value = m_termprops.value(*info);
                     !old_value ||
                     !std::holds_alternative<std::monostate>(*old_value)) {
                         set = true;
@@ -1966,7 +1966,7 @@ Terminal::set_current_shell_integration_mode(vte::parser::Sequence const& seq,
 
 void
 Terminal::reply_termprop_query(vte::parser::Sequence const& seq,
-                               vte::terminal::TermpropInfo const* info)
+                               vte::property::Registry::Property const* info)
 {
         // Since this is only used in test mode, we just send one
         // OSC reply per query, instead of trying to consolidate
@@ -1974,16 +1974,16 @@ Terminal::reply_termprop_query(vte::parser::Sequence const& seq,
 
         auto str = std::string{info->name()};
         switch (info->type()) {
-                using enum vte::terminal::TermpropType;
+                using enum vte::property::Type;
         case VALUELESS:
-                if (m_termprops_dirty.at(info->id()))
+                if (m_termprops.dirty(info->id()))
                         str.push_back('!');
                 break;
 
         default:
                 if (auto const vstr =
-                    vte::terminal::unparse_termprop_value(info->type(),
-                                                          m_termprop_values.at(info->id()))) {
+                    vte::property::unparse_termprop_value(info->type(),
+                                                          *m_termprops.value(info->id()))) {
                         str.push_back('=');
                         str.append(*vstr);
                 }
@@ -2002,39 +2002,39 @@ Terminal::parse_termprop(vte::parser::Sequence const& seq,
 try
 {
         auto const pos = str.find_first_of("=?!"); // possibly str.npos
-        auto const info = vte::terminal::get_termprop_info(str.substr(0, pos));
+        auto const info = m_termprops.registry().lookup(str.substr(0, pos));
 
         // No-OSC termprops cannot be set via the termprop OSC, but they
         // can be queried and reset
         auto const no_osc = info &&
-                (unsigned(info->flags()) & unsigned(vte::terminal::TermpropFlags::NO_OSC)) != 0;
+                (unsigned(info->flags()) & unsigned(vte::property::Flags::NO_OSC)) != 0;
         // Valueless termprops are special in that they can only be
         // emitted or reset, and resetting cancels the emission
         auto const is_valueless = info &&
-                info->type() == vte::terminal::TermpropType::VALUELESS;
+                info->type() == vte::property::Type::VALUELESS;
 
         if (pos == str.npos) {
                 // Reset
                 //
                 // Allow reset even for no-OSC termprops
                 if (info &&
-                    !std::holds_alternative<std::monostate>(m_termprop_values.at(info->id()))) {
+                    !std::holds_alternative<std::monostate>(*m_termprops.value(info->id()))) {
                         set = true;
-                        m_termprops_dirty.at(info->id()) = !is_valueless;
-                        m_termprop_values.at(info->id()) = {};
+                        m_termprops.dirty(info->id()) = !is_valueless;
+                        *m_termprops.value(info->id()) = {};
                 }
 
                 // Prefix reset
                 // Reset all termprops whose name starts with the prefix
                 else if (!info && str.ends_with('.')) {
-                        for (auto const& prop_info : s_registered_termprops) {
+                        for (auto const& prop_info : m_termprops.registry().get_all()) {
                                 if (!std::string_view{prop_info.name()}.starts_with(str))
                                         continue;
 
-                                if (!std::holds_alternative<std::monostate>(m_termprop_values.at(prop_info.id()))) {
+                                if (!std::holds_alternative<std::monostate>(*m_termprops.value(prop_info.id()))) {
                                         set = true;
-                                        m_termprops_dirty.at(prop_info.id()) = prop_info.type() != vte::terminal::TermpropType::VALUELESS;
-                                        m_termprop_values.at(prop_info.id()) = {};
+                                        m_termprops.dirty(prop_info.id()) = prop_info.type() != vte::property::Type::VALUELESS;
+                                        *m_termprops.value(prop_info.id()) = {};
                                 }
                         }
                 }
@@ -2042,20 +2042,19 @@ try
                    info &&
                    !is_valueless &&
                    !no_osc) {
-                if (auto value = vte::terminal::parse_termprop_value(info->type(),
-                                                                     str.substr(pos + 1))) {
+                if (auto value = info->parse(str.substr(pos + 1))) {
                         // Set
-                        if (value != m_termprop_values.at(info->id())) {
+                        if (value != *m_termprops.value(info->id())) {
                                 set = true;
-                                m_termprop_values.at(info->id()) = std::move(*value);
-                                m_termprops_dirty.at(info->id()) = true;
+                                *m_termprops.value(info->id()) = std::move(*value);
+                                m_termprops.dirty(info->id()) = true;
                         }
                 } else {
                         // Reset
-                        if (!std::holds_alternative<std::monostate>(m_termprop_values.at(info->id()))) {
+                        if (!std::holds_alternative<std::monostate>(*m_termprops.value(info->id()))) {
                                 set = true;
-                                m_termprop_values.at(info->id()) = {};
-                                m_termprops_dirty.at(info->id()) = true;
+                                *m_termprops.value(info->id()) = {};
+                                m_termprops.dirty(info->id()) = true;
                         }
                 }
         } else if (str[pos] == '?') {
@@ -2079,10 +2078,10 @@ try
                     info &&
                     is_valueless &&
                     !no_osc &&
-                    !m_termprops_dirty.at(info->id())) {
+                    !m_termprops.dirty(info->id())) {
                         // Signal
                         set = true;
-                        m_termprops_dirty.at(info->id()) = true;
+                        m_termprops.dirty(info->id()) = true;
                         // no need to set/reset the value
                 }
         }
@@ -2150,32 +2149,32 @@ try
 
         auto maybe_set_termprop_void = [&](int prop,
                                            bool set = true) -> void {
-                if (auto const info = get_termprop_info(prop);
-                    info && info->type() == vte::terminal::TermpropType::VALUELESS) {
-                        m_termprops_dirty.at(info->id()) = set;
-                        m_termprop_values.at(info->id()) = {};
+                if (auto const info = m_termprops.registry().lookup(prop);
+                    info && info->type() == vte::property::Type::VALUELESS) {
+                        m_termprops.dirty(info->id()) = set;
+                        *m_termprops.value(info->id()) = {};
                         m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
                 }
         };
 
         auto maybe_set_termprop = [&](int prop,
                                       auto&& value) -> void {
-                auto propvalue = vte::terminal::TermpropValue{std::move(value)};
-                if (auto const info = get_termprop_info(prop);
+                auto propvalue = vte::property::Value{std::move(value)};
+                if (auto const info = m_termprops.registry().lookup(prop);
                     info &&
-                    propvalue != m_termprop_values.at(info->id())) {
-                        m_termprops_dirty.at(info->id()) = true;
-                        m_termprop_values.at(info->id()) = std::move(propvalue);
+                    propvalue != *m_termprops.value(info->id())) {
+                        m_termprops.dirty(info->id()) = true;
+                        *m_termprops.value(info->id()) = std::move(propvalue);
                         m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
                 }
         };
 
         auto maybe_reset_termprop = [&](int prop) -> void {
-                if (auto const info = get_termprop_info(prop);
+                if (auto const info = m_termprops.registry().lookup(prop);
                     info &&
-                    !std::holds_alternative<std::monostate>(m_termprop_values.at(info->id()))) {
-                        m_termprops_dirty.at(info->id()) = true;
-                        m_termprop_values.at(info->id()) = {};
+                    !std::holds_alternative<std::monostate>(*m_termprops.value(info->id()))) {
+                        m_termprops.dirty(info->id()) = true;
+                        *m_termprops.value(info->id()) = {};
                         m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
                 }
         };
@@ -2227,7 +2226,7 @@ try
                         if (++token == endtoken)
                                 return;
 
-                        if (auto value = vte::terminal::parse_termprop_value(vte::terminal::TermpropType::UINT, *token)) {
+                        if (auto value = vte::property::parse_termprop_value(vte::property::Type::UINT, *token)) {
                                 maybe_set_termprop(VTE_PROPERTY_ID_CONTAINER_UID, *value);
                         }
 
@@ -2267,22 +2266,22 @@ try
 
         auto maybe_set_termprop = [&](int prop,
                                       auto&& value) -> void {
-                auto propvalue = vte::terminal::TermpropValue{std::move(value)};
-                if (auto const info = get_termprop_info(prop);
+                auto propvalue = vte::property::Value{std::move(value)};
+                if (auto const info = m_termprops.registry().lookup(prop);
                     info &&
-                    propvalue != m_termprop_values.at(info->id())) {
-                        m_termprops_dirty.at(info->id()) = true;
-                        m_termprop_values.at(info->id()) = std::move(propvalue);
+                    propvalue != *m_termprops.value(info->id())) {
+                        m_termprops.dirty(info->id()) = true;
+                        *m_termprops.value(info->id()) = std::move(propvalue);
                         m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
                 }
         };
 
         auto maybe_reset_termprop = [&](int prop) -> void {
-                if (auto const info = get_termprop_info(prop);
+                if (auto const info = m_termprops.registry().lookup(prop);
                     info &&
-                    !std::holds_alternative<std::monostate>(m_termprop_values.at(info->id()))) {
-                        m_termprops_dirty.at(info->id()) = true;
-                        m_termprop_values.at(info->id()) = {};
+                    !std::holds_alternative<std::monostate>(*m_termprops.value(info->id()))) {
+                        m_termprops.dirty(info->id()) = true;
+                        *m_termprops.value(info->id()) = {};
                         m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
                 }
         };
@@ -7764,19 +7763,19 @@ Terminal::OSC(vte::parser::Sequence const& seq)
         case VTE_OSC_XTERM_SET_WINDOW_AND_ICON_TITLE:
         case VTE_OSC_XTERM_SET_WINDOW_TITLE: {
                 /* Only sets window title; icon title is not supported */
-                auto const info = get_termprop_info(VTE_PROPERTY_ID_XTERM_TITLE);
+                auto const info = m_termprops.registry().lookup(VTE_PROPERTY_ID_XTERM_TITLE);
                 assert(info);
 
                 auto set = false;
                 if (it != cend &&
-                    it.size_remaining() <= vte::terminal::TermpropInfo::k_max_string_len) {
-                        if (auto const old_value = get_termprop(*info);
+                    it.size_remaining() <= vte::property::Registry::k_max_string_len) {
+                        if (auto const old_value = m_termprops.value(*info);
                             !old_value ||
                             !std::holds_alternative<std::string>(*old_value) ||
                             std::get<std::string>(*old_value) != it.string_view_remaining()) {
                                 set = true;
-                                m_termprops_dirty.at(info->id()) = true;
-                                m_termprop_values.at(info->id()) = it.string_remaining();
+                                m_termprops.dirty(info->id()) = true;
+                                *m_termprops.value(info->id()) = it.string_remaining();
                         }
                 } else {
                         set = true;
@@ -10337,8 +10336,9 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                                 m_window_title_stack.erase(m_window_title_stack.cbegin());
                         }
 
-                        auto const info = get_termprop_info(VTE_PROPERTY_ID_XTERM_TITLE);
-                        auto const value = get_termprop(*info);
+                        auto const info = m_termprops.registry().lookup(VTE_PROPERTY_ID_XTERM_TITLE);
+                        assert(info);
+                        auto const value = m_termprops.value(*info);
                         if (value &&
                             std::holds_alternative<std::string>(*value))
                                 m_window_title_stack.emplace(m_window_title_stack.cend(),
@@ -10365,9 +10365,10 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                         if (m_window_title_stack.empty())
                                 break;
 
-                        auto const info = get_termprop_info(VTE_PROPERTY_ID_XTERM_TITLE);
-                        m_termprops_dirty.at(info->id()) = true;
-                        m_termprop_values.at(info->id()) = std::move(m_window_title_stack.back());
+                        auto const info = m_termprops.registry().lookup(VTE_PROPERTY_ID_XTERM_TITLE);
+                        assert(info);
+                        m_termprops.dirty(info->id()) = true;
+                        *m_termprops.value(info->id()) = std::move(m_window_title_stack.back());
                         m_window_title_stack.pop_back();
 
                         m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS) |

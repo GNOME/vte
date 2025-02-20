@@ -60,6 +60,8 @@
 #include "color.hh"
 
 #include "vtegtk.hh"
+#include "vtepropertiesinternal.hh"
+#include "termpropsregistry.hh"
 #include "vteptyinternal.hh"
 #include "vteregexinternal.hh"
 #include "vteuuidinternal.hh"
@@ -364,17 +366,18 @@ vte_terminal_real_termprops_changed(VteTerminal *terminal,
                                     int n_props) noexcept
 try
 {
-        auto const widget = WIDGET(terminal);
+        auto const registry = vte_get_termprops_registry();
+
         for (auto i = 0; i < n_props; ++i) {
-                auto const info = widget->get_termprop_info(props[i]);
-                g_return_val_if_fail(info, false);
-                if (!info)
+                auto const quark = _vte_properties_registry_get_quark_by_id(registry,
+                                                                            props[i]);
+                if (!quark)
                         continue;
 
                 g_signal_emit(terminal,
                               signals[SIGNAL_TERMPROP_CHANGED],
-                              info->quark(), /* detail */
-                              g_quark_to_string(info->quark()));
+                              quark, // detail
+                              g_quark_to_string(quark));
 
         }
 
@@ -1361,135 +1364,6 @@ catch (...)
         vte::log_exception();
 }
 
-template<>
-constexpr bool check_enum_value<VtePropertyType>(VtePropertyType value) noexcept
-{
-        switch (value) {
-        case VTE_PROPERTY_VALUELESS:
-        case VTE_PROPERTY_BOOL:
-        case VTE_PROPERTY_INT:
-        case VTE_PROPERTY_UINT:
-        case VTE_PROPERTY_DOUBLE:
-        case VTE_PROPERTY_RGB:
-        case VTE_PROPERTY_RGBA:
-        case VTE_PROPERTY_STRING:
-        case VTE_PROPERTY_DATA:
-        case VTE_PROPERTY_UUID:
-                return true;
-
-                // These are not installable via the public API
-        case VTE_PROPERTY_URI:
-        case VTE_PROPERTY_IMAGE:
-                return false;
-
-        default:
-                return false;
-        }
-}
-
-static bool
-check_termprop_wellknown(char const* name,
-                         vte::terminal::TermpropType* type,
-                         vte::terminal::TermpropFlags* flags) noexcept
-{
-#if 0 // remove this when adding the first well-known termprop
-        static constinit struct {
-                char const* name;
-                vte::terminal::TermpropType type;
-                vte::terminal::TermpropFlags flags;
-        } const well_known_termprops[] = {
-        };
-
-        for (auto i = 0u; i < G_N_ELEMENTS(well_known_termprops); ++i) {
-                auto const* wkt = &well_known_termprops[i];
-                if (!g_str_equal(name, wkt->name))
-                        continue;
-
-                if (type)
-                        *type = wkt->type;
-                if (flags)
-                        *flags = wkt->flags;
-                return true;
-        }
-#endif // 0
-
-        return false;
-}
-
-static char const*
-check_termprop_wellknown_alias(char const* name)
-{
-#if 0 // remove this when adding the first well-known alias
-        static constinit struct {
-                char const* name;
-                char const* target_name;
-        } const well_known_termprop_aliases[] = {
-        };
-
-        for (auto i = 0u; i < G_N_ELEMENTS(well_known_termprop_aliases); ++i) {
-                auto const* wkta = &well_known_termprop_aliases[i];
-                if (!g_str_equal(name, wkta->name))
-                        continue;
-
-                return wkta->target_name;
-        }
-#endif // 0
-
-        return nullptr;
-}
-
-static bool
-check_termprop_blocklisted(char const* name) noexcept
-{
-#if 0 // remove this when adding the first blocked name
-        // blocked termprop names
-        static constinit char const* blocked_names[] = {
-        };
-        for (auto i = 0u; i < G_N_ELEMENTS(blocked_names); ++i) {
-                if (g_str_equal(name, blocked_names[i])) [[unlikely]]
-                        return true;
-        }
-#endif
-
-        return false;
-}
-
-static bool
-check_termprop_blocklisted_alias(char const* name) noexcept
-{
-#if 0 // remove this when adding the first blocked alias
-        // blocked termprop names
-        static constinit char const* blocked_aliases[] = {
-        };
-        for (auto i = 0u; i < G_N_ELEMENTS(blocked_aliases); ++i) {
-                if (g_str_equal(name, blocked_aliases[i])) [[unlikely]]
-                        return true;
-        }
-#endif // 0
-
-        return false;
-}
-
-static int
-_vte_install_termprop(char const* name,
-                      vte::terminal::TermpropType type,
-                      vte::terminal::TermpropFlags flags) noexcept
-try
-{
-        g_return_val_if_fail(vte::terminal::validate_termprop_name(name, 2), -1);
-        g_return_val_if_fail(!vte::terminal::get_termprop_info(name), -1);
-
-        return vte::terminal::register_termprop(name,
-                                                g_quark_from_string(name),
-                                                type,
-                                                flags);
-}
-catch (...)
-{
-        vte::log_exception();
-        return -1;
-}
-
 static void
 vte_terminal_class_init(VteTerminalClass *klass)
 {
@@ -2256,9 +2130,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * The handler may use the vte_terminal_get_termprop_*()
          * functions (and their by-ID variants), to retrieve the value of
-         * any termprop (not just @name), as well as call
-         * vte_terminal_reset_termprop() (and its by-ID variant) to
-         * reset any termprop (not just @name); but it must *not* call *any*
+         * any termprop (not just @name); but it must *not* call *any*
          * other API on @terminal, including API of its parent classes.
          *
          * This signal supports detailed connections, so e.g. subscribing
@@ -3005,81 +2877,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
         gtk_widget_class_set_accessible_role(widget_class, GTK_ACCESSIBLE_ROLE_TERMINAL);
 #endif
 #endif
-
-        // Install built-in termprops
-        {
-                static constinit struct {
-                        char const* name;
-                        vte::terminal::TermpropType type;
-                        vte::terminal::TermpropFlags flags;
-                        int id;
-                } const builtin_termprops[] = {
-                        { VTE_TERMPROP_CURRENT_DIRECTORY_URI,
-                          vte::terminal::TermpropType::URI,
-                          vte::terminal::TermpropFlags::NO_OSC,
-                          VTE_PROPERTY_ID_CURRENT_DIRECTORY_URI },
-                        { VTE_TERMPROP_CURRENT_FILE_URI,
-                          vte::terminal::TermpropType::URI,
-                          vte::terminal::TermpropFlags::NO_OSC,
-                        VTE_PROPERTY_ID_CURRENT_FILE_URI },
-                        { VTE_TERMPROP_XTERM_TITLE,
-                          vte::terminal::TermpropType::STRING,
-                          vte::terminal::TermpropFlags::NO_OSC,
-                          VTE_PROPERTY_ID_XTERM_TITLE },
-                        { VTE_TERMPROP_CONTAINER_NAME,
-                          vte::terminal::TermpropType::STRING,
-                          vte::terminal::TermpropFlags::NONE,
-                          VTE_PROPERTY_ID_CONTAINER_NAME },
-                        { VTE_TERMPROP_CONTAINER_RUNTIME,
-                          vte::terminal::TermpropType::STRING,
-                          vte::terminal::TermpropFlags::NONE,
-                          VTE_PROPERTY_ID_CONTAINER_RUNTIME },
-                        { VTE_TERMPROP_CONTAINER_UID,
-                          vte::terminal::TermpropType::UINT,
-                          vte::terminal::TermpropFlags::NONE,
-                          VTE_PROPERTY_ID_CONTAINER_UID },
-                        { VTE_TERMPROP_SHELL_PRECMD,
-                          vte::terminal::TermpropType::VALUELESS,
-                          vte::terminal::TermpropFlags::NONE,
-                          VTE_PROPERTY_ID_SHELL_PRECMD },
-                        { VTE_TERMPROP_SHELL_PREEXEC,
-                          vte::terminal::TermpropType::VALUELESS,
-                          vte::terminal::TermpropFlags::NONE,
-                          VTE_PROPERTY_ID_SHELL_PREEXEC },
-                        { VTE_TERMPROP_SHELL_POSTEXEC,
-                          vte::terminal::TermpropType::UINT,
-                          vte::terminal::TermpropFlags::EPHEMERAL,
-                          VTE_PROPERTY_ID_SHELL_POSTEXEC },
-                        { VTE_TERMPROP_PROGRESS_HINT,
-                          vte::terminal::TermpropType::INT,
-                          vte::terminal::TermpropFlags::NO_OSC,
-                          VTE_PROPERTY_ID_PROGRESS_HINT },
-                        { VTE_TERMPROP_PROGRESS_VALUE,
-                          vte::terminal::TermpropType::UINT,
-                          vte::terminal::TermpropFlags::NO_OSC,
-                          VTE_PROPERTY_ID_PROGRESS_VALUE },
-                        { VTE_TERMPROP_ICON_COLOR,
-                          vte::terminal::TermpropType::RGB,
-                          vte::terminal::TermpropFlags::NONE,
-                          VTE_PROPERTY_ID_ICON_COLOR },
-                        { VTE_TERMPROP_ICON_IMAGE,
-                          vte::terminal::TermpropType::IMAGE,
-                          vte::terminal::TermpropFlags::NONE,
-                          VTE_PROPERTY_ID_ICON_IMAGE },
-                };
-
-                for (auto i = 0u; i < G_N_ELEMENTS(builtin_termprops); ++i) {
-#if VTE_DEBUG
-                        auto const id =
-#endif
-                        _vte_install_termprop(builtin_termprops[i].name,
-                                              builtin_termprops[i].type,
-                                              builtin_termprops[i].flags);
-#if VTE_DEBUG
-                        vte_assert_cmpint(id, ==,  builtin_termprops[i].id);
-#endif
-                }
-        }
 }
 
 /* public API */
@@ -3317,65 +3114,16 @@ int
 vte_install_termprop(char const* name,
                      VtePropertyType type,
                      VtePropertyFlags flags) noexcept
-try
 {
         g_return_val_if_fail(name, -1);
-        g_return_val_if_fail(check_enum_value(type), -1);
-        g_return_val_if_fail(flags == VTE_PROPERTY_FLAG_NONE ||
-                             flags == VTE_PROPERTY_FLAG_EPHEMERAL, -1);
-
-        auto const itype = vte::terminal::TermpropType(type);
-        auto const iflags = vte::terminal::TermpropFlags(flags);
-
-        name = g_intern_string(name);
-
-        // Cannot install an existing termprop but with a different type
-        // than the existing one; and installing the termprop with the same
-        // type/flags as before is a no-op.
-        if (auto const info = vte::terminal::get_termprop_info(name)) {
-                if (info->type() != itype ||
-                    info->flags() != iflags) [[unlikely]] {
-                        g_warning("Termprop \"%s\" already installed with different type or flags",
-                                  name);
-                }
-
-                return -1;
-        }
 
         // Cannot install more termprops after a VteTerminal instance has been created.
         g_return_val_if_fail(vte_terminal_class_n_instances == 0, -1);
 
-        auto wkt_type = vte::terminal::TermpropType{};
-        auto wkt_flags = vte::terminal::TermpropFlags{};
-        auto const well_known = check_termprop_wellknown(name, &wkt_type, &wkt_flags);
-
-        // Check type
-        if (well_known && (itype != wkt_type || iflags != wkt_flags)) [[unlikely]] {
-                g_warning("Denying to install well-known termprop \"%s\" with incorrect type or flags", name);
-                return -1;
-        }
-
-        // If not well-known, the name needs to start with "vte.ext."
-        if (!well_known) {
-                g_return_val_if_fail(g_str_has_prefix(name, VTE_TERMPROP_NAME_PREFIX), -1);
-                g_return_val_if_fail(vte::terminal::validate_termprop_name(name, 4), -1);
-        }
-
-        // Name blocklisted?
-        if (check_termprop_blocklisted(name)) {
-                g_warning("Denying to install blocklisted termprop \"%s\"", name);
-                return -1;
-        }
-
-        return vte::terminal::register_termprop(name,
-                                                g_quark_from_string(name),
-                                                itype,
-                                                iflags);
-}
-catch (...)
-{
-        vte::log_exception();
-        return -1;
+        return _vte_properties_registry_install(_vte_get_termprops_registry(),
+                                                g_intern_string(name),
+                                                type,
+                                                flags);
 }
 
 /**
@@ -3393,51 +3141,13 @@ catch (...)
 int
 vte_install_termprop_alias(char const* name,
                            char const* target_name) noexcept
-try
 {
-        g_return_val_if_fail(name, -1);
-        g_return_val_if_fail(target_name, -1);
+        // Cannot install more termprops after a VteTerminal instance has been created.
+        g_return_val_if_fail(vte_terminal_class_n_instances == 0, -1);
 
-        if (check_termprop_wellknown(name, nullptr, nullptr)) {
-                g_warning("Denying to install well-known termprop \"%s\" as an alias", name);
-                return -1;
-        }
-
-        if (check_termprop_blocklisted(name) ||
-            check_termprop_blocklisted_alias(name)) {
-                g_warning("Denying to install blocklisted termprop alias \"%s\"", name);
-                return -1;
-        }
-
-        if (auto const info = vte::terminal::get_termprop_info(name)) {
-                g_warning("Termprop \"%s\" already registered", name);
-                return -1;
-        }
-
-        auto const wk_target = check_termprop_wellknown_alias(name);
-
-        if (wk_target && !g_str_equal(wk_target, target_name)) {
-                g_warning("Denying to install well-known termprop alias \"%s\" to invalid target \"%s\"",
-                          name, target_name);
-                return -1;
-        }
-
-        // If not well-known alias, the name needs to start with "vte.ext."
-        if (!wk_target) {
-                g_return_val_if_fail(g_str_has_prefix(name, VTE_TERMPROP_NAME_PREFIX), -1);
-                g_return_val_if_fail(vte::terminal::validate_termprop_name(name, 4), -1);
-        }
-
-        if (auto const info = vte::terminal::get_termprop_info(target_name)) {
-                return vte::terminal::register_termprop_alias(name, *info);
-        }
-
-        return -1;
-}
-catch (...)
-{
-        vte::log_exception();
-        return -1;
+        return _vte_properties_registry_install_alias(_vte_get_termprops_registry(),
+                                                      name,
+                                                      target_name);
 }
 
 /**
@@ -3453,34 +3163,9 @@ catch (...)
  */
 char const**
 vte_get_termprops(gsize* length) noexcept
-try
 {
-        auto const n_termprops = vte::terminal::n_registered_termprops();
-        auto strv = vte::glib::take_free_ptr(g_try_new0(char*, n_termprops + 1));
-        if (!strv || !n_termprops) {
-                if (length)
-                        *length = 0;
-                return nullptr;
-        }
-
-        auto i = 0;
-        for (auto const& info : vte::terminal::s_registered_termprops) {
-                strv.get()[i++] = const_cast<char*>(g_quark_to_string(info.quark()));
-        }
-        strv.get()[i] = nullptr;
-        vte_assert_cmpint(i, ==, int(n_termprops));
-
-        if (length)
-                *length = i;
-
-        return const_cast<char const**>(strv.release());
-}
-catch (...)
-{
-        vte::log_exception();
-        if (length)
-                *length = 0;
-        return nullptr;
+        return vte_properties_registry_get_properties(vte_get_termprops_registry(),
+                                                      length);
 }
 
 /**
@@ -3508,28 +3193,13 @@ vte_query_termprop(char const* name,
                    int* prop,
                    VtePropertyType* type,
                    VtePropertyFlags* flags) noexcept
-try
 {
-        g_return_val_if_fail(vte::terminal::validate_termprop_name(name), false);
-
-        if (auto const info = vte::terminal::get_termprop_info(name)) {
-                if (resolved_name)
-                        *resolved_name = g_quark_to_string(info->quark());
-                if (prop)
-                        *prop = info->id();
-                if (type)
-                        *type = VtePropertyType(info->type());
-                if (flags)
-                        *flags = VtePropertyFlags(info->flags());
-                return true;
-        }
-
-        return false;
-}
-catch (...)
-{
-        vte::log_exception();
-        return false;
+        return vte_properties_registry_query(vte_get_termprops_registry(),
+                                             name,
+                                             resolved_name,
+                                             prop,
+                                             type,
+                                             flags);
 }
 
 /**
@@ -3555,26 +3225,12 @@ vte_query_termprop_by_id(int prop,
                          char const** name,
                          VtePropertyType* type,
                          VtePropertyFlags* flags) noexcept
-try
 {
-        g_return_val_if_fail(prop >= 0, false);
-
-        if (auto const info = vte::terminal::get_termprop_info(prop)) {
-                if (name)
-                        *name = g_quark_to_string(info->quark());
-                if (type)
-                        *type = VtePropertyType(info->type());
-                if (flags)
-                        *flags = VtePropertyFlags(info->flags());
-                return true;
-        }
-
-        return false;
-}
-catch (...)
-{
-        vte::log_exception();
-        return false;
+        return vte_properties_registry_query_by_id(vte_get_termprops_registry(),
+                                                   prop,
+                                                   name,
+                                                   type,
+                                                   flags);
 }
 
 /**
@@ -6395,26 +6051,11 @@ catch (...)
  */
 const char *
 vte_terminal_get_current_directory_uri(VteTerminal *terminal) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info(VTE_PROPERTY_ID_CURRENT_DIRECTORY_URI);
-        g_return_val_if_fail(info, nullptr);
-
-        if (auto const value = widget->get_termprop(*info);
-            value &&
-            std::holds_alternative<vte::terminal::TermpropURIValue>(*value)) {
-                return std::get<vte::terminal::TermpropURIValue>(*value).second.c_str();
-        }
-
-        return nullptr;
-}
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
+        return _vte_properties_get_property_uri_string_by_id(vte_terminal_get_termprops(terminal),
+                                                             VTE_PROPERTY_ID_CURRENT_DIRECTORY_URI);
 }
 
 /**
@@ -6429,26 +6070,11 @@ catch (...)
  */
 const char *
 vte_terminal_get_current_file_uri(VteTerminal *terminal) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info(VTE_PROPERTY_ID_CURRENT_FILE_URI);
-        g_return_val_if_fail(info, nullptr);
-
-        if (auto const value = widget->get_termprop(*info);
-            value &&
-            std::holds_alternative<vte::terminal::TermpropURIValue>(*value)) {
-                return std::get<vte::terminal::TermpropURIValue>(*value).second.c_str();
-        }
-
-        return nullptr;
-}
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
+        return _vte_properties_get_property_uri_string_by_id(vte_terminal_get_termprops(terminal),
+                                                             VTE_PROPERTY_ID_CURRENT_FILE_URI);
 }
 
 /**
@@ -8432,38 +8058,12 @@ gboolean
 vte_terminal_get_termprop_bool_by_id(VteTerminal* terminal,
                                      int prop,
                                      gboolean *valuep) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
-        g_return_val_if_fail(prop >= 0, false);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info) {
-                if (valuep) [[likely]]
-                        *valuep = false;
-                return false;
-        }
-
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::BOOL, false);
-
-        auto const value = widget->get_termprop(*info);
-        if (value &&
-            std::holds_alternative<bool>(*value)) {
-                if (valuep) [[likely]]
-                        *valuep = std::get<bool>(*value);
-                return true;
-        }
-
-        return false;
-}
-catch (...)
-{
-        vte::log_exception();
-
-        if (valuep) [[likely]]
-                *valuep = false;
-        return false;
+        return vte_properties_get_property_bool_by_id(vte_terminal_get_termprops(terminal),
+                                                      prop,
+                                                      valuep);
 }
 
 /**
@@ -8484,11 +8084,11 @@ vte_terminal_get_termprop_bool(VteTerminal* terminal,
                                char const* prop,
                                gboolean *valuep) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, false);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
 
-        return vte_terminal_get_termprop_bool_by_id(terminal,
-                                                    vte::terminal::get_termprop_id(prop),
-                                                    valuep);
+        return vte_properties_get_property_bool(vte_terminal_get_termprops(terminal),
+                                                prop,
+                                                valuep);
 }
 
 /**
@@ -8508,38 +8108,12 @@ gboolean
 vte_terminal_get_termprop_int_by_id(VteTerminal* terminal,
                                     int prop,
                                     int64_t *valuep) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
-        g_return_val_if_fail(prop >= 0, false);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info) {
-                if (valuep) [[likely]]
-                        *valuep = 0;
-                return false;
-        }
-
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::INT, false);
-
-        auto const value = widget->get_termprop(*info);
-        if (value &&
-            std::holds_alternative<int64_t>(*value)) {
-                if (valuep) [[likely]]
-                        *valuep = std::get<int64_t>(*value);
-                return true;
-        }
-
-        return false;
-}
-catch (...)
-{
-        vte::log_exception();
-
-        if (valuep) [[likely]]
-                *valuep = 0;
-        return false;
+        return vte_properties_get_property_int_by_id(vte_terminal_get_termprops(terminal),
+                                                     prop,
+                                                     valuep);
 }
 
 /**
@@ -8565,12 +8139,13 @@ vte_terminal_get_termprop_int(VteTerminal* terminal,
                               char const* prop,
                               int64_t *valuep) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, false);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
 
-        return vte_terminal_get_termprop_int_by_id(terminal,
-                                                   vte::terminal::get_termprop_id(prop),
-                                                   valuep);
+        return vte_properties_get_property_int(vte_terminal_get_termprops(terminal),
+                                               prop,
+                                               valuep);
 }
+
 
 /**
  * vte_terminal_get_termprop_uint_by_id:
@@ -8589,38 +8164,12 @@ gboolean
 vte_terminal_get_termprop_uint_by_id(VteTerminal* terminal,
                                      int prop,
                                      uint64_t *valuep) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
-        g_return_val_if_fail(prop >= 0, false);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info) {
-                if (valuep) [[likely]]
-                        *valuep = 0;
-                return false;
-        }
-
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::UINT, false);
-
-        auto const value = widget->get_termprop(*info);
-        if (value &&
-            std::holds_alternative<uint64_t>(*value)) {
-                if (valuep) [[likely]]
-                        *valuep = std::get<uint64_t>(*value);
-                return true;
-        }
-
-        return false;
-}
-catch (...)
-{
-        vte::log_exception();
-
-        if (valuep) [[likely]]
-                *valuep = 0;
-        return false;
+        return vte_properties_get_property_uint_by_id(vte_terminal_get_termprops(terminal),
+                                                      prop,
+                                                      valuep);
 }
 
 /**
@@ -8646,11 +8195,11 @@ vte_terminal_get_termprop_uint(VteTerminal* terminal,
                                char const* prop,
                                uint64_t *valuep) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, false);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
 
-        return vte_terminal_get_termprop_uint_by_id(terminal,
-                                                    vte::terminal::get_termprop_id(prop),
-                                                    valuep);
+        return vte_properties_get_property_uint(vte_terminal_get_termprops(terminal),
+                                                prop,
+                                                valuep);
 }
 
 /**
@@ -8670,38 +8219,12 @@ gboolean
 vte_terminal_get_termprop_double_by_id(VteTerminal* terminal,
                                        int prop,
                                        double* valuep) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
-        g_return_val_if_fail(prop >= 0, false);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info) {
-                if (valuep) [[likely]]
-                        *valuep = 0.0;
-                return false;
-        }
-
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::DOUBLE, false);
-
-        auto const value = widget->get_termprop(*info);
-        if (value &&
-            std::holds_alternative<double>(*value)) {
-                if (valuep) [[likely]]
-                        *valuep = std::get<double>(*value);
-                return true;
-        }
-
-        return false;
-}
-catch (...)
-{
-        vte::log_exception();
-
-        if (valuep) [[likely]]
-                *valuep = 0.0;
-        return false;
+        return vte_properties_get_property_double_by_id(vte_terminal_get_termprops(terminal),
+                                                        prop,
+                                                        valuep);
 }
 
 /**
@@ -8723,11 +8246,11 @@ vte_terminal_get_termprop_double(VteTerminal* terminal,
                                  char const* prop,
                                  double* valuep) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, false);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
 
-        return vte_terminal_get_termprop_double_by_id(terminal,
-                                                      vte::terminal::get_termprop_id(prop),
-                                                      valuep);
+        return vte_properties_get_property_double(vte_terminal_get_termprops(terminal),
+                                                  prop,
+                                                  valuep);
 }
 
 /**
@@ -8747,39 +8270,12 @@ gboolean
 vte_terminal_get_termprop_rgba_by_id(VteTerminal* terminal,
                                      int prop,
                                      GdkRGBA* color) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
-        g_return_val_if_fail(prop >= 0, false);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info)
-                return false;
-
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::RGB ||
-                             info->type() == vte::terminal::TermpropType::RGBA, false);
-
-        auto const value = widget->get_termprop(*info);
-        if (value &&
-            std::holds_alternative<vte::terminal::termprop_rgba>(*value)) {
-                if (color) [[likely]] {
-                        auto const& c = std::get<vte::terminal::termprop_rgba>(*value);
-                        *color = GdkRGBA{c.red(), c.green(), c.blue(), c.alpha()};
-                }
-                return true;
-        }
-
-        if (color) [[likely]]
-                *color = GdkRGBA{0., 0., 0., 1.};
-        return false;
-}
-catch (...)
-{
-        vte::log_exception();
-        if (color) [[likely]]
-                *color = GdkRGBA{0., 0., 0., 1.};
-        return false;
+        return vte_properties_get_property_rgba_by_id(vte_terminal_get_termprops(terminal),
+                                                      prop,
+                                                      color);
 }
 
 /**
@@ -8801,11 +8297,11 @@ vte_terminal_get_termprop_rgba(VteTerminal* terminal,
                                char const* prop,
                                GdkRGBA* color) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, false);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
 
-        return vte_terminal_get_termprop_rgba_by_id(terminal,
-                                                    vte::terminal::get_termprop_id(prop),
-                                                    color);
+        return vte_properties_get_property_rgba(vte_terminal_get_termprops(terminal),
+                                                prop,
+                                                color);
 }
 
 /**
@@ -8825,38 +8321,12 @@ char const*
 vte_terminal_get_termprop_string_by_id(VteTerminal* terminal,
                                        int prop,
                                        size_t* size) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
-        g_return_val_if_fail(prop >= 0, nullptr);
 
-        if (size)
-                *size = 0;
-
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info)
-                return nullptr;
-
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::STRING, nullptr);
-
-        auto const value = widget->get_termprop(*info);
-        if (value &&
-            std::holds_alternative<std::string>(*value)) {
-                auto const& str = std::get<std::string>(*value);
-                if (size)
-                        *size = str.size();
-                return str.c_str();
-        }
-
-        return nullptr;
-}
-catch (...)
-{
-        vte::log_exception();
-        if (size)
-               *size = 0;
-        return nullptr;
+        return vte_properties_get_property_string_by_id(vte_terminal_get_termprops(terminal),
+                                                        prop,
+                                                        size);
 }
 
 /**
@@ -8877,11 +8347,11 @@ vte_terminal_get_termprop_string(VteTerminal* terminal,
                                  char const* prop,
                                  size_t* size) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, nullptr);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        return vte_terminal_get_termprop_string_by_id(terminal,
-                                                      vte::terminal::get_termprop_id(prop),
-                                                      size);
+        return vte_properties_get_property_string(vte_terminal_get_termprops(terminal),
+                                                  prop,
+                                                  size);
 }
 
 /**
@@ -8901,35 +8371,12 @@ char*
 vte_terminal_dup_termprop_string_by_id(VteTerminal* terminal,
                                        int prop,
                                        size_t* size) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
-        g_return_val_if_fail(prop >= 0, nullptr);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info)
-                return nullptr;
-
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::STRING, nullptr);
-
-        auto const value = widget->get_termprop(*info);
-        if (value &&
-            std::holds_alternative<std::string>(*value)) {
-                auto const& str = std::get<std::string>(*value);
-                if (size)
-                        *size = str.size();
-                return g_strndup(str.c_str(), str.size());
-        }
-
-        return nullptr;
-}
-catch (...)
-{
-        vte::log_exception();
-        if (size)
-               *size = 0;
-        return nullptr;
+        return vte_properties_dup_property_string_by_id(vte_terminal_get_termprops(terminal),
+                                                        prop,
+                                                        size);
 }
 
 /**
@@ -8950,11 +8397,11 @@ vte_terminal_dup_termprop_string(VteTerminal* terminal,
                                  char const* prop,
                                  size_t* size) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, nullptr);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        return vte_terminal_dup_termprop_string_by_id(terminal,
-                                                      vte::terminal::get_termprop_id(prop),
-                                                      size);
+        return vte_properties_dup_property_string(vte_terminal_get_termprops(terminal),
+                                                  prop,
+                                                  size);
 }
 
 /**
@@ -8974,36 +8421,12 @@ uint8_t const*
 vte_terminal_get_termprop_data_by_id(VteTerminal* terminal,
                                      int prop,
                                      size_t* size) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
-        g_return_val_if_fail(prop >= 0, nullptr);
-        g_return_val_if_fail(size != nullptr, nullptr);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info)
-                return nullptr;
-
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::DATA, nullptr);
-
-        auto const value = widget->get_termprop(*info);
-        if (value &&
-            std::holds_alternative<std::string>(*value)) {
-                auto const& str = std::get<std::string>(*value);
-                *size = str.size();
-                return reinterpret_cast<uint8_t const*>(str.data());
-        }
-
-        *size = 0;
-        return nullptr;
-
-}
-catch (...)
-{
-        vte::log_exception();
-        *size = 0;
-        return nullptr;
+        return vte_properties_get_property_data_by_id(vte_terminal_get_termprops(terminal),
+                                                      prop,
+                                                      size);
 }
 
 /**
@@ -9024,11 +8447,11 @@ vte_terminal_get_termprop_data(VteTerminal* terminal,
                                char const* prop,
                                size_t* size) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, nullptr);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        return vte_terminal_get_termprop_data_by_id(terminal,
-                                                    vte::terminal::get_termprop_id(prop),
-                                                    size);
+        return vte_properties_get_property_data(vte_terminal_get_termprops(terminal),
+                                                prop,
+                                                size);
 }
 
 /**
@@ -9046,32 +8469,13 @@ vte_terminal_get_termprop_data(VteTerminal* terminal,
 GBytes*
 vte_terminal_ref_termprop_data_bytes_by_id(VteTerminal* terminal,
                                            int prop) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
-        g_return_val_if_fail(prop >= 0, nullptr);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info)
-                return nullptr;
-
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::DATA, nullptr);
-
-        auto const value = widget->get_termprop(*info);
-        if (value &&
-            std::holds_alternative<std::string>(*value)) {
-                auto const& str = std::get<std::string>(*value);
-                return g_bytes_new(str.data(), str.size());
-        }
-
-        return nullptr;
+        return vte_properties_ref_property_data_bytes_by_id(vte_terminal_get_termprops(terminal),
+                                                            prop);
 }
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
-}
+
 
 /**
  * vte_terminal_ref_termprop_data_bytes:
@@ -9089,10 +8493,10 @@ GBytes*
 vte_terminal_ref_termprop_data_bytes(VteTerminal* terminal,
                                      char const* prop) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, nullptr);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        return vte_terminal_ref_termprop_data_bytes_by_id(terminal,
-                                                          vte::terminal::get_termprop_id(prop));
+        return vte_properties_ref_property_data_bytes(vte_terminal_get_termprops(terminal),
+                                                      prop);
 }
 
 /**
@@ -9110,30 +8514,11 @@ vte_terminal_ref_termprop_data_bytes(VteTerminal* terminal,
 VteUuid*
 vte_terminal_dup_termprop_uuid_by_id(VteTerminal* terminal,
                                      int prop) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
-        g_return_val_if_fail(prop >= 0, nullptr);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info)
-                return nullptr;
-
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::DATA, nullptr);
-
-        auto const value = widget->get_termprop(*info);
-        if (value &&
-            std::holds_alternative<vte::uuid>(*value)) {
-                return _vte_uuid_new_from_uuid(std::get<vte::uuid>(*value));
-        }
-
-        return nullptr;
-}
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
+        return vte_properties_dup_property_uuid_by_id(vte_terminal_get_termprops(terminal),
+                                                      prop);
 }
 
 /**
@@ -9152,10 +8537,10 @@ VteUuid*
 vte_terminal_dup_termprop_uuid(VteTerminal* terminal,
                                char const* prop) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, nullptr);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        return vte_terminal_dup_termprop_uuid_by_id(terminal,
-                                                    vte::terminal::get_termprop_id(prop));
+        return vte_properties_dup_property_uuid(vte_terminal_get_termprops(terminal),
+                                                prop);
 }
 
 /**
@@ -9173,30 +8558,11 @@ vte_terminal_dup_termprop_uuid(VteTerminal* terminal,
 GUri*
 vte_terminal_ref_termprop_uri_by_id(VteTerminal* terminal,
                                     int prop) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
-        g_return_val_if_fail(prop >= 0, nullptr);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info)
-                return nullptr;
-
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::URI, nullptr);
-
-        auto const value = widget->get_termprop(*info);
-        if (value &&
-            std::holds_alternative<vte::terminal::TermpropURIValue>(*value)) {
-                return g_uri_ref(std::get<vte::terminal::TermpropURIValue>(*value).first.get());
-        }
-
-        return nullptr;
-}
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
+        return vte_properties_ref_property_uri_by_id(vte_terminal_get_termprops(terminal),
+                                                     prop);
 }
 
 /**
@@ -9215,10 +8581,10 @@ GUri*
 vte_terminal_ref_termprop_uri(VteTerminal* terminal,
                               char const* prop) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, nullptr);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        return vte_terminal_ref_termprop_uri_by_id(terminal,
-                                                   vte::terminal::get_termprop_id(prop));
+        return vte_properties_ref_property_uri(vte_terminal_get_termprops(terminal),
+                                               prop);
 }
 
 /**
@@ -9236,30 +8602,11 @@ vte_terminal_ref_termprop_uri(VteTerminal* terminal,
 cairo_surface_t*
 vte_terminal_ref_termprop_image_surface_by_id(VteTerminal* terminal,
                                               int prop) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
-        g_return_val_if_fail(prop >= 0, nullptr);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info)
-                return nullptr;
-
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::IMAGE, nullptr);
-
-        auto const value = widget->get_termprop(*info);
-        if (value &&
-            std::holds_alternative<vte::Freeable<cairo_surface_t>>(*value)) {
-                return cairo_surface_reference(std::get<vte::Freeable<cairo_surface_t>>(*value).get());
-        }
-
-        return nullptr;
-}
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
+        return vte_properties_ref_property_image_surface_by_id(vte_terminal_get_termprops(terminal),
+                                                               prop);
 }
 
 /**
@@ -9284,10 +8631,10 @@ cairo_surface_t*
 vte_terminal_ref_termprop_image_surface(VteTerminal* terminal,
                                         char const* prop) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, nullptr);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        return vte_terminal_ref_termprop_image_surface_by_id(terminal,
-                                                             vte::terminal::get_termprop_id(prop));
+        return vte_properties_ref_property_image_surface(vte_terminal_get_termprops(terminal),
+                                                         prop);
 }
 
 #if VTE_GTK == 3
@@ -9307,36 +8654,11 @@ vte_terminal_ref_termprop_image_surface(VteTerminal* terminal,
 GdkPixbuf*
 vte_terminal_ref_termprop_image_pixbuf_by_id(VteTerminal* terminal,
                                              int prop) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
-        g_return_val_if_fail(prop >= 0, nullptr);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info)
-                return nullptr;
-
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::IMAGE, nullptr);
-
-        auto const value = widget->get_termprop(*info);
-        if (value &&
-            std::holds_alternative<vte::Freeable<cairo_surface_t>>(*value)) {
-                auto const surface = std::get<vte::Freeable<cairo_surface_t>>(*value).get();
-                if (cairo_surface_get_type(surface) == CAIRO_SURFACE_TYPE_IMAGE) {
-                        return gdk_pixbuf_get_from_surface(surface,
-                                                           0, 0,
-                                                           cairo_image_surface_get_width(surface),
-                                                           cairo_image_surface_get_height(surface));
-                }
-        }
-
-        return nullptr;
-}
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
+        return vte_properties_ref_property_image_pixbuf_by_id(vte_terminal_get_termprops(terminal),
+                                                              prop);
 }
 
 /**
@@ -9355,53 +8677,13 @@ GdkPixbuf*
 vte_terminal_ref_termprop_image_pixbuf(VteTerminal* terminal,
                                        char const* prop) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, nullptr);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        return vte_terminal_ref_termprop_image_pixbuf_by_id(terminal,
-                                                            vte::terminal::get_termprop_id(prop));
+        return vte_properties_ref_property_image_pixbuf(vte_terminal_get_termprops(terminal),
+                                                        prop);
 }
 
 #elif VTE_GTK == 4
-
-static vte::glib::RefPtr<GdkTexture>
-texture_from_surface(cairo_surface_t* surface)
-{
-        if (cairo_surface_get_type(surface) != CAIRO_SURFACE_TYPE_IMAGE)
-                return nullptr;
-
-        auto const format = cairo_image_surface_get_format(surface);
-        if (format != CAIRO_FORMAT_ARGB32 &&
-            format != CAIRO_FORMAT_RGB24)
-                return nullptr;
-
-        auto const bytes = vte::take_freeable
-                (g_bytes_new_with_free_func(cairo_image_surface_get_data(surface),
-                                            size_t(cairo_image_surface_get_height(surface)) *
-                                            size_t(cairo_image_surface_get_stride(surface)),
-                                            GDestroyNotify(cairo_surface_destroy),
-                                            cairo_surface_reference(surface)));
-
-        auto memory_format = [](auto fmt) constexpr noexcept -> auto
-        {
-                if constexpr (std::endian::native == std::endian::little) {
-                        return fmt == CAIRO_FORMAT_ARGB32
-                                ? GDK_MEMORY_B8G8R8A8_PREMULTIPLIED
-                                : GDK_MEMORY_B8G8R8;
-                } else if constexpr (std::endian::native == std::endian::big) {
-                        return fmt == CAIRO_FORMAT_ARGB32
-                                ? GDK_MEMORY_A8R8G8B8_PREMULTIPLIED
-                                : GDK_MEMORY_R8G8B8;
-                } else {
-                        __builtin_unreachable();
-                }
-        };
-
-        return vte::glib::take_ref(gdk_memory_texture_new(cairo_image_surface_get_width(surface),
-                                                          cairo_image_surface_get_height(surface),
-                                                          memory_format(format),
-                                                          bytes.get(),
-                                                          cairo_image_surface_get_stride(surface)));
-}
 
 /**
  * vte_terminal_ref_termprop_image_texture_by_id:
@@ -9418,31 +8700,11 @@ texture_from_surface(cairo_surface_t* surface)
 GdkTexture*
 vte_terminal_ref_termprop_image_texture_by_id(VteTerminal* terminal,
                                               int prop) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
-        g_return_val_if_fail(prop >= 0, nullptr);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info)
-                return nullptr;
-
-        g_return_val_if_fail(info->type() == vte::terminal::TermpropType::IMAGE, nullptr);
-
-        auto const value = widget->get_termprop(*info);
-        if (value &&
-            std::holds_alternative<vte::Freeable<cairo_surface_t>>(*value)) {
-
-                return texture_from_surface(std::get<vte::Freeable<cairo_surface_t>>(*value).get()).release();
-        }
-
-        return nullptr;
-}
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
+        return vte_properties_ref_property_image_texture_by_id(vte_terminal_get_termprops(terminal),
+                                                               prop);
 }
 
 /**
@@ -9461,10 +8723,10 @@ GdkTexture*
 vte_terminal_ref_termprop_image_texture(VteTerminal* terminal,
                                         char const* prop) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, nullptr);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        return vte_terminal_ref_termprop_image_texture_by_id(terminal,
-                                                             vte::terminal::get_termprop_id(prop));
+        return vte_properties_ref_property_image_texture(vte_terminal_get_termprops(terminal),
+                                                         prop);
 }
 
 #endif /* VTE_GTK == 4 */
@@ -9487,152 +8749,12 @@ gboolean
 vte_terminal_get_termprop_value_by_id(VteTerminal* terminal,
                                       int prop,
                                       GValue* gvalue) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
-        g_return_val_if_fail(prop >= 0, false);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info || info->type() == vte::terminal::TermpropType::VALUELESS)
-                return false;
-
-        auto const value = widget->get_termprop(*info);
-        if (!value)
-                return false;
-
-        auto rv = false;
-
-        switch (info->type()) {
-                using enum vte::terminal::TermpropType;
-        case vte::terminal::TermpropType::VALUELESS:
-                break;
-
-        case vte::terminal::TermpropType::BOOL:
-                if (std::holds_alternative<bool>(*value)) {
-                        rv = true;
-                        if (gvalue) [[likely]] {
-                                g_value_init(gvalue, G_TYPE_BOOLEAN);
-                                g_value_set_boolean(gvalue, std::get<bool>(*value));
-                        }
-                }
-                break;
-
-        case vte::terminal::TermpropType::INT:
-                if (std::holds_alternative<int64_t>(*value)) {
-                        rv = true;
-                        if (gvalue) [[likely]] {
-                                g_value_init(gvalue, G_TYPE_INT64);
-                                g_value_set_int64(gvalue, int64_t(std::get<int64_t>(*value)));
-                        }
-                }
-                break;
-
-        case vte::terminal::TermpropType::UINT:
-                if (std::holds_alternative<uint64_t>(*value)) {
-                        rv = true;
-                        if (gvalue) [[likely]] {
-                                g_value_init(gvalue, G_TYPE_UINT64);
-                                g_value_set_uint64(gvalue, uint64_t(std::get<uint64_t>(*value)));
-                        }
-                }
-                break;
-
-        case vte::terminal::TermpropType::DOUBLE:
-                if (std::holds_alternative<double>(*value)) {
-                        rv = true;
-                        if (gvalue) [[likely]] {
-                                g_value_init(gvalue, G_TYPE_DOUBLE);
-                                g_value_set_double(gvalue, std::get<double>(*value));
-                        }
-                }
-                break;
-
-        case vte::terminal::TermpropType::RGB:
-        case vte::terminal::TermpropType::RGBA:
-#if VTE_GTK == 3
-                if (std::holds_alternative<vte::terminal::termprop_rgba>(*value)) {
-                        rv = true;
-                        if (gvalue) [[likely]] {
-                                auto const& c = std::get<vte::terminal::termprop_rgba>(*value);
-                                auto color = GdkRGBA{c.red(), c.green(), c.blue(), c.alpha()};
-                                g_value_init(gvalue, GDK_TYPE_RGBA);
-                                g_value_set_boxed(gvalue, &color);
-                        }
-                }
-#elif VTE_GTK == 4
-                if (std::holds_alternative<vte::terminal::termprop_rgba>(*value) &&
-                    !gvalue) {
-                        rv = true;
-                }
-#endif // VTE_GTK
-                break;
-
-        case vte::terminal::TermpropType::STRING:
-                if (std::holds_alternative<std::string>(*value)) {
-                        rv = true;
-                        if (gvalue) [[likely]] {
-                                g_value_init(gvalue, G_TYPE_STRING);
-                                g_value_set_string(gvalue, std::get<std::string>(*value).c_str());
-                        }
-                }
-                break;
-
-        case vte::terminal::TermpropType::DATA:
-                if (std::holds_alternative<std::string>(*value)) {
-                        rv = true;
-                        if (gvalue) [[likely]] {
-                                auto const& str = std::get<std::string>(*value);
-                                g_value_init(gvalue, G_TYPE_BYTES);
-                                g_value_take_boxed(gvalue, g_bytes_new(str.data(), str.size()));
-                        }
-                }
-                break;
-
-        case vte::terminal::TermpropType::UUID:
-                if (std::holds_alternative<vte::uuid>(*value)) {
-                        rv = true;
-                        if (gvalue) [[likely]] {
-                                g_value_init(gvalue, VTE_TYPE_UUID);
-                                g_value_take_boxed(gvalue, _vte_uuid_new_from_uuid(std::get<vte::uuid>(*value)));
-                        }
-                }
-                break;
-
-        case vte::terminal::TermpropType::URI:
-                if (std::holds_alternative<vte::terminal::TermpropURIValue>(*value)) {
-                        rv = true;
-                        if (gvalue) [[likely]] {
-                                g_value_init(gvalue, G_TYPE_URI);
-                                g_value_set_boxed(gvalue, std::get<vte::terminal::TermpropURIValue>(*value).first.get());
-                        }
-                }
-                break;
-
-        case vte::terminal::TermpropType::IMAGE:
-                if (std::holds_alternative<vte::Freeable<cairo_surface_t>>(*value)) {
-                        rv = true;
-                        if (gvalue) [[likely]] {
-#if VTE_GTK == 3
-                                g_value_init(gvalue, CAIRO_GOBJECT_TYPE_SURFACE);
-                                g_value_set_boxed(gvalue, std::get<vte::Freeable<cairo_surface_t>>(*value).get());
-#elif VTE_GTK == 4
-                                g_value_init(gvalue, GDK_TYPE_TEXTURE);
-                                g_value_take_boxed(gvalue, texture_from_surface(std::get<vte::Freeable<cairo_surface_t>>(*value).get()).release());
-#endif
-                        }
-                }
-                break;
-        default:
-                __builtin_unreachable(); break;
-        }
-
-        return rv;
-}
-catch (...)
-{
-        vte::log_exception();
-        return false;
+        return vte_properties_get_property_value_by_id(vte_terminal_get_termprops(terminal),
+                                                       prop,
+                                                       gvalue);
 }
 
 /**
@@ -9673,11 +8795,11 @@ vte_terminal_get_termprop_value(VteTerminal* terminal,
                                 char const* prop,
                                 GValue* gvalue) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, false);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
 
-        return vte_terminal_get_termprop_value_by_id(terminal,
-                                                     vte::terminal::get_termprop_id(prop),
-                                                     gvalue);
+        return vte_properties_get_property_value(vte_terminal_get_termprops(terminal),
+                                                 prop,
+                                                 gvalue);
 }
 
 /**
@@ -9695,101 +8817,11 @@ vte_terminal_get_termprop_value(VteTerminal* terminal,
 GVariant*
 vte_terminal_ref_termprop_variant_by_id(VteTerminal* terminal,
                                         int prop) noexcept
-try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
-        g_return_val_if_fail(prop >= 0, nullptr);
 
-        auto const widget = WIDGET(terminal);
-        auto const info = widget->get_termprop_info_checked(prop);
-        if (!info || info->type() == vte::terminal::TermpropType::VALUELESS)
-                return nullptr;
-
-        auto const value = widget->get_termprop(*info);
-        if (!value)
-                return nullptr;
-
-        switch (info->type()) {
-                using enum vte::terminal::TermpropType;
-        case vte::terminal::TermpropType::VALUELESS:
-                return g_variant_new("()");
-
-        case vte::terminal::TermpropType::BOOL:
-                if (std::holds_alternative<bool>(*value)) {
-                        return g_variant_new_boolean(std::get<bool>(*value));
-                }
-                break;
-
-        case vte::terminal::TermpropType::INT:
-                if (std::holds_alternative<int64_t>(*value)) {
-                        return g_variant_new_int64(int64_t(std::get<int64_t>(*value)));
-                }
-                break;
-        case vte::terminal::TermpropType::UINT:
-                if (std::holds_alternative<uint64_t>(*value)) {
-                        return g_variant_new_uint64(uint64_t(std::get<uint64_t>(*value)));
-                }
-                break;
-
-        case vte::terminal::TermpropType::DOUBLE:
-                if (std::holds_alternative<double>(*value)) {
-                        return g_variant_new_double(std::get<double>(*value));
-                }
-                break;
-
-        case vte::terminal::TermpropType::RGB:
-        case vte::terminal::TermpropType::RGBA:
-                if (std::holds_alternative<vte::terminal::termprop_rgba>(*value)) {
-                        auto const& color = std::get<vte::terminal::termprop_rgba>(*value);
-                        return g_variant_new("(ddddv)",
-                                             color.red(),
-                                             color.green(),
-                                             color.blue(),
-                                             color.alpha(),
-                                             g_variant_new_boolean(false)); // placeholder
-                }
-                break;
-
-        case vte::terminal::TermpropType::STRING:
-                if (std::holds_alternative<std::string>(*value)) {
-                        return g_variant_new_string(std::get<std::string>(*value).c_str());
-                }
-                break;
-
-        case vte::terminal::TermpropType::DATA:
-                if (std::holds_alternative<std::string>(*value)) {
-                        auto const& str = std::get<std::string>(*value);
-                        return g_variant_new_fixed_array(G_VARIANT_TYPE("y"),
-                                                         str.data(), str.size(), 1);
-                }
-                break;
-
-        case vte::terminal::TermpropType::UUID:
-                if (std::holds_alternative<vte::uuid>(*value)) {
-                        return g_variant_new_string(std::get<vte::uuid>(*value).str().c_str());
-                }
-                break;
-
-        case vte::terminal::TermpropType::URI:
-                if (std::holds_alternative<vte::terminal::TermpropURIValue>(*value)) {
-                        return g_variant_new_string(std::get<vte::terminal::TermpropURIValue>(*value).second.c_str());
-                }
-                break;
-
-        case vte::terminal::TermpropType::IMAGE:
-                // no variant representation
-                break;
-
-        default:
-                __builtin_unreachable(); break;
-        }
-
-        return nullptr;
-}
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
+        return vte_properties_ref_property_variant_by_id(vte_terminal_get_termprops(terminal),
+                                                         prop);
 }
 
 /**
@@ -9826,8 +8858,193 @@ GVariant*
 vte_terminal_ref_termprop_variant(VteTerminal* terminal,
                                   char const* prop) noexcept
 {
-        g_return_val_if_fail(prop != nullptr, nullptr);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        return vte_terminal_ref_termprop_variant_by_id(terminal,
-                                                       vte::terminal::get_termprop_id(prop));
+        return vte_properties_ref_property_variant(vte_terminal_get_termprops(terminal),
+                                                   prop);
+}
+
+/**
+ * vte_terminal_get_termprop_enum_by_id:
+ * @terminal: a #VteTerminal
+ * @prop: a property ID of a %VTE_PROPERTY_STRING property
+ * @gtype: a #GType of an enum type
+ * @valuep: (out) (optional): a location to store the value, or %NULL
+ *
+ * Like vte_terminal_get_termprop_enum() except that it takes the property
+ * by ID. See that function for more information.
+ *
+ * Returns: %TRUE iff the property was set and could be parsed a
+ *   a value of enumeration type @type
+ *
+ * Since: 0.82
+ */
+gboolean
+vte_terminal_get_termprop_enum_by_id(VteTerminal* terminal,
+                                     int prop,
+                                     GType gtype,
+                                     int64_t* valuep) noexcept
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
+
+        return vte_properties_get_property_enum_by_id(vte_terminal_get_termprops(terminal),
+                                                      prop,
+                                                      gtype,
+                                                      valuep);
+}
+
+/**
+ * vte_terminal_get_termprop_enum:
+ * @terminal: a #VteTerminal
+ * @prop: a property name of a %VTE_PROPERTY_STRING property
+ * @gtype: a #GType of an enum type
+ * @valuep: (out) (optional): a location to store the value, or %NULL
+ *
+ * See vte_properties_get_property_enum() for more information.
+ *
+ * Returns: %TRUE iff the property was set and could be parsed a
+ *   a value of the enumeration type
+ *
+ * Since: 0.82
+ */
+gboolean
+vte_terminal_get_termprop_enum(VteTerminal* terminal,
+                               char const* prop,
+                               GType gtype,
+                               int64_t* valuep) noexcept
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
+
+        return vte_properties_get_property_enum(vte_terminal_get_termprops(terminal),
+                                                prop,
+                                                gtype,
+                                                valuep);
+}
+
+/**
+ * vte_terminal_get_termprop_flags_by_id:
+ * @terminal: a #VteTerminal
+ * @gtype: a #GType of a flags type
+ * @ignore_unknown_flags: whether to ignore unknown flags
+ * @valuep: (out) (optional): a location to store the value, or %NULL
+ *
+ * Like vte_terminal_get_termprop_flags() except that it takes the property
+ * by ID. See that function for more information.
+ *
+ * Returns: %TRUE iff the property was set and could be parsed a
+ *   a value of flags type @type
+ *
+ * Since: 0.82
+ */
+gboolean
+vte_terminal_get_termprop_flags_by_id(VteTerminal* terminal,
+                                      int prop,
+                                      GType gtype,
+                                      gboolean ignore_unknown_flags,
+                                      uint64_t* valuep) noexcept
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
+
+        return vte_properties_get_property_flags_by_id(vte_terminal_get_termprops(terminal),
+                                                       prop,
+                                                       gtype,
+                                                       ignore_unknown_flags,
+                                                       valuep);
+}
+
+/**
+ * vte_terminal_get_termprop_flags:
+ * @terminal: a #VteTerminal
+ * @gtype: a #GType of a flags type
+ * @ignore_unknown_flags: whether to ignore unknown flags
+ * @valuep: (out) (optional): a location to store the value, or %NULL
+ *
+ * See vte_properties_get_property_flags() for more information.
+ *
+ * Returns: %TRUE iff the property was set and could be parsed a
+ *   a value of the flags type
+ *
+ * Since: 0.82
+ */
+gboolean
+vte_terminal_get_termprop_flags(VteTerminal* terminal,
+                                char const* prop,
+                                GType gtype,
+                                gboolean ignore_unknown_flags,
+                                uint64_t* valuep) noexcept
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
+
+        return vte_properties_get_property_flags(vte_terminal_get_termprops(terminal),
+                                                 prop,
+                                                 gtype,
+                                                 ignore_unknown_flags,
+                                                 valuep);
+}
+
+/**
+ * vte_get_termprops_registry:
+ *
+ * Returns the #VtePropertiesRegistry of the terminal's
+ *   termprops.
+ *
+ * Returns: (transfer none): a #VtePropertiesRegistry
+ *
+ * Since: 0.82
+ */
+VtePropertiesRegistry const*
+vte_get_termprops_registry(void) noexcept
+try
+{
+        return _vte_facade_wrap_pr(vte::terminal::termprops_registry());
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/*
+ * _vte_get_termprops_registry:
+ *
+ * Returns the #VtePropertiesRegistry of the terminal's
+ *   termprops (non-const version)
+ *
+ * Returns: (transfer none): a #VtePropertiesRegistry
+ */
+VtePropertiesRegistry*
+_vte_get_termprops_registry(void) noexcept
+try
+{
+        return _vte_facade_wrap_pr(vte::terminal::termprops_registry());
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
+ * vte_terminal_get_termprops:
+ * @terminal: a #VteTerminal
+ *
+ * Returns the #VteProperties containing the value of the terminal's
+ *   termprops.
+ *
+ * Returns: (transfer none): a #VteProperties
+ *
+ * Since: 0.82
+ */
+VteProperties const*
+vte_terminal_get_termprops(VteTerminal* terminal) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
+
+        return _vte_facade_wrap_pr(WIDGET(terminal)->termprops());
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
 }

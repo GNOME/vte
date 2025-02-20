@@ -44,7 +44,7 @@ inline uuid_v3_t uuid_v3{};
 inline uuid_v4_t uuid_v4{};
 inline uuid_v5_t uuid_v5{};
 
-class uuid {
+class alignas(uint32_t) uuid {
 public:
         enum class format {
                 // A string representation of the form

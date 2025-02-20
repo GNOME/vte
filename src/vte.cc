@@ -78,6 +78,7 @@
 #include "vtegtk.hh"
 #include "cxx-utils.hh"
 #include "gobject-glue.hh"
+#include "termpropsregistry.hh"
 
 #if WITH_A11Y
 #if VTE_GTK == 3
@@ -4443,14 +4444,14 @@ Terminal::process_incoming_decsixel(ProcessingContext& context,
                  */
                 if (m_sixel_context->is_matching_controls()) {
                         if (m_sixel_context->id() == vte::sixel::Context::k_termprop_icon_image_id) {
-                                auto const info = get_termprop_info(VTE_PROPERTY_ID_ICON_IMAGE);
+                                auto const info = m_termprops.registry().lookup(VTE_PROPERTY_ID_ICON_IMAGE);
                                 assert(info);
                                 auto const width = m_sixel_context->image_width();
                                 auto const height = m_sixel_context->image_height();
                                 if (width >= 16 && width <= 512 &&
                                     height >= 16 && height <= 512) {
-                                        m_termprops_dirty.at(info->id()) = true;
-                                        m_termprop_values.at(info->id()) = std::move(m_sixel_context->image_cairo());
+                                        m_termprops.dirty(*info) = true;
+                                        *m_termprops.value(*info) = std::move(m_sixel_context->image_cairo());
                                 } else {
                                         reset_termprop(*info);
                                 }
@@ -4468,7 +4469,7 @@ Terminal::process_incoming_decsixel(ProcessingContext& context,
 
         case vte::sixel::Parser::ParseStatus::ABORT: try {
                 if (m_sixel_context->id() == vte::sixel::Context::k_termprop_icon_image_id) {
-                        auto const info = get_termprop_info(VTE_PROPERTY_ID_ICON_IMAGE);
+                        auto const info = m_termprops.registry().lookup(VTE_PROPERTY_ID_ICON_IMAGE);
                         assert(info);
                         reset_termprop(*info);
                         m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
@@ -8366,12 +8367,8 @@ Terminal::Terminal(vte::platform::Widget* w,
         m_normal_screen(VTE_SCROLLBACK_INIT, true),
         m_alternate_screen(VTE_ROWS, false),
         m_screen(&m_normal_screen),
-        m_termprop_values(vte::terminal::n_registered_termprops()),
-        m_termprops_dirty(vte::terminal::n_registered_termprops())
+        m_termprops{termprops_registry()}
 {
-        assert(m_termprop_values.size() == vte::terminal::n_registered_termprops());
-        assert(m_termprops_dirty.size() == vte::terminal::n_registered_termprops());
-
         /* Inits allocation to 1x1 @ -1,-1 */
         cairo_rectangle_int_t allocation;
         gtk_widget_get_allocation(m_widget, &allocation);
@@ -11075,33 +11072,35 @@ Terminal::emit_pending_signals()
 	emit_adjustment_changed();
 
 	if (m_pending_changes & vte::to_integral(PendingChanges::TERMPROPS)) {
-                auto const n_props = m_termprops_dirty.size();
+                auto const n_props = m_termprops.size();
                 auto changed_props = g_newa(int, n_props);
 
                 auto n_changed_props = 0;
                 auto any_ephemeral = false;
                 for (auto i = 0u; i < n_props; ++i) {
-                        if (m_termprops_dirty[i]) {
+                        if (m_termprops.dirty(i)) {
                                 changed_props[n_changed_props++] = int(i);
 
-                                if (unsigned(get_termprop_info(i)->flags()) &
-                                    unsigned(vte::terminal::TermpropFlags::EPHEMERAL)) {
+                                if (unsigned(m_termprops.registry().lookup(i)->flags()) &
+                                    unsigned(vte::property::Flags::EPHEMERAL)) {
                                         any_ephemeral = true;
                                 } else {
-                                        m_termprops_dirty[i] = false;
+                                        m_termprops.dirty(i) = false;
                                 }
                         }
                 }
 
+                m_termprops.set_ephemeral_values_observable(true);
                 widget()->notify_termprops_changed(changed_props, n_changed_props);
+                m_termprops.set_ephemeral_values_observable(false);
 
                 // If there was (at least) an epehmeral termprop in this set,
                 // reset its value(s).
                 if (any_ephemeral) {
                         for (auto i = 0u; i < n_props; ++i) {
-                                if (m_termprops_dirty[i]) {
-                                        m_termprop_values[i] = {};
-                                        m_termprops_dirty[i] = false;
+                                if (m_termprops.dirty(i)) {
+                                        *m_termprops.value(i) = {};
+                                        m_termprops.dirty(i) = false;
                                 }
                         }
                 }

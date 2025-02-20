@@ -97,3 +97,53 @@ using FreeablePtr = std::unique_ptr<T, FreeablePtrDeleter<T, D, func>>;
   inline constexpr Type& \
   operator^=(Type& lhs, Type rhs) noexcept \
   { return lhs = lhs ^ rhs; }
+
+#define VTE_CXX_DEFINE_FACADE_PR(FType, IType) \
+        static inline FType* \
+        _vte_facade_wrap_pr(IType& ref) noexcept \
+        { \
+                return reinterpret_cast<FType*>(std::addressof(ref)); \
+        } \
+        \
+        static inline FType const* \
+        _vte_facade_wrap_pr(IType const& ref) noexcept \
+        { \
+                return reinterpret_cast<FType const*>(std::addressof(ref)); \
+        } \
+        \
+        static inline IType& \
+        _vte_facade_unwrap_pr(FType* ptr) noexcept \
+        { \
+                return *std::launder(reinterpret_cast<IType*>(ptr));    \
+        } \
+        \
+        static inline IType const& \
+        _vte_facade_unwrap_pr(FType const* ptr) noexcept \
+        { \
+                return *std::launder(reinterpret_cast<IType const*>(ptr));    \
+        }
+
+#define VTE_CXX_DEFINE_FACADE_PP(FType, IType) \
+        static inline FType* \
+        _vte_facade_wrap_pp(IType* ptr) noexcept \
+        { \
+                return reinterpret_cast<FType*>(ptr); \
+        } \
+        \
+        static inline FType const* \
+        _vte_facade_wrap_pp(IType const* ptr) noexcept \
+        { \
+                return reinterpret_cast<FType const*>(ptr); \
+        } \
+        \
+        static inline IType* \
+        _vte_facade_unwrap_pp(FType* ptr) noexcept \
+        { \
+                return std::launder(reinterpret_cast<IType*>(ptr));     \
+        } \
+        \
+        static inline IType const* \
+        _vte_facade_unwrap_pp(FType const* ptr) noexcept \
+        { \
+                return std::launder(reinterpret_cast<IType const*>(ptr));     \
+        }

@@ -38,6 +38,14 @@ class Widget;
 
 } // namespace platform
 
+namespace property {
+
+class Registry;
+class Store;
+class TrackingStore;
+
+} // namespace property
+
 namespace sixel {
 
 class Context;

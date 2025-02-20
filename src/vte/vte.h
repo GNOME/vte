@@ -27,6 +27,7 @@
 
 #include "vteenums.h"
 #include "vteglobals.h"
+#include "vteproperties.h"
 #include "vtepty.h"
 #include "vteregex.h"
 #include "vteterminal.h"
