@@ -180,7 +180,7 @@ systemd_sources = files(
 )
 
 termprop_sources = files(
-  'termprops.hh',
+  'properties.hh',
 )
 
 unicode_width_sources = files(
@@ -846,7 +846,7 @@ test_tabstops = executable(
 )
 
 test_termprops_sources = cairo_glue_sources + color_sources + config_sources + debug_sources + glib_glue_sources + termprop_sources + uuid_sources + files(
-  'termprops-test.cc',
+  'properties-test.cc',
 )
 
 test_termprops = executable(

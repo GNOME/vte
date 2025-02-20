@@ -50,7 +50,7 @@
 #include "parser-glue.hh"
 #include "modes.hh"
 #include "tabstops.hh"
-#include "termprops.hh"
+#include "properties.hh"
 #include "refptr.hh"
 #include "fwd.hh"
 #include "color-palette.hh"

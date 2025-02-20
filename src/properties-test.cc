@@ -15,7 +15,7 @@
 
 #include "config.h"
 
-#include "termprops.hh"
+#include "properties.hh"
 
 #include <cassert>
 #include <string>
