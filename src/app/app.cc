@@ -64,9 +64,13 @@
 #include "refptr.hh"
 #include "vte-glue.hh"
 
-#define VTEAPP_APPLICATION_ID   "org.gnome.Vte.Application"
-#define VTEAPP_APPLICATION_PATH "/org/gnome/Vte/Application"
-
+#if VTE_GTK == 3
+#define VTEAPP_DESKTOP_NAME "org.gnome.Vte.App.Gtk3"
+#define VTEAPP_APPLICATION_ID "org.gnome.Vte.App.Gtk3"
+#elif VTE_GTK == 4
+#define VTEAPP_DESKTOP_NAME "org.gnome.Vte.App.Gtk4"
+#define VTEAPP_APPLICATION_ID   "org.gnome.Vte.App.Gtk4"
+#endif
 /* options */
 
 enum {
@@ -2668,13 +2672,7 @@ taskbar_kde_acquire_view(VteappTaskbar* taskbar)
         g_variant_builder_init(&builder, G_VARIANT_TYPE("(sia{sv})"));
 
         // desktop entry
-        g_variant_builder_add(&builder, "s", "vte-gtk"
-#if VTE_GTK == 3
-                              "3"
-#elif VTE_GTK == 4
-                              "4"
-#endif
-                              "");
+        g_variant_builder_add(&builder, "s", VTEAPP_DESKTOP_NAME);
 
         // capability flags:
         // 0x1 = cancellable
@@ -2718,13 +2716,7 @@ taskbar_unity_update_progress(VteappTaskbar* taskbar)
         // https://wiki.ubuntu.com/Unity/LauncherAPI#Low_level_DBus_API:_com.canonical.Unity.LauncherEntry
         auto builder = GVariantBuilder{};
         g_variant_builder_init(&builder, G_VARIANT_TYPE("(sa{sv})"));
-        g_variant_builder_add(&builder, "s", "application://vte-gtk"
-#if VTE_GTK == 3
-                              "3"
-#elif VTE_GTK == 4
-                              "4"
-#endif
-                              ".desktop");
+        g_variant_builder_add(&builder, "s", "application://" VTEAPP_DESKTOP_NAME ".desktop");
 
         g_variant_builder_open(&builder, G_VARIANT_TYPE("a{sv}"));
 
@@ -4400,13 +4392,13 @@ vteapp_window_realize(GtkWidget* widget)
         if (GDK_IS_X11_WINDOW(win)) {
                 gdk_x11_window_set_utf8_property(win,
                                                  "_KDE_NET_WM_DESKTOP_FILE",
-                                                 "vte-gtk3");
+                                                 VTEAPP_DESKTOP_NAME);
         }
 #elif VTE_GTK == 4
         if (GDK_IS_X11_SURFACE(surface)) {
                 gdk_x11_surface_set_utf8_property(surface,
                                                   "_KDE_NET_WM_DESKTOP_FILE",
-                                                  "vte-gtk4");
+                                                  VTEAPP_DESKTOP_NAME);
         }
 #endif // VTE_GTK
 #endif // GDK_WINDOWING_X11
@@ -4414,11 +4406,13 @@ vteapp_window_realize(GtkWidget* widget)
 #ifdef GDK_WINDOWING_WAYLAND
 #if VTE_GTK == 3
         if (GDK_IS_WAYLAND_WINDOW(win)) {
-                gdk_wayland_window_set_application_id(win, "vte-gtk3");
+                gdk_wayland_window_set_application_id(win,
+                                                      VTEAPP_APPLICATION_ID);
         }
 #elif VTE_GTK == 4
         if (GDK_IS_WAYLAND_TOPLEVEL(surface)) {
-                gdk_wayland_toplevel_set_application_id(GDK_TOPLEVEL(surface), "vte-gtk4");
+                gdk_wayland_toplevel_set_application_id(GDK_TOPLEVEL(surface),
+                                                        VTEAPP_APPLICATION_ID);
         }
 #endif // VTE_GTK
 #endif // GDK_WINDOWING_WAYLAND
