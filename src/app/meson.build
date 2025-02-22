@@ -96,7 +96,7 @@ if get_option('gtk3')
   conf.set('exec', vte_gtk3_api_name)
   conf.set('gtk', '3')
 
-  app_gtk3_desktop_name = 'org.gnome.Vte.App.Gtk3.desktop'
+  app_gtk3_desktop_name = 'vte-gtk3.desktop'
 
   app_gtk3_desktop = configure_file(
     configuration: conf,
@@ -119,7 +119,7 @@ if get_option('gtk4')
   conf.set('exec', vte_gtk4_api_name)
   conf.set('gtk', '4')
 
-  app_gtk4_desktop_name = 'org.gnome.Vte.App.Gtk4.desktop'
+  app_gtk4_desktop_name = 'vte-gtk4.desktop'
 
   app_gtk4_desktop = configure_file(
     configuration: conf,

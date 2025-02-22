@@ -65,12 +65,13 @@
 #include "vte-glue.hh"
 
 #if VTE_GTK == 3
-#define VTEAPP_DESKTOP_NAME "org.gnome.Vte.App.Gtk3"
+#define VTEAPP_DESKTOP_NAME "vte-gtk3"
 #define VTEAPP_APPLICATION_ID "org.gnome.Vte.App.Gtk3"
 #elif VTE_GTK == 4
-#define VTEAPP_DESKTOP_NAME "org.gnome.Vte.App.Gtk4"
-#define VTEAPP_APPLICATION_ID   "org.gnome.Vte.App.Gtk4"
+#define VTEAPP_DESKTOP_NAME "vte-gtk4"
+#define VTEAPP_APPLICATION_ID "org.gnome.Vte.App.Gtk4"
 #endif
+
 /* options */
 
 enum {
