@@ -957,11 +957,15 @@ static void
 vte_terminal_constructed (GObject *object) noexcept
 try
 {
-        VteTerminal *terminal = VTE_TERMINAL (object);
-
         G_OBJECT_CLASS (vte_terminal_parent_class)->constructed (object);
 
+        auto const terminal = VTE_TERMINAL(object);
+
         WIDGET(terminal)->constructed();
+
+#if WITH_A11Y && VTE_GTK == 4
+        _vte_accessible_text_init(GTK_ACCESSIBLE_TEXT(terminal));
+#endif
 }
 catch (...)
 {
@@ -986,10 +990,6 @@ try
 
 #if VTE_GTK == 3
         gtk_widget_set_has_window(&terminal->widget, FALSE);
-#endif
-
-#if WITH_A11Y && VTE_GTK == 4
-        _vte_accessible_text_init (GTK_ACCESSIBLE_TEXT (terminal));
 #endif
 
 	place = vte_terminal_get_instance_private(terminal);
