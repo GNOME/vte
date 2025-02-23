@@ -585,6 +585,29 @@ if not enable_debug
   release_args += ['-DG_DISABLE_ASSERT', '-DG_DISABLE_CAST_CHECKS']
 endif
 
+# Check for excess float precision
+# https://gitlab.gnome.org/GNOME/vte/-/issues/2854
+
+if cxx.compiles('''
+    #include <cfloat>
+    static_assert(FLT_EVAL_METHOD == 2, "no excess");
+    int main(void) { return 0; }
+    ''',
+    args: [
+      cxx_std_opt,
+    ],
+    name: 'excess precision check',
+  )
+
+  fexcess_precision_flags = [
+    '-fexcess-precision=fast',
+    '-ffloat-store',
+  ]
+
+  global_cflags += cxx.get_supported_arguments(fexess_precision_flags)
+  global_cxxflags += cxx.get_supported_arguments(fexess_precision_flags)
+endif
+
 # ... and now make these flags the default
 add_project_arguments(global_cflags, language: 'c')
 add_project_arguments(global_cxxflags, language: 'cpp')
