@@ -75,6 +75,8 @@ test_uuid_string(void)
         g_assert_true(uuid_string_is_valid("6079c6d3-ffe3-42ac-a3cf-7137b101b6ca"));
         g_assert_true(uuid_string_is_valid("{6079c6d3-ffe3-42ac-a3cf-7137b101b6ca}"));
         g_assert_true(uuid_string_is_valid("urn:uuid:6079c6d3-ffe3-42ac-a3cf-7137b101b6ca"));
+        g_assert_true(uuid_string_is_valid("6079c6d3ffe342aca3cf7137b101b6ca", uuid::format::ID128));
+        g_assert_true(uuid_string_is_valid("6079c6d3ffe342aca3cf7137b101b6ca", uuid::format::ANY_ID128));
 
         try {
                 auto u = uuid("00000001-0002-1003-8004-000000000005");
@@ -152,6 +154,9 @@ test_uuid_to_string(void)
 
         str = uuid_namespace_x500.str(uuid::format::URN);
         g_assert_cmpstr(str.c_str(), ==, "urn:uuid:6ba7b814-9dad-11d1-80b4-00c04fd430c8");
+
+        str = uuid_namespace_x500.str(uuid::format::ID128);
+        g_assert_cmpstr(str.c_str(), ==, "6ba7b8149dad11d180b400c04fd430c8");
 
 }
 

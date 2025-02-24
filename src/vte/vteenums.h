@@ -220,6 +220,8 @@ typedef enum {
  * @VTE_UUID_FORMAT_BRACED: braced format
  * @VTE_UUID_FORMAT_URN: urn format
  * @VTE_UUID_FORMAT_ANY: any format of the above
+ * @VTE_UUID_FORMAT_ID128: non-conforming systemd ID128 format. Since: 0.82
+ * @VTE_UUID_FORMAT_ANY_ID128: any format of the above. Since: 0.82
  *
  * An enumeration that specifies the format of a #VteUuid.
  *
@@ -230,6 +232,8 @@ typedef enum /*< flags >*/ {
         VTE_UUID_FORMAT_BRACED = 1u << 1,
         VTE_UUID_FORMAT_URN = 1u << 2,
         VTE_UUID_FORMAT_ANY = 0x7u,
+        VTE_UUID_FORMAT_ID128 = 1u << 3,
+        VTE_UUID_FORMAT_ANY_ID128 = 0xfu,
 } VteUuidFormat;
 
 /**
@@ -338,5 +342,139 @@ typedef enum {
         VTE_PROGRESS_HINT_INDETERMINATE = 3,
         VTE_PROGRESS_HINT_PAUSED = 4,
 } VteProgressHint;
+
+/**
+ * VteSystemdPropertyId:
+ * @VTE_SYSTEMD_PROPERTY_ID_BOOT_ID: the ID of the %VTE_SYSTEMD_PROPERTY_BOOT_ID property
+ * @VTE_SYSTEMD_PROPERTY_ID_COMM: the ID of the %VTE_SYSTEMD_PROPERTY_COMM property
+ * @VTE_SYSTEMD_PROPERTY_ID_COMMAND_LINE: the ID of the %VTE_SYSTEMD_PROPERTY_COMMAND_LINE property
+ * @VTE_SYSTEMD_PROPERTY_ID_CONTAINER: the ID of the %VTE_SYSTEMD_PROPERTY_CONTAINER property
+ * @VTE_SYSTEMD_PROPERTY_ID_CONTEXT_ID: the ID of the %VTE_SYSTEMD_PROPERTY_CONTEXT_ID property
+ * @VTE_SYSTEMD_PROPERTY_ID_CONTEXT_TYPE: the ID of the %VTE_SYSTEMD_PROPERTY_CONTEXT_TYPE property
+ * @VTE_SYSTEMD_PROPERTY_ID_CURRENT_DIRECTORY_URI: the ID of the %VTE_SYSTEMD_PROPERTY_CURRENT_DIRECTORY_URI property
+ * @VTE_SYSTEMD_PROPERTY_ID_EXIT_CONDITION: the ID of the %VTE_SYSTEMD_PROPERTY_EXIT_CONDITION property
+ * @VTE_SYSTEMD_PROPERTY_ID_EXIT_SIGNAL: the ID of the %VTE_SYSTEMD_PROPERTY_EXIT_SIGNAL property
+ * @VTE_SYSTEMD_PROPERTY_ID_EXIT_STATUS: the ID of the %VTE_SYSTEMD_PROPERTY_EXIT_STATUS property
+ * @VTE_SYSTEMD_PROPERTY_ID_HOSTNAME: the ID of the %VTE_SYSTEMD_PROPERTY_HOSTNAME property
+ * @VTE_SYSTEMD_PROPERTY_ID_MACHINE_ID: the ID of the %VTE_SYSTEMD_PROPERTY_MACHINE_ID property
+ * @VTE_SYSTEMD_PROPERTY_ID_PID: the ID of the %VTE_SYSTEMD_PROPERTY_PID property
+ * @VTE_SYSTEMD_PROPERTY_ID_PIDFD_INODE: the ID of the %VTE_SYSTEMD_PROPERTY_PIDFD_INODE property
+ * @VTE_SYSTEMD_PROPERTY_ID_TARGET_HOST: the ID of the %VTE_SYSTEMD_PROPERTY_TARGET_HOST property
+ * @VTE_SYSTEMD_PROPERTY_ID_TARGET_USER: the ID of the %VTE_SYSTEMD_PROPERTY_TARGET_USER property
+ * @VTE_SYSTEMD_PROPERTY_ID_USER: the ID of the %VTE_SYSTEMD_PROPERTY_USER property
+ * @VTE_SYSTEMD_PROPERTY_ID_VM: the ID of the %VTE_SYSTEMD_PROPERTY_VM property
+ *
+ * An enum containing the IDs of the systemd properties.
+ *
+ * Since: 0.82
+ */
+typedef enum {
+        VTE_SYSTEMD_PROPERTY_ID_CONTEXT_ID = 0,
+
+        VTE_SYSTEMD_PROPERTY_ID_BOOT_ID,
+        VTE_SYSTEMD_PROPERTY_ID_COMM,
+        VTE_SYSTEMD_PROPERTY_ID_COMMAND_LINE,
+        VTE_SYSTEMD_PROPERTY_ID_CONTAINER,
+        VTE_SYSTEMD_PROPERTY_ID_CONTEXT_TYPE,
+        VTE_SYSTEMD_PROPERTY_ID_CURRENT_DIRECTORY,
+        VTE_SYSTEMD_PROPERTY_ID_EXIT_CONDITION,
+        VTE_SYSTEMD_PROPERTY_ID_EXIT_SIGNAL,
+        VTE_SYSTEMD_PROPERTY_ID_EXIT_STATUS,
+        VTE_SYSTEMD_PROPERTY_ID_HOSTNAME,
+        VTE_SYSTEMD_PROPERTY_ID_MACHINE_ID,
+        VTE_SYSTEMD_PROPERTY_ID_PID,
+        VTE_SYSTEMD_PROPERTY_ID_PIDFD_INODE,
+        VTE_SYSTEMD_PROPERTY_ID_TARGET_HOST,
+        VTE_SYSTEMD_PROPERTY_ID_TARGET_USER,
+        VTE_SYSTEMD_PROPERTY_ID_USER,
+        VTE_SYSTEMD_PROPERTY_ID_VM,
+} VteSystemdPropertyId;
+
+/**
+ * VteSystemdContextType:
+ * @VTE_SYSTEMD_CONTEXT_TYPE_APP: an interactive program may
+ *  initiate this context.
+ * @VTE_SYSTEMD_CONTEXT_TYPE_BOOT: a booted system initiates this
+ *  context early at boot. (systemd's PID 1 generates this on
+ *  `/dev/console`.)
+ * @VTE_SYSTEMD_CONTEXT_TYPE_CHPRIV: similar to %VTE_SYSTEMD_CONTEXT_ELEVATE,
+ *  but when the user acquired *different* privileges, not necessarily
+ *  higher ones. (`run0` initiates a context of this type whenever
+ *  the user invokes it to acquire non-root privileges of another user.)
+ * @VTE_SYSTEMD_CONTEXT_TYPE_COMMAND: a shell interactively invokes
+ *  a new program.
+ * @VTE_SYSTEMD_CONTEXT_TYPE_CONTAINER: a container manager
+ *  initialized an interactive connection to a container.
+ *  (`systemd-nspawn` generates this when interactively invoking a
+ *  container. `machinectl login`, `machinectl shell` do this too.)
+ * @VTE_SYSTEMD_CONTEXT_TYPE_ELEVATE: when the user interactively
+ *  acquired higher privileges. (`run0` initiates a context of this
+ *  type whenever the user invokes it to acquire root privileges.)
+ * @VTE_SYSTEMD_CONTEXT_TYPE_REMOTE: a user invoked a tool such
+ *  as `ssh` to connect to a remote system.
+ * @VTE_SYSTEMD_CONTEXT_TYPE_SERVICE: the service manager invokes
+ *  an interactive service on the terminal
+ * @VTE_SYSTEMD_CONTEXT_TYPE_SESSION: a login session of the user
+ *  is initialized.
+ * @VTE_SYSTEMD_CONTEXT_TYPE_SHELL: an interactive terminal shell
+ *  initiates this context
+ * @VTE_SYSTEMD_CONTEXT_TYPE_SUBCONTEXT: similar to %VTE_SYSTEMD_CONTEXT_ELEVATE,
+ *  but the source and target privileges were identical.
+ *  (`run0` initiates a context of this type whenever the user
+ *  invokes it to acquire privileges of the user itself.)
+ * @VTE_SYSTEMD_CONTEXT_TYPE_VM: a VMM initialized a terminal connection
+ *  to a VM. (`systemd-vmspawn` generates this when interactively
+ *  invoking a VM, as one example.)
+ *
+ * An enum for the types of systemd contexts.
+ *
+ * Since: 0.82
+ */
+typedef enum {
+        VTE_SYSTEMD_CONTEXT_TYPE_APP = 1,
+        VTE_SYSTEMD_CONTEXT_TYPE_BOOT,
+        VTE_SYSTEMD_CONTEXT_TYPE_CHPRIV,
+        VTE_SYSTEMD_CONTEXT_TYPE_COMMAND,
+        VTE_SYSTEMD_CONTEXT_TYPE_CONTAINER,
+        VTE_SYSTEMD_CONTEXT_TYPE_ELEVATE,
+        VTE_SYSTEMD_CONTEXT_TYPE_REMOTE,
+        VTE_SYSTEMD_CONTEXT_TYPE_SERVICE,
+        VTE_SYSTEMD_CONTEXT_TYPE_SESSION,
+        VTE_SYSTEMD_CONTEXT_TYPE_SHELL,
+        VTE_SYSTEMD_CONTEXT_TYPE_SUBCONTEXT,
+        VTE_SYSTEMD_CONTEXT_TYPE_VM,
+} VteSystemdContextType;
+
+/**
+ * VteSystemdContext:
+ * VTE_SYSTEMD_CONTEXT_OPERATION_START: start a new context
+ * VTE_SYSTEMD_CONTEXT_OPERATION_END: end a context and all subcontexts
+ *
+ * An enum for systemd context operations.
+ *
+ * Since: 0.82
+ */
+typedef enum {
+        VTE_SYSTEMD_CONTEXT_OPERATION_START = 1,
+        VTE_SYSTEMD_CONTEXT_OPERATION_END,
+} VteSystemdContextOperation;
+
+/**
+ * VteSystemdContextExitCondition:
+ * @VTE_SYSTEMD_CONTEXT_EXIT_CONDITION_SUCCESS: success
+ * @VTE_SYSTEMD_CONTEXT_EXIT_CONDITION_CRASH: crash
+ * @VTE_SYSTEMD_CONTEXT_EXIT_CONDITION_FAILURE: failure
+ * @VTE_SYSTEMD_CONTEXT_EXIT_CONDITION_INTERRUPT: interrupted
+ *
+ * An enum showing how the systemd context terminated.
+ *
+ * Since: 0.82
+ */
+typedef enum {
+        VTE_SYSTEMD_CONTEXT_EXIT_CONDITION_SUCCESS = 0,
+        VTE_SYSTEMD_CONTEXT_EXIT_CONDITION_CRASH,
+        VTE_SYSTEMD_CONTEXT_EXIT_CONDITION_FAILURE,
+        VTE_SYSTEMD_CONTEXT_EXIT_CONDITION_INTERRUPT,
+} VteSystemdContextExitCondition;
 
 G_END_DECLS

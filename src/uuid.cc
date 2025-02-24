@@ -85,6 +85,14 @@ uuid::g_str(uuid::format fmt) const
                                                               m_bytes[8], m_bytes[9], m_bytes[10], m_bytes[11],
                                                               m_bytes[12], m_bytes[13], m_bytes[14], m_bytes[15]));
 
+        case ID128:
+                return vte::glib::take_string(g_strdup_printf("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
+                                                              "%02x%02x%02x%02x%02x%02x",
+                                                              m_bytes[0], m_bytes[1], m_bytes[2], m_bytes[3],
+                                                              m_bytes[4], m_bytes[5], m_bytes[6], m_bytes[7],
+                                                              m_bytes[8], m_bytes[9], m_bytes[10], m_bytes[11],
+                                                              m_bytes[12], m_bytes[13], m_bytes[14], m_bytes[15]));
+
         default:
                 __builtin_unreachable();
                 g_assert_not_reached();
@@ -101,6 +109,8 @@ uuid::str(uuid::format fmt) const
 uuid::uuid(std::string_view str,
            uuid::format fmt) // throws
 {
+        auto id128 = false;
+
         if (str.starts_with("urn:uuid:")) {
                 if ((fmt & uuid::format::URN) == uuid::format{})
                         throw std::invalid_argument{"urn form not accepted"};
@@ -115,16 +125,19 @@ uuid::uuid(std::string_view str,
 
                 str.remove_prefix(1);
                 str.remove_suffix(1);
+        } else if ((fmt & uuid::format::ID128) == uuid::format::ID128) {
+                if (str.size() == 32)
+                        id128 = true;
         } else {
                 if ((fmt & uuid::format::SIMPLE) == uuid::format{})
                         throw std::invalid_argument{"simple form not accepted"};
         }
 
-        if (str.size() != 36)
+        if (!id128 && str.size() != 36)
                 throw std::invalid_argument{"Invalid length"};
 
         for (auto i = 0, j = 0; i < 16; ) {
-                if (j == 8 || j == 13 || j == 18 || j == 23) {
+                if (!id128 && (j == 8 || j == 13 || j == 18 || j == 23)) {
                         if (str[j++] != '-')
                                 throw std::invalid_argument{"Invalid character"};
 
@@ -142,6 +155,9 @@ uuid::uuid(std::string_view str,
         }
 
         if (is_nil()) [[unlikely]] // special exception, don't check version/variant
+                return;
+
+        if (id128) // version and variant not set
                 return;
 
         if (auto const v = version(); v == 0 || v > 5) [[unlikely]]
