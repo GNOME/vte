@@ -604,8 +604,8 @@ if cxx.compiles('''
     '-ffloat-store',
   ]
 
-  global_cflags += cc.get_supported_arguments(fexess_precision_flags)
-  global_cxxflags += cxx.get_supported_arguments(fexess_precision_flags)
+  global_cflags += cc.get_supported_arguments(fexcess_precision_flags)
+  global_cxxflags += cxx.get_supported_arguments(fexcess_precision_flags)
 endif
 
 # ... and now make these flags the default
