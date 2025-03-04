@@ -1001,8 +1001,8 @@ test_parser_controls_c1(void)
                 test_parser_insert(context, Mode::SEVENBIT, str, {c1_utf8, 2});
 
                 char c1_raw[1] = {char(c1)};
-                test_parser_insert(context, Mode::EIGHTBIT, str, {c1_raw, 2}, ParseStatus::ABORT);
-                test_parser_insert(context, Mode::SEVENBIT, str, {c1_utf8, 2});
+                test_parser_insert(context, Mode::EIGHTBIT, str, {c1_raw, 1}, ParseStatus::ABORT);
+                test_parser_insert(context, Mode::SEVENBIT, str, {c1_raw, 1});
         }
 }
 
