@@ -2229,7 +2229,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * The handler may set either a menu model using
          * vte_terminal_set_context_menu_model(), or a menu using
          * vte_terminal_set_context_menu(), which will then be used as context
-         * menu.
+         * menu, or keep a previously set context menu or context menu model,
+         * but update the menu and/or its #GAction:s visibility and sensitivity.
          * If neither a menu model nor a menu are set, a context menu
          * will not be shown.
          *
