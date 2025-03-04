@@ -206,19 +206,6 @@ private:
 # define VTE_IMPLEMENT_ACCESSIBLE
 #endif
 
-#if VTE_DEBUG
-G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
-                        {
-                                VteTerminal_private_offset =
-                                        g_type_add_instance_private(g_define_type_id, sizeof(VteTerminalPrivate));
-                        }
-                        g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
-                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, nullptr)
-                        VTE_IMPLEMENT_ACCESSIBLE
-                        if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-                                g_printerr("vte_terminal_get_type()\n");
-                        })
-#else
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                         {
                                 VteTerminal_private_offset =
@@ -227,7 +214,6 @@ G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                         g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
                         G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, nullptr)
                         VTE_IMPLEMENT_ACCESSIBLE)
-#endif
 
 static inline auto
 get_private(VteTerminal* terminal)
@@ -617,8 +603,6 @@ static void
 vte_terminal_realize(GtkWidget *widget) noexcept
 try
 {
-	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_realize()\n");
-
         GTK_WIDGET_CLASS(vte_terminal_parent_class)->realize(widget);
 
         VteTerminal *terminal= VTE_TERMINAL(widget);
@@ -632,8 +616,6 @@ catch (...)
 static void
 vte_terminal_unrealize(GtkWidget *widget) noexcept
 {
-	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unrealize()\n");
-
         try {
                 VteTerminal *terminal = VTE_TERMINAL (widget);
                 WIDGET(terminal)->unrealize();
@@ -648,8 +630,6 @@ static void
 vte_terminal_map(GtkWidget *widget) noexcept
 try
 {
-        _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_map()\n");
-
         VteTerminal *terminal = VTE_TERMINAL(widget);
         GTK_WIDGET_CLASS(vte_terminal_parent_class)->map(widget);
 
@@ -663,8 +643,6 @@ catch (...)
 static void
 vte_terminal_unmap(GtkWidget *widget) noexcept
 {
-        _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unmap()\n");
-
         try {
                 VteTerminal *terminal = VTE_TERMINAL(widget);
                 WIDGET(terminal)->unmap();
@@ -840,8 +818,6 @@ catch (...)
 static void
 vte_terminal_unroot(GtkWidget *widget) noexcept
 {
-        _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unroot()\n");
-
         auto terminal = VTE_TERMINAL(widget);
         WIDGET(terminal)->unroot();
 
@@ -981,8 +957,6 @@ try
         void *place;
 	GtkStyleContext *context;
 
-	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_init()\n");
-
         context = gtk_widget_get_style_context(&terminal->widget);
         gtk_style_context_add_provider (context,
                                         VTE_TERMINAL_GET_CLASS (terminal)->priv->style_provider,
@@ -1007,8 +981,6 @@ catch (...)
 static void
 vte_terminal_dispose(GObject *object) noexcept
 {
-	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_dispose()\n");
-
         try {
                 VteTerminal *terminal = VTE_TERMINAL (object);
                 PRIVATE(terminal)->reset();
@@ -1023,8 +995,6 @@ vte_terminal_dispose(GObject *object) noexcept
 static void
 vte_terminal_finalize(GObject *object) noexcept
 {
-	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_finalize()\n");
-
         auto terminal = VTE_TERMINAL(object);
         PRIVATE(terminal)->~VteTerminalPrivate();
 
@@ -1367,28 +1337,7 @@ catch (...)
 static void
 vte_terminal_class_init(VteTerminalClass *klass)
 {
-#if VTE_DEBUG
-	{
-                _vte_debug_init();
-		_vte_debug_print(VTE_DEBUG_LIFECYCLE,
-                                 "vte_terminal_class_init()\n");
-		/* print out the legend */
-		_vte_debug_print(VTE_DEBUG_WORK,
-                                 "Debugging work flow (top input to bottom output):\n"
-                                 "  .  _vte_terminal_process_incoming\n"
-                                 "  <  start process_timeout\n"
-                                 "  {[ start update_timeout  [ => rate limited\n"
-                                 "  T  start of terminal in update_timeout\n"
-                                 "  (  start _vte_terminal_process_incoming\n"
-                                 "  ?  _vte_invalidate_cells (call)\n"
-                                 "  !  _vte_invalidate_cells (dirty)\n"
-                                 "  *  _vte_invalidate_all\n"
-                                 "  )  end _vte_terminal_process_incoming\n"
-                                 "  =  vte_terminal_paint\n"
-                                 "  ]} end update_timeout\n"
-                                 "  >  end process_timeout\n");
-	}
-#endif
+        _vte_debug_init();
 
 #if VTE_GTK == 3
 	_VTE_DEBUG_IF (VTE_DEBUG_UPDATES) gdk_window_set_debug_updates(TRUE);

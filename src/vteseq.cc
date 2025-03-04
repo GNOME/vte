@@ -10207,10 +10207,6 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 seq.collect(1, {&height, &width});
 
                 if (width != -1 && height != -1) {
-                        _vte_debug_print(VTE_DEBUG_EMULATION,
-                                         "Resizing window to %dx%d pixels, grid size %dx%d.\n",
-                                         width, height,
-                                         width / int(m_cell_height), height / int(m_cell_width));
                         emit_resize_window(width / int(m_cell_height), height / int(m_cell_width));
                 }
                 break;
@@ -10287,9 +10283,6 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 auto gdkscreen = gtk_widget_get_screen(m_widget);
                 int height = gdk_screen_get_height(gdkscreen);
                 int width = gdk_screen_get_width(gdkscreen);
-                _vte_debug_print(VTE_DEBUG_EMULATION,
-                                 "Reporting screen size as %dx%d cells.\n",
-                                 height / int(m_cell_height), width / int(m_cell_width));
 #elif VTE_GTK == 4
                 auto height = int(m_row_count * m_cell_height);
                 auto width = int(m_column_count * m_cell_width);
@@ -10307,9 +10300,6 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                  * http://marc.info/?l=bugtraq&m=104612710031920&w=2
                  * and CVE-2003-0070.
                  */
-                _vte_debug_print(VTE_DEBUG_EMULATION,
-                                 "Reporting empty icon title.\n");
-
                 send(seq, vte::parser::u8SequenceBuilder{VTE_SEQ_OSC, "L"s});
                 break;
 
@@ -10320,9 +10310,6 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                  * http://marc.info/?l=bugtraq&m=104612710031920&w=2
                  * and CVE-2003-0070.
                  */
-                _vte_debug_print(VTE_DEBUG_EMULATION,
-                                 "Reporting empty window title.\n");
-
                 send(seq, vte::parser::u8SequenceBuilder{VTE_SEQ_OSC, "l"s});
                 break;
 

@@ -2295,7 +2295,7 @@ Widget::should_emit_signal(int id) noexcept
 void
 Widget::state_flags_changed(GtkStateFlags old_flags)
 {
-        _vte_debug_print(VTE_DEBUG_STYLE, "Widget state flags changed\n");
+        // nothing to do here?
 }
 
 #if VTE_GTK == 3
@@ -2303,8 +2303,6 @@ Widget::state_flags_changed(GtkStateFlags old_flags)
 void
 Widget::style_updated() noexcept
 {
-        _vte_debug_print(VTE_DEBUG_STYLE, "Widget style changed\n");
-
         auto need_resize = padding_changed();
 
         auto aspect = float{};
@@ -2325,8 +2323,6 @@ Widget::style_updated() noexcept
 void
 Widget::system_setting_changed(GtkSystemSetting setting)
 {
-        _vte_debug_print(VTE_DEBUG_STYLE, "Widget system settings %d changed\n", int(setting));
-
         switch (setting) {
         case GTK_SYSTEM_SETTING_DISPLAY:
                 display_changed();

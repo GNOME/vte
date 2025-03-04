@@ -347,7 +347,6 @@ Terminal::invalidate_rows(vte::grid::row_t row_start,
 	_vte_debug_print (VTE_DEBUG_UPDATES,
                           "Invalidating rows %ld..%ld.\n",
                           row_start, row_end);
-	_vte_debug_print (VTE_DEBUG_WORK, "?");
 
         /* Scrolled back, visible parts didn't change. */
         if (row_start > last_displayed_row())
@@ -401,7 +400,6 @@ Terminal::invalidate_rows(vte::grid::row_t row_start,
 #endif
 	}
 
-	_vte_debug_print (VTE_DEBUG_WORK, "!");
 #elif VTE_GTK == 4
         invalidate_all();
 #endif
@@ -527,7 +525,6 @@ Terminal::invalidate_all()
 		return;
 	}
 
-	_vte_debug_print (VTE_DEBUG_WORK, "*");
 	_vte_debug_print (VTE_DEBUG_UPDATES, "Invalidating all.\n");
 
 	reset_update_rects();
@@ -2200,23 +2197,15 @@ Terminal::apply_mouse_cursor()
          * See bug 789390 and bug 789536 comment 6 for details. */
         if (!(m_mouse_autohide && m_mouse_cursor_autohidden && m_mouse_cursor_over_widget)) {
                 if (m_hyperlink_hover_idx != 0) {
-                        _vte_debug_print(VTE_DEBUG_CURSOR,
-                                        "Setting hyperlink mouse cursor.\n");
                         m_real_widget->set_cursor(vte::platform::Widget::CursorType::eHyperlink);
                 } else if (regex_match_has_current()) {
                         m_real_widget->set_cursor(regex_match_current()->cursor());
                 } else if (m_mouse_tracking_mode != MouseTrackingMode::eNONE) {
-			_vte_debug_print(VTE_DEBUG_CURSOR,
-					"Setting mousing cursor.\n");
                         m_real_widget->set_cursor(vte::platform::Widget::CursorType::eMousing);
 		} else {
-			_vte_debug_print(VTE_DEBUG_CURSOR,
-					"Setting default mouse cursor.\n");
                         m_real_widget->set_cursor(vte::platform::Widget::CursorType::eDefault);
 		}
 	} else {
-		_vte_debug_print(VTE_DEBUG_CURSOR,
-				"Setting to invisible cursor.\n");
                 m_real_widget->set_cursor(vte::platform::Widget::CursorType::eInvisible);
 	}
 }
@@ -3745,20 +3734,6 @@ Terminal::child_watch_done(pid_t pid,
 	if (pid != m_pty_pid)
                 return;
 
-        _VTE_DEBUG_IF (VTE_DEBUG_LIFECYCLE) {
-                g_printerr ("Child[%d] exited with status %d\n",
-                            pid, status);
-#ifdef HAVE_SYS_WAIT_H
-                if (WIFEXITED (status)) {
-                        g_printerr ("Child[%d] exit code %d.\n",
-                                    pid, WEXITSTATUS (status));
-                } else if (WIFSIGNALED (status)) {
-                        g_printerr ("Child[%d] dies with signal %d.\n",
-                                    pid, WTERMSIG (status));
-                }
-#endif
-        }
-
         /* Disconnect from the reaper */
         if (m_reaper) {
                 g_signal_handlers_disconnect_by_func(m_reaper,
@@ -3971,7 +3946,6 @@ Terminal::process_incoming()
                          "Handler processing %" G_GSIZE_FORMAT " bytes over %" G_GSIZE_FORMAT " chunks.\n",
                          m_input_bytes,
                          m_incoming_queue.size());
-        _vte_debug_print (VTE_DEBUG_WORK, "(");
 
         /* We should only be called when there's data to process. */
         g_assert(!m_incoming_queue.empty());
@@ -4098,7 +4072,6 @@ Terminal::process_incoming()
         /* After processing some data, do a hyperlink GC. The multiplier is totally arbitrary, feel free to fine tune. */
         m_screen->row_data->hyperlink_maybe_gc(bytes_processed * 8);
 
-        _vte_debug_print (VTE_DEBUG_WORK, ")");
         _vte_debug_print (VTE_DEBUG_IO,
                           "%" G_GSIZE_FORMAT " bytes in %" G_GSIZE_FORMAT " chunks left to process.\n",
                           m_input_bytes,
@@ -4490,7 +4463,6 @@ Terminal::pty_io_read(int const fd,
                       GIOCondition const condition,
                       int amount)
 {
-	_vte_debug_print (VTE_DEBUG_WORK, ".");
         _vte_debug_print(VTE_DEBUG_IO, "::pty_io_read condition %02x\n", condition);
 
         /* We need to check for EOS so that we can shut down the PTY.
@@ -10039,13 +10011,11 @@ void
 Terminal::widget_draw(cairo_t* cr) noexcept
 {
 #if VTE_DEBUG
-        _VTE_DEBUG_IF(VTE_DEBUG_LIFECYCLE | VTE_DEBUG_WORK | VTE_DEBUG_UPDATES) do {
+        _VTE_DEBUG_IF(VTE_DEBUG_UPDATES) do {
                 auto clip_rect = cairo_rectangle_int_t{};
                 if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
                         break;
 
-                _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_draw()\n");
-                _vte_debug_print (VTE_DEBUG_WORK, "+");
                 _vte_debug_print (VTE_DEBUG_UPDATES, "Draw (%d,%d)x(%d,%d)\n",
                                   clip_rect.x, clip_rect.y,
                                   clip_rect.width, clip_rect.height);
