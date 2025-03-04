@@ -355,6 +355,18 @@ test_termprops_data(void)
         assert_termprop_parse_nothing(Type::DATA, "YQ="sv);
         assert_termprop_parse_nothing(Type::DATA, "YQ"sv);
         assert_termprop_parse_nothing(Type::DATA, "Y"sv);
+
+        // Test max size
+        for (auto size = Registry::k_max_data_len - 3; size < Registry::k_max_data_len + 3; ++size) {
+                auto str = std::string(size, 'a');
+                auto b64 = vte::glib::take_string
+                        (g_base64_encode
+                         (reinterpret_cast<unsigned char const*>(str.data()), str.size()));
+                if (size <= Registry::k_max_data_len)
+                        assert_termprop_parse_value<std::string>(Type::DATA, b64.get(), str);
+                else
+                        assert_termprop_parse_nothing(Type::DATA, b64.get());
+        }
 }
 
 static void
