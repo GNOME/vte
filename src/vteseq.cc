@@ -2257,9 +2257,12 @@ Terminal::conemu_extension(vte::parser::Sequence const& seq,
                            vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
 try
 {
-        // Note: since this is conemu OSC, and conemu allows BEL
-        // termination, we also allow BEL termination here; so no
-        // `seq.is_st_bel()` early return check here.
+        // Note: while this is a conemu OSC, and conemu allows BEL
+        // termination, this is also just getting really adopted
+        // outside conemu. Let's treat this as a "new" thing and
+        // not allow BEL termination here.
+        if (seq.is_st_bel())
+                return;
 
         if (token == endtoken)
                 return;
