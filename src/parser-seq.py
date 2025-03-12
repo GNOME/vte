@@ -776,7 +776,7 @@ sequences = [
             comment='pcterm'),
     seq_CSI('XTERM_RPM', 'r', pintro=(ParameterIntro.WHAT,),
             comment='xterm restore DEC private mode'),
-    seq_CSI('DECSLRM', 's', flags=Flags.NOP,
+    seq_CSI('DECSLRM', 's',
             comment='set left and right margins'),
     seq_CSI('SCOSC', 's',
             comment='SCO save cursor'),
