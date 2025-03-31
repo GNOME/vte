@@ -862,6 +862,7 @@ test_properties = executable(
     cairo_dep,
     cairo_gobject_dep,
     fast_float_dep,
+    simdutf_dep,
   ],
   include_directories: top_inc,
   install: false,

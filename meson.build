@@ -45,20 +45,20 @@ gtk4_req_version          = '4.14.0'
 gtk4_min_req_version      = '4.14'
 gtk4_max_allowed_version  = '4.14'
 
-cairo_req_version         = '1.0'
 cairo_gobject_req_version = '1.0'
+cairo_req_version         = '1.0'
 fribidi_req_version       = '1.0.0'
 gio_req_version           = '2.72.0'
-glib_req_version          = '2.72.0'
-glib_min_req_version      = '2.72'
 glib_max_allowed_version  = '2.72'
+glib_min_req_version      = '2.72'
+glib_req_version          = '2.72.0'
 gnutls_req_version        = '3.2.7'
 icu_uc_req_version        = '4.8'
+liblz4_req_version        = '1.9'
 pango_req_version         = '1.22.0'
 pcre2_req_version         = '10.21'
+simdutf_req_version       = '6.2.0'
 systemd_req_version       = '220'
-
-liblz4_req_version        = '1.9'
 
 # API
 
@@ -654,6 +654,7 @@ pango_dep         = dependency('pango',      version: '>=' + pango_req_version)
 pcre2_dep         = dependency('libpcre2-8', version: '>=' + pcre2_req_version)
 pthreads_dep      = dependency('threads')
 liblz4_dep        = dependency('liblz4', version: '>=' + liblz4_req_version)
+simdutf_dep       = dependency('simdutf', version: '>=' + simdutf_req_version, required: true)
 
 if get_option('fribidi')
   fribidi_dep = dependency('fribidi', version: '>=' + fribidi_req_version)
