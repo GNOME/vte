@@ -15,7 +15,7 @@
 
 include:
   - project: 'chpe/versuch-ci'
-    ref: 3456e47965ee17860dd0fc82b376fc7e7dfe1968
+    ref: 4a04e0c88965b04b2dc784f2ec341399d86b74e8
     file: '/versuch.yml'
     inputs:
       release-service: real
@@ -26,13 +26,14 @@ variables:
   # Increase this serial when changing VERSUCH_FEDORA_PACKAGES
   # below, and reset to 0 when changing VERSUCH_FEDORA_VERSION
   # above.
-  VERSUCH_FEDORA_SERIAL: '0'
+  VERSUCH_FEDORA_SERIAL: '1'
 
   VERSUCH_FEDORA_PACKAGES: >-
     clang
     clang-analyzer
     clang-tools-extra
     fast_float-devel
+    fmt-devel
     fribidi-devel
     gcc-c++
     gettext-devel
@@ -52,6 +53,7 @@ variables:
     python3-pygments
     python3-toml
     python3-typogrify
+    simdutf-devel
     systemd-devel
     vala
 
@@ -62,5 +64,6 @@ variables:
     -Dgir=true
     -Dvapi=true
     -Ddocs=true
+    -Dsixel=true
 
   VERSUCH_CI_BOT_NAME: "VTE Automation"
