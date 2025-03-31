@@ -24,6 +24,8 @@
 
 #include "parser.hh"
 
+#include <fast_float/fast_float.h>
+
 namespace vte {
 
 namespace parser {
@@ -569,20 +571,17 @@ public:
                                 return true;
                         }
 
-                        v = 0;
-                        size_type i;
-                        for (i = 0; i < s; ++i) {
-                                char_type c = (*m_string)[m_position + i];
-                                if (c < '0' || c > '9')
-                                        return false;
-
-                                v = v * 10 + (c - '0');
-                                if (v > 0xffff)
-                                        return false;
+                        auto const str = string_view();
+                        auto value = uint16_t{0};
+                        if (auto [ptr, err] = fast_float::from_chars(std::begin(str),
+                                                                     std::end(str),
+                                                                     value);
+                            err == std::errc() && ptr == std::end(str)) {
+                                v = int(value);
+                                return true;
                         }
 
-                        /* All consumed? */
-                        return i == s;
+                        return false;
                 }
 
                 /*

@@ -534,6 +534,7 @@ if get_option('sixel')
 endif
 
 parser_cat_deps = [
+  fast_float_dep,
   glib_dep,
   simdutf_dep,
 ]
