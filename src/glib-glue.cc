@@ -24,7 +24,9 @@
 #include <string>
 #include <string_view>
 
-#include "debug.h"
+#include <fmt/format.h>
+
+#include "debug.hh"
 
 #define VTE_EXCEPTION_ERROR g_quark_from_static_string("std::exception")
 
@@ -75,14 +77,14 @@ try
                 what = "Unknown exception"sv;
         }
 
-        _vte_debug_print(VTE_DEBUG_EXCEPTIONS,
-                         "Caught exception in %s [%s:%d]: %s\n",
+        _vte_debug_print(vte::debug::category::EXCEPTIONS,
+                         "Caught exception in {} [{}:{}]: {}",
                          func, filename, line, what.c_str());
 }
 catch (...)
 {
-        _vte_debug_print(VTE_DEBUG_EXCEPTIONS,
-                         "Caught exception while logging an exception in %s [%s:%d]\n",
+        _vte_debug_print(vte::debug::category::EXCEPTIONS,
+                         "Caught exception while logging an exception in {} [{}:{}]",
                          func, filename, line);
 }
 
@@ -144,19 +146,19 @@ try
         }
 
 #if VTE_DEBUG
-        auto msg = vte::glib::take_string(g_strdup_printf("Caught exception in %s [%s:%d]: %s",
-                                                          func, filename, line,
-                                                          what.c_str()));
+        auto msg = fmt::format("Caught exception in {} [{}:{}]: {}",
+                               func, filename, line,
+                               what.c_str());
 #else
-        auto msg = vte::glib::take_string(g_strdup_printf("Caught exception: %s",
-                                                          what.c_str()));
+        auto msg = fmt::format("Caught exception: {}",
+                               what.c_str());
 #endif
-        auto msg_str = vte::glib::take_string(g_utf8_make_valid(msg.get(), -1));
+        auto msg_str = vte::glib::take_string(g_utf8_make_valid(msg.c_str(), msg.size()));
         g_set_error_literal(error,
                             VTE_EXCEPTION_ERROR,
                             VTE_EXCEPTION_GENERIC,
                             msg_str.get());
-        _vte_debug_print(VTE_DEBUG_EXCEPTIONS, "%s", msg_str.get());
+        _vte_debug_print(vte::debug::category::EXCEPTIONS, "{}", msg);
 
         return false;
 }
@@ -167,7 +169,7 @@ catch (...)
         g_set_error(error,
                     VTE_EXCEPTION_ERROR,
                     VTE_EXCEPTION_GENERIC,
-                    "Caught exception while logging an exception in %s [%s:%d]\n",
+                    "Caught exception while logging an exception in %s [%s:%d]",
                     func, filename, line);
 #else
         g_set_error_literal(error,

@@ -18,7 +18,7 @@
 #include "config.h"
 
 #include "bidi.hh"
-#include "debug.h"
+#include "debug.hh"
 #include "drawing-gsk.hh"
 #include "fonts-pangocairo.hh"
 #include "graphene-glue.hh"
@@ -75,10 +75,9 @@ DrawingGsk::fill_rectangle(int x,
         g_assert(m_snapshot);
         g_assert(color);
 
-        _vte_debug_print(VTE_DEBUG_DRAW,
-                         "draw_fill_rectangle (%d, %d, %d, %d, color=(%d,%d,%d))\n",
-                         x,y,width,height,
-                         color->red, color->green, color->blue);
+        _vte_debug_print(vte::debug::category::DRAW,
+                         "draw_fill_rectangle ({}, {}, {}, {}, color={}",
+                         x, y, width, height, *color);
 
         auto const rect = Rectangle{x, y, width, height};
         auto const rgba = color->rgba(1.0);
@@ -96,11 +95,9 @@ DrawingGsk::fill_rectangle(int x,
         g_assert(m_snapshot);
         g_assert(color);
 
-        _vte_debug_print(VTE_DEBUG_DRAW,
-                         "draw_fill_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%.3f))\n",
-                         x,y,width,height,
-                         color->red, color->green, color->blue,
-                         alpha);
+        _vte_debug_print(vte::debug::category::DRAW,
+                         "draw_fill_rectangle ({}, {}, {}, {}, color={}, alpha={}",
+                         x, y, width, height, *color, alpha);
 
         auto const rect = Rectangle{x, y, width, height};
         auto const rgba = color->rgba(alpha);
@@ -153,21 +150,6 @@ DrawingGsk::draw_text(TextRequest* requests,
                       uint32_t attr,
                       vte::color::rgb const* color)
 {
-        if (_vte_debug_on (VTE_DEBUG_DRAW)) {
-                GString *string = g_string_new ("");
-                gchar *str;
-                gsize n;
-                for (n = 0; n < n_requests; n++) {
-                        g_string_append_unichar (string, requests[n].c);
-                }
-                str = g_string_free (string, FALSE);
-                g_printerr ("draw_text (\"%s\", len=%" G_GSIZE_FORMAT ", color=(%d,%d,%d), %s - %s)\n",
-                            str, n_requests, color->red, color->green, color->blue,
-                            (attr & VTE_ATTR_BOLD)   ? "bold"   : "normal",
-                            (attr & VTE_ATTR_ITALIC) ? "italic" : "regular");
-                g_free (str);
-        }
-
         auto font = m_fonts[attr_to_style(attr)];
         gsize i;
 
@@ -253,10 +235,9 @@ DrawingGsk::draw_rectangle(int x,
         g_assert(color);
         g_assert(m_snapshot);
 
-        _vte_debug_print (VTE_DEBUG_DRAW,
-                          "draw_rectangle (%d, %d, %d, %d, color=(%d,%d,%d))\n",
-                          x,y,width,height,
-                          color->red, color->green, color->blue);
+        _vte_debug_print(vte::debug::category::DRAW,
+                         "draw_rectangle ({}, {}, {}, {}, color={}",
+                         x, y, width, height, *color);
 
         static const float border_width[4] = {VTE_LINE_WIDTH, VTE_LINE_WIDTH, VTE_LINE_WIDTH, VTE_LINE_WIDTH};
         auto const rounded = GSK_ROUNDED_RECT_INIT (float(x), float(y), float(width), float(height));

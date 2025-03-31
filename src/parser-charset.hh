@@ -262,6 +262,18 @@ NRCS(TURKISH) /* ESC I 2/5 3/2 */
 
 NRCS(SOFT) /* ESC I 2/5 3/3 */
 
+/* Multi-byte charsets not registered in ISO IR */
+
+_VTE_CHARSET(EUCTW_G2) /* 4-byte */
+_VTE_CHARSET(HKCS_EXT)
+_VTE_CHARSET(MS_950_UTC_EXT)
+
+/* Other coding systems */
+
+DEC(HPPCL) /* DEC HPPCL emulation mode on DEC LJ250; ESC 2/5 3/8 */
+DEC(IBM_PROPRINTER) /* DEC PPLV2; ESC 2/5 3/13 */
+DEC(BARCODE) /* DEC PPLV2; ESC 2/5 2/0 3/0 */
+
 /* Aliases. They were identified as an alias by their ISO IR sequence.
  * Some have a secondary sequence.
  */
@@ -295,18 +307,6 @@ ALIAS(SUPPLEMENTAL_NAME(LATIN_1), IR_NAME(100))
 ALIAS(SUPPLEMENTAL_NAME(LATIN_2), IR_NAME(101))
 ALIAS(SUPPLEMENTAL_NAME(LATIN_5), IR_NAME(148))
 ALIAS(SUPPLEMENTAL_NAME(LATIN_CYRILLIC), IR_NAME(144))
-
-/* Multi-byte charsets not registered in ISO IR */
-
-_VTE_CHARSET(EUCTW_G2) /* 4-byte */
-_VTE_CHARSET(HKCS_EXT)
-_VTE_CHARSET(MS_950_UTC_EXT)
-
-/* Other coding systems */
-
-DEC(HPPCL) /* DEC HPPCL emulation mode on DEC LJ250; ESC 2/5 3/8 */
-DEC(IBM_PROPRINTER) /* DEC PPLV2; ESC 2/5 3/13 */
-DEC(BARCODE) /* DEC PPLV2; ESC 2/5 2/0 3/0 */
 
 #undef IR_NAME
 #undef DEC_NAME

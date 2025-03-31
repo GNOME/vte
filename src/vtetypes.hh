@@ -204,3 +204,99 @@ namespace color {
 } /* namespace color */
 
 } /* namespace vte */
+
+#if VTE_DEBUG
+
+#include <fmt/format.h>
+
+FMT_BEGIN_NAMESPACE
+
+template<>
+struct formatter<vte::grid::coords> : public formatter<std::string_view> {
+public:
+
+        auto format(vte::grid::coords const& coords,
+                    format_context& ctx) const -> format_context::iterator
+        {
+                return fmt::format_to(ctx.out(), "grid[{},{}]",
+                                      coords.row(), coords.column());
+        }
+
+}; // class formatter<vte::grid::coords>
+
+template<>
+struct formatter<vte::grid::halfcoords> : public formatter<std::string_view> {
+public:
+
+        auto format(vte::grid::halfcoords const& halfcoords,
+                    format_context& ctx) const -> format_context::iterator
+        {
+                return fmt::format_to(ctx.out(), "grid[{},{}{:c}]",
+                                      halfcoords.row(),
+                                      halfcoords.halfcolumn().column(),
+                                      halfcoords.halfcolumn().half() ? 'R' : 'L');
+        }
+
+}; // class formatter<vte::grid::halfcoords>
+
+template<>
+struct formatter<vte::grid::span> : public formatter<std::string_view> {
+public:
+
+        auto format(vte::grid::span const& span,
+                    format_context& ctx) const -> format_context::iterator
+        {
+                if (span.empty())
+                        return fmt::format_to(ctx.out(), "grid[empty]");
+
+                return fmt::format_to(ctx.out(), "grid[({},{}), ({},{})]",
+                                      span.start_row(),
+                                      span.start_column(),
+                                      span.end_row(),
+                                      span.end_column());
+        }
+
+}; // class formatter<vte::grid::span>
+
+template<>
+struct formatter<vte::view::coords> : public formatter<std::string_view> {
+public:
+
+        auto format(vte::view::coords const& coords,
+                    format_context& ctx) const -> format_context::iterator
+        {
+                return fmt::format_to(ctx.out(), "view[{},{}]",
+                                      coords.x, coords.y);
+        }
+
+}; // class formatter<vte::view::coords>
+
+template<>
+struct formatter<vte::view::extents> : public formatter<std::string_view> {
+public:
+
+        auto format(vte::view::extents const& extents,
+                    format_context& ctx) const -> format_context::iterator
+        {
+                return fmt::format_to(ctx.out(), "view::extents[{} x {}]",
+                                      extents.width(), extents.height());
+        }
+
+}; // class formatter<vte::view::extents>
+
+template<>
+struct formatter<vte::color::rgb> : public formatter<std::string_view> {
+public:
+
+        auto format(vte::color::rgb const& color,
+                    format_context& ctx) const -> format_context::iterator
+        {
+                return fmt::format_to(ctx.out(), "rgb({:04x},{:04x},{:04x})",
+                                      color.red, color.green, color.blue);
+        }
+
+}; // class formatter<vte::color::rgb>
+
+FMT_END_NAMESPACE
+
+#endif /* VTE_DEBUG */

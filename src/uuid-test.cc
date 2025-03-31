@@ -19,6 +19,7 @@
 #include "config.h"
 
 #include "uuid.hh"
+#include "uuid-fmt.hh"
 
 #include <glib.h>
 
@@ -155,6 +156,27 @@ test_uuid_to_string(void)
 
 }
 
+static void
+test_uuid_format(void)
+{
+        static constinit auto const u = VTE_DEFINE_UUID(7cb65faf, 4c02, 4593, a7cc, afc8129372b5);
+
+        auto str = fmt::format("{}", u);
+        g_assert_cmpstr(str.c_str(), ==, "7cb65faf-4c02-4593-a7cc-afc8129372b5");
+
+        str = fmt::format("{:s}", u);
+        g_assert_cmpstr(str.c_str(), ==, "7cb65faf-4c02-4593-a7cc-afc8129372b5");
+
+        str = fmt::format("{:b}", u);
+        g_assert_cmpstr(str.c_str(), ==, "{7cb65faf-4c02-4593-a7cc-afc8129372b5}");
+
+        str = fmt::format("{:u}", u);
+        g_assert_cmpstr(str.c_str(), ==, "urn:uuid:7cb65faf-4c02-4593-a7cc-afc8129372b5");
+
+        //str = fmt::format("{:i}", u);
+        //g_assert_cmpstr(str.c_str(), ==, "7cb65faf4c024593a7ccafc8129372b5");
+}
+
 int
 main(int argc,
      char** argv)
@@ -170,6 +192,7 @@ main(int argc,
         g_test_add_func("/vte/uuid/generate_v4", test_uuid_generate_v4);
         g_test_add_func("/vte/uuid/generate_v5", test_uuid_generate_v5);
         g_test_add_func("/vte/uuid/to-string", test_uuid_to_string);
+        g_test_add_func("/vte/uuid/format", test_uuid_format);
 
         return g_test_run();
 }

@@ -20,7 +20,7 @@
 #include "config.h"
 
 #include "bidi.hh"
-#include "debug.h"
+#include "debug.hh"
 #include "drawing-cairo.hh"
 #include "fonts-pangocairo.hh"
 
@@ -99,10 +99,9 @@ DrawingCairo::fill_rectangle(int x,
         g_assert(m_cr);
         g_assert(color);
 
-        _vte_debug_print(VTE_DEBUG_DRAW,
-                         "draw_fill_rectangle (%d, %d, %d, %d, color=(%d,%d,%d))\n",
-                         x,y,width,height,
-                         color->red, color->green, color->blue);
+        _vte_debug_print(vte::debug::category::DRAW,
+                         "draw_fill_rectangle ({}, {}, {}, {}, color={}",
+                         x, y, width, height, *color);
 
         cairo_save(m_cr);
         cairo_set_operator(m_cr, CAIRO_OPERATOR_OVER);
@@ -123,10 +122,9 @@ DrawingCairo::fill_rectangle(int x,
         g_assert(m_cr);
         g_assert(color);
 
-        _vte_debug_print(VTE_DEBUG_DRAW,
-                         "draw_fill_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%.3f))\n",
-                         x,y,width,height,
-                         color->red, color->green, color->blue, alpha);
+        _vte_debug_print(vte::debug::category::DRAW,
+                         "draw_fill_rectangle ({}, {}, {}, {}, color={}",
+                         x, y, width, height, *color);
 
         cairo_save(m_cr);
         cairo_set_operator(m_cr, CAIRO_OPERATOR_OVER);
@@ -239,10 +237,9 @@ DrawingCairo::draw_rectangle(int x,
         g_assert(color);
         g_assert(m_cr);
 
-        _vte_debug_print (VTE_DEBUG_DRAW,
-                          "draw_rectangle (%d, %d, %d, %d, color=(%d,%d,%d))\n",
-                          x,y,width,height,
-                          color->red, color->green, color->blue);
+        _vte_debug_print(vte::debug::category::DRAW,
+                         "draw_rectangle ({}, {}, {}, {}, color={}",
+                         x, y, width, height, *color);
 
         cairo_save(m_cr);
         cairo_set_operator(m_cr, CAIRO_OPERATOR_OVER);

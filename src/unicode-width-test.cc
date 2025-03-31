@@ -21,7 +21,6 @@
 
 #include <glib.h>
 
-#include "debug.h"
 #include "unicode-width.hh"
 
 static void

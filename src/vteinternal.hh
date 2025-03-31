@@ -33,7 +33,7 @@
 #include "glib-glue.hh"
 #include "pango-glue.hh"
 
-#include "debug.h"
+#include "debug.hh"
 #include "clipboard-gtk.hh"
 #if VTE_GTK == 3
 # include "drawing-cairo.hh"
@@ -401,14 +401,16 @@ public:
 
         void push_data_syntax(DataSyntax syntax) noexcept
         {
-                _vte_debug_print(VTE_DEBUG_IO, "Pushing data syntax %d -> %d\n",
+                _vte_debug_print(vte::debug::category::IO,
+                                 "Pushing data syntax {} -> {}",
                                  int(m_current_data_syntax), int(syntax));
                 m_current_data_syntax = syntax;
         }
 
         void pop_data_syntax() noexcept
         {
-                _vte_debug_print(VTE_DEBUG_IO, "Popping data syntax %d -> %d\n",
+                _vte_debug_print(vte::debug::category::IO,
+                                 "Popping data syntax {} -> {}",
                                  int(m_current_data_syntax), int(m_primary_data_syntax));
                 m_current_data_syntax = m_primary_data_syntax;
         }

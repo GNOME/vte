@@ -20,7 +20,7 @@
 
 #include <config.h>
 
-#include "debug.h"
+#include "debug.hh"
 
 #include "vteunistr.h"
 

@@ -407,6 +407,8 @@ using ItemList = std::vector<Item>;
 
 #if 0
 
+#include <fmt/format.h>
+
 class ItemPrinter {
 public:
         ItemPrinter(Item const& item)
@@ -441,7 +443,7 @@ print_items(char const* intro,
                 str += " ";
         }
 
-        g_printerr("%s: %s\n", intro, str.c_str());
+        fmt::println(stderr, "{}: {}", intro, str.c_str());
 }
 
 #endif

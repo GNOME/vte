@@ -47,6 +47,7 @@ gtk4_max_allowed_version  = '4.14'
 
 cairo_gobject_req_version = '1.0'
 cairo_req_version         = '1.0'
+fmt_req_version           = '11.0.0'
 fribidi_req_version       = '1.0.0'
 gio_req_version           = '2.72.0'
 glib_max_allowed_version  = '2.72'
@@ -647,6 +648,7 @@ endforeach
 
 cairo_dep         = dependency('cairo', version: '>=' + cairo_req_version)
 cairo_gobject_dep = dependency('cairo-gobject', version: '>=' + cairo_gobject_req_version)
+fmt_dep           = dependency('fmt',           version: '>=' + fmt_req_version,)
 gio_dep           = dependency('gio-2.0',    version: '>=' + gio_req_version)
 glib_dep          = dependency('glib-2.0',   version: '>=' + glib_req_version)
 gobject_dep       = dependency('gobject-2.0')

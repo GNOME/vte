@@ -18,7 +18,7 @@
 #include <config.h>
 
 #include "bidi.hh"
-#include "debug.h"
+#include "debug.hh"
 #include "vtedefines.hh"
 #include "vteinternal.hh"
 
@@ -50,8 +50,10 @@ RingView::pause()
         if (m_paused)
                 return;
 
-        _vte_debug_print (VTE_DEBUG_RINGVIEW, "Ringview: pause, freeing %d rows, %d bidirows.\n",
-                                              m_rows_alloc_len, m_bidirows_alloc_len);
+        _vte_debug_print (vte::debug::category::RINGVIEW,
+                          "Ringview: pause, freeing {} rows, {} bidirows",
+                          m_rows_alloc_len,
+                          m_bidirows_alloc_len);
 
         for (i = 0; i < m_rows_alloc_len; i++) {
                 _vte_row_data_fini(m_rows[i]);
@@ -96,8 +98,10 @@ RingView::resume()
                 m_bidirows[i] = new BidiRow();
         }
 
-        _vte_debug_print (VTE_DEBUG_RINGVIEW, "Ringview: resume, allocating %d rows, %d bidirows\n",
-                                              m_rows_alloc_len, m_bidirows_alloc_len);
+        _vte_debug_print (vte::debug::category::RINGVIEW,
+                          "Ringview: resume, allocating {} rows, {} bidirows",
+                          m_rows_alloc_len,
+                          m_bidirows_alloc_len);
 
         m_paused = false;
 }
@@ -146,8 +150,9 @@ RingView::set_rows(vte::grid::row_t start, vte::grid::row_t len)
                         /* Don't realloc too aggressively. */
                         m_bidirows_alloc_len = std::max(m_bidirows_alloc_len + 1, m_bidirows_alloc_len * 5 / 4 /* whatever */);
                 }
-                _vte_debug_print (VTE_DEBUG_RINGVIEW, "Ringview: reallocate to %d bidirows\n",
-                                                      m_bidirows_alloc_len);
+                _vte_debug_print (vte::debug::category::RINGVIEW,
+                                  "Ringview: reallocate to {} bidirows",
+                                  m_bidirows_alloc_len);
                 m_bidirows = (BidiRow **) g_realloc (m_bidirows, sizeof (BidiRow *) * m_bidirows_alloc_len);
                 for (; i < m_bidirows_alloc_len; i++) {
                         m_bidirows[i] = new BidiRow();
@@ -206,8 +211,11 @@ RingView::update()
         vte::grid::row_t row = m_start;
         const VteRowData *row_data;
 
-        _vte_debug_print (VTE_DEBUG_RINGVIEW, "Ringview: updating for [%ld..%ld] (%ld rows).\n",
-                                              m_start, m_start + m_len - 1, m_len);
+        _vte_debug_print (vte::debug::category::RINGVIEW,
+                          "Ringview: updating for [{}..{}] ({} rows)",
+                          m_start,
+                          m_start + m_len - 1,
+                          m_len);
 
         int i = VTE_RINGVIEW_PARAGRAPH_LENGTH_MAX;
         while (i--) {
@@ -230,8 +238,9 @@ RingView::update()
                 if (G_UNLIKELY (m_rows_len == m_rows_alloc_len)) {
                         /* Don't realloc too aggressively. */
                         m_rows_alloc_len = std::max(m_rows_alloc_len + 1, m_rows_alloc_len * 5 / 4 /* whatever */);
-                        _vte_debug_print (VTE_DEBUG_RINGVIEW, "Ringview: reallocate to %d rows\n",
-                                                              m_rows_alloc_len);
+                        _vte_debug_print (vte::debug::category::RINGVIEW,
+                                          "Ringview: reallocate to {} rows",
+                                          m_rows_alloc_len);
                         m_rows = (VteRowData **) g_realloc (m_rows, sizeof (VteRowData *) * m_rows_alloc_len);
                         for (int j = m_rows_len; j < m_rows_alloc_len; j++) {
                                 m_rows[j] = (VteRowData *) g_malloc (sizeof (VteRowData));
@@ -267,9 +276,10 @@ RingView::update()
                         break;
         }
 
-        _vte_debug_print (VTE_DEBUG_RINGVIEW, "Ringview: extracted %ld+%ld context lines: [%ld..%ld] (%d rows).\n",
-                                              m_start - m_top, (m_top + m_rows_len) - (m_start + m_len),
-                                              m_top, m_top + m_rows_len - 1, m_rows_len);
+        _vte_debug_print (vte::debug::category::RINGVIEW,
+                          "Ringview: extracted {}+{} context lines: [{}..{}] ({} rows)",
+                          m_start - m_top, (m_top + m_rows_len) - (m_start + m_len),
+                          m_top, m_top + m_rows_len - 1, m_rows_len);
 
         /* Loop through paragraphs of the extracted text, and do whatever we need to do on each paragraph. */
         auto top = m_top;

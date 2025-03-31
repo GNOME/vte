@@ -41,7 +41,7 @@
 #include "gobject-glue.hh"
 #include "vte-glue.hh"
 #include "refptr.hh"
-#include "debug.h"
+#include "debug.hh"
 
 // VtePropertiesRegistry
 

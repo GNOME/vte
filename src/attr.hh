@@ -19,7 +19,7 @@
 
 #include <cstdint>
 
-#include "debug.h"
+#include "debug.hh"
 
 enum ShellIntegrationMode {
         /* Command output, selected by OSC 133;C ST.

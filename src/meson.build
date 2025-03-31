@@ -29,6 +29,10 @@ a11y_gtk4_sources = files(
   'vteaccess-gtk4.h',
 )
 
+boxed_sources = files(
+  'boxed.hh',
+)
+
 cairo_glue_sources = files(
   'cairo-glue.hh',
 )
@@ -42,7 +46,12 @@ color_sources = files(
 
 debug_sources = files(
   'debug.cc',
-  'debug.h',
+  'debug.hh',
+)
+
+fmt_glue_sources = files(
+  'fmt-glue.cc',
+  'fmt-glue.hh',
 )
 
 glib_glue_sources = files(
@@ -131,6 +140,11 @@ parser_sources += custom_target(
   ],
 )
 
+parser_fmt_sources = files(
+  'parser-fmt.cc',
+  'parser-fmt.hh',
+)
+
 pastify_sources = files(
   'pastify.cc',
   'pastify.hh',
@@ -164,6 +178,10 @@ sixel_parser_sources = files(
   'sixel-parser.hh',
 )
 
+sixel_parser_fmt_sources = files(
+  'sixel-parser-fmt.hh',
+)
+
 sixel_context_sources = files(
   'sixel-context.cc',
   'sixel-context.hh',
@@ -193,6 +211,7 @@ utf8_sources = files(
 )
 
 uuid_sources = files(
+  'uuid-fmt.hh',
   'uuid.cc',
   'uuid.hh',
 )
@@ -335,6 +354,7 @@ libvte_common_public_deps = [
 libvte_common_deps = libvte_common_public_deps + [
   cairo_gobject_dep,
   fast_float_dep,
+  fmt_dep,
   fribidi_dep,
   gnutls_dep,
   icu_dep,
@@ -509,14 +529,20 @@ decoder_cat_sources = config_sources + glib_glue_sources + libc_glue_sources + u
   'decoder-cat.cc',
 )
 
+decoder_cat_deps = [
+  fmt_dep,
+  glib_dep,
+]
+
 if get_option('icu')
   decoder_cat_sources += icu_sources
+  decoder_cat_deps += [icu_dep]
 endif
 
 decoder_cat = executable(
   'decoder-cat',
   decoder_cat_sources,
-  dependencies: [glib_dep, icu_dep,],
+  dependencies: decoder_cat_deps,
   cpp_args: [],
   include_directories: top_inc,
   install: false,
@@ -524,17 +550,18 @@ decoder_cat = executable(
 
 # parser cat
 
-parser_cat_sources = config_sources + glib_glue_sources + libc_glue_sources + parser_sources + std_glue_sources + utf8_sources + debug_sources + files(
+parser_cat_sources = boxed_sources + config_sources + fmt_glue_sources + glib_glue_sources + libc_glue_sources + parser_sources + parser_fmt_sources + std_glue_sources + utf8_sources + debug_sources + files(
   'parser-cat.cc',
   'vtedefines.hh',
 )
 
 if get_option('sixel')
-  parser_cat_sources += sixel_parser_sources
+  parser_cat_sources += sixel_parser_sources + sixel_parser_fmt_sources
 endif
 
 parser_cat_deps = [
   fast_float_dep,
+  fmt_dep,
   glib_dep,
   simdutf_dep,
 ]
@@ -659,13 +686,16 @@ test_colors_sources = config_sources + debug_sources + glib_glue_sources + color
   'color-test.cc',
 )
 
+test_colors_deps = [
+  fast_float_dep,
+  fmt_dep,
+  glib_dep,
+]
+
 test_colors = executable(
   'test-colors',
   cpp_args: ['-DVTE_GTK=0'],
-  dependencies: [
-    glib_dep,
-    fast_float_dep,
-  ],
+  dependencies: test_colors_deps,
   include_directories: top_inc,
   install: false,
   sources: test_colors_sources,
@@ -747,12 +777,13 @@ test_modes = executable(
   install: false,
 )
 
-test_parser_sources = config_sources + parser_sources + files(
+test_parser_sources = config_sources + debug_sources + parser_sources + files(
   'parser-test.cc',
 )
 
 test_parser_deps = [
   fast_float_dep,
+  fmt_dep,
   glib_dep
 ]
 
@@ -782,10 +813,15 @@ test_reaper_sources = config_sources + debug_sources + files(
   'reaper.hh'
 )
 
+test_reaper_deps = [
+  fmt_dep,
+  gobject_dep,
+]
+
 test_reaper = executable(
   'test-reaper',
   sources: test_reaper_sources,
-  dependencies: [gobject_dep],
+  dependencies: test_reaper_deps,
   cpp_args: ['-DMAIN'],
   include_directories: top_inc,
   install: false,
@@ -823,10 +859,15 @@ if get_option('sixel')
     'vtedefines.hh',
   )
 
+  test_sixel_deps = [
+    fmt_dep,
+    glib_dep,
+  ]
+
   test_sixel = executable(
     'test-sixel',
     sources: test_sixel_sources,
-    dependencies: [glib_dep,],
+    dependencies: test_sixel_deps,
     include_directories: top_inc,
     install: false,
   )
@@ -841,24 +882,35 @@ test_stream_sources = config_sources + files(
   'vteutils.h',
 )
 
+test_stream_deps = [
+  gio_dep,
+  gnutls_dep,
+  liblz4_dep,
+]
+
 test_stream = executable(
   'test-stream',
   sources: test_stream_sources,
-  dependencies: [gio_dep, gnutls_dep, liblz4_dep],
+  dependencies: test_stream_deps,
   cpp_args: ['-DVTESTREAM_MAIN'],
   include_directories: top_inc,
   install: false,
 )
 
-test_tabstops_sources = config_sources + files(
+test_tabstops_sources = config_sources + debug_sources + files(
   'tabstops-test.cc',
   'tabstops.hh'
 )
 
+test_tabstops_deps = [
+  fmt_dep,
+  glib_dep,
+]
+
 test_tabstops = executable(
   'test-tabstops',
   sources: test_tabstops_sources,
-  dependencies: [glib_dep],
+  dependencies: test_tabstops_deps,
   include_directories: top_inc,
   install: false,
 )
@@ -867,14 +919,17 @@ test_properties_sources = cairo_glue_sources + color_sources + config_sources + 
   'properties-test.cc',
 )
 
+test_properties_deps = [
+  cairo_dep,
+  cairo_gobject_dep,
+  fast_float_dep,
+  fmt_dep,
+  glib_dep,
+]
+
 test_properties = executable(
   'test-properties',
-  dependencies: [
-    glib_dep,
-    cairo_dep,
-    cairo_gobject_dep,
-    fast_float_dep,
-  ],
+  dependencies: test_properties_deps,
   include_directories: top_inc,
   install: false,
   sources: test_properties_sources,
@@ -908,10 +963,15 @@ test_uuid_sources = config_sources + debug_sources + glib_glue_sources + uuid_so
   'uuid-test.cc',
 )
 
+test_uuid_deps = [
+  fmt_dep,
+  glib_dep,
+]
+
 test_uuid = executable(
   'test-uuid',
   sources: test_uuid_sources,
-  dependencies: [glib_dep],
+  dependencies: test_uuid_deps,
   include_directories: top_inc,
   install: false,
 )

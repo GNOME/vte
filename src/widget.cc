@@ -30,7 +30,7 @@
 #include "vtegtk.hh"
 #include "vtepropertiesinternal.hh"
 #include "vteptyinternal.hh"
-#include "debug.h"
+#include "debug.hh"
 #include "gobject-glue.hh"
 
 #if VTE_GTK == 3
@@ -68,7 +68,7 @@ im_preedit_start_cb(GtkIMContext* im_context,
                     Widget* that) noexcept
 try
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Input method pre-edit started.\n");
+        _vte_debug_print(vte::debug::category::EVENTS, "Input method pre-edit started");
         that->terminal()->im_preedit_set_active(true);
 }
 catch (...)
@@ -81,7 +81,7 @@ im_preedit_end_cb(GtkIMContext* im_context,
                   Widget* that) noexcept
 try
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Input method pre-edit ended.\n");
+        _vte_debug_print(vte::debug::category::EVENTS, "Input method pre-edit ended");
         that->terminal()->im_preedit_set_active(false);
 }
 catch (...)
@@ -106,7 +106,7 @@ im_retrieve_surrounding_cb(GtkIMContext* im_context,
                            Widget* that) noexcept
 try
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Input method retrieve-surrounding.\n");
+        _vte_debug_print(vte::debug::category::EVENTS, "Input method retrieve-surrounding");
         return that->terminal()->im_retrieve_surrounding();
 }
 catch (...)
@@ -122,8 +122,8 @@ im_delete_surrounding_cb(GtkIMContext* im_context,
                          Widget* that) noexcept
 try
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS,
-                         "Input method delete-surrounding offset %d n-chars %d.\n",
+        _vte_debug_print(vte::debug::category::EVENTS,
+                         "Input method delete-surrounding offset {} n-chars {}",
                          offset, n_chars);
         return that->terminal()->im_delete_surrounding(offset, n_chars);
 }
@@ -207,7 +207,7 @@ context_menu_selection_done_cb(GtkWidget *menu,
                                vte::platform::Widget* that) noexcept
 try
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Context menu selection done\n");
+        _vte_debug_print(vte::debug::category::EVENTS, "Context menu selection done");
         that->unset_context_menu(menu, false);
 }
 catch (...)
@@ -220,7 +220,7 @@ context_menu_detach_cb(GtkWidget* attach_widget,
                        GtkWidget* menu) noexcept
 try
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Context menu detached\n");
+        _vte_debug_print(vte::debug::category::EVENTS, "Context menu detached");
 
         auto const that = Widget::from_terminal(VTE_TERMINAL(attach_widget));
         that->unset_context_menu(menu, true);
@@ -248,7 +248,7 @@ context_menu_closed_cb(GtkWidget* menu,
                        vte::platform::Widget* that) noexcept
 try
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Context menu closed\n");
+        _vte_debug_print(vte::debug::category::EVENTS, "Context menu closed");
         that->context_menu_closed(menu);
 }
 catch (...)
@@ -935,14 +935,14 @@ Widget::dispose() noexcept
 void
 Widget::emit_child_exited(int status) noexcept
 {
-        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `child-exited'.\n");
+        _vte_debug_print(vte::debug::category::SIGNALS, "Emitting `child-exited'");
         g_signal_emit(object(), signals[SIGNAL_CHILD_EXITED], 0, status);
 }
 
 void
 Widget::emit_eof() noexcept
 {
-        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `eof'.\n");
+        _vte_debug_print(vte::debug::category::SIGNALS, "Emitting `eof'");
         g_signal_emit(object(), signals[SIGNAL_EOF], 0);
 }
 
@@ -965,7 +965,7 @@ Widget::im_filter_keypress(KeyEvent const& event) noexcept
 void
 Widget::event_focus_in(GdkEventFocus *event)
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus In");
+	_vte_debug_print(vte::debug::category::EVENTS, "Focus In");
 
 #if VTE_GTK == 4
         if (!root_focused())
@@ -978,7 +978,7 @@ Widget::event_focus_in(GdkEventFocus *event)
 void
 Widget::event_focus_out(GdkEventFocus *event)
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus Out");
+	_vte_debug_print(vte::debug::category::EVENTS, "Focus Out");
 
 #if VTE_GTK == 4
         if (!root_focused())
@@ -993,7 +993,7 @@ Widget::event_key_press(GdkEventKey *event)
 {
         auto key_event = key_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
 
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Key press key=%x keycode=%x modifiers=%x\n",
+	_vte_debug_print(vte::debug::category::EVENTS, "Key press key={:x} keycode={:x} modifiers={:x}",
                          key_event.keyval(), key_event.keycode(), key_event.modifiers());
 
         return m_terminal->widget_key_press(key_event);
@@ -1004,7 +1004,7 @@ Widget::event_key_release(GdkEventKey *event)
 {
         auto key_event = key_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
 
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Key release key=%x keycode=%x modifiers=%x\n",
+	_vte_debug_print(vte::debug::category::EVENTS, "Key release key={:x} keycode={:x} modifiers={:x}",
                          key_event.keyval(), key_event.keycode(), key_event.modifiers());
 
         return m_terminal->widget_key_release(key_event);
@@ -1015,7 +1015,7 @@ Widget::event_button_press(GdkEventButton *event)
 {
         auto mouse_event = mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
 
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Click press button=%d press_count=%d x=%.3f y=%.3f\n",
+	_vte_debug_print(vte::debug::category::EVENTS, "Click press button={} press_count={} x={:.3f} y={:.3f}",
                          mouse_event.button_value(), mouse_event.press_count(),
                          mouse_event.x(), mouse_event.y());
 
@@ -1027,7 +1027,7 @@ Widget::event_button_release(GdkEventButton *event)
 {
         auto mouse_event = mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
 
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Click release button=%d x=%.3f y=%.3f\n",
+	_vte_debug_print(vte::debug::category::EVENTS, "Click release button={} x={:.3f} y={:.3f}",
                          mouse_event.button_value(), mouse_event.x(), mouse_event.y());
 
         return m_terminal->widget_mouse_release(mouse_event);
@@ -1038,7 +1038,7 @@ Widget::event_enter(GdkEventCrossing *event)
 {
         auto mouse_event = mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
 
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Motion enter x=%.3f y=%.3f\n",
+	_vte_debug_print(vte::debug::category::EVENTS, "Motion enter x={:.3f} y={:.3f}",
                          mouse_event.x(), mouse_event.y());
 
         m_terminal->widget_mouse_enter(mouse_event);
@@ -1049,7 +1049,7 @@ Widget::event_leave(GdkEventCrossing *event)
 {
         auto mouse_event = mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
 
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Motion leave x=%.3f y=%.3f\n",
+	_vte_debug_print(vte::debug::category::EVENTS, "Motion leave x={:.3f} y={:.3f}",
                          mouse_event.x(), mouse_event.y());
 
         m_terminal->widget_mouse_leave(mouse_event);
@@ -1059,7 +1059,7 @@ bool
 Widget::event_scroll(GdkEventScroll *event)
 {
         if (auto const scroll_event = scroll_event_from_gdk(reinterpret_cast<GdkEvent*>(event))) {
-                _vte_debug_print(VTE_DEBUG_EVENTS, "Scroll delta_x=%.3f delta_y=%.3f\n",
+                _vte_debug_print(vte::debug::category::EVENTS, "Scroll delta_x={:.3f} delta_y={:.3f}",
                                  scroll_event->dx(), scroll_event->dy());
 
                 return m_terminal->widget_mouse_scroll(*scroll_event);
@@ -1073,7 +1073,7 @@ Widget::event_motion_notify(GdkEventMotion *event)
 {
         auto mouse_event = mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
 
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Motion x=%.3f y=%.3f\n",
+	_vte_debug_print(vte::debug::category::EVENTS, "Motion x={:.3f} y={:.3f}",
                          mouse_event.x(), mouse_event.y());
 
         return m_terminal->widget_mouse_motion(mouse_event);
@@ -1089,7 +1089,7 @@ Widget::event_key_pressed(GtkEventControllerKey* controller,
                           unsigned keycode,
                           unsigned modifiers)
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Key press key=%x keycode=%x modifiers=%x\n",
+	_vte_debug_print(vte::debug::category::EVENTS, "Key press key={:x} keycode={:x} modifiers={:x}",
                          key, keycode, modifiers);
 
         auto event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
@@ -1105,7 +1105,7 @@ Widget::event_key_released(GtkEventControllerKey* controller,
                            unsigned keycode,
                            unsigned modifiers)
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Key release key=%x keycode=%x modifiers=%x\n",
+	_vte_debug_print(vte::debug::category::EVENTS, "Key release key={:x} keycode={:x} modifiers={:x}",
                          key, keycode, modifiers);
 
         auto event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
@@ -1119,7 +1119,7 @@ bool
 Widget::event_key_modifiers(GtkEventControllerKey* controller,
                             unsigned modifiers)
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Key modifiers=%x\n", modifiers);
+	_vte_debug_print(vte::debug::category::EVENTS, "Key modifiers={:x}", modifiers);
 
         return terminal()->widget_key_modifiers(modifiers);
 }
@@ -1129,7 +1129,7 @@ Widget::gesture_long_press_pressed(GtkGestureLongPress* gesture,
                                    double x,
                                    double y)
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Long Press gesture pressed x=%.3f y=%.3f\n", x, y);
+	_vte_debug_print(vte::debug::category::EVENTS, "Long Press gesture pressed x={:.3f} y={:.3f}", x, y);
 
         // FIXMEgtk4: could let Terminal have the event first
 
@@ -1141,13 +1141,13 @@ Widget::gesture_long_press_pressed(GtkGestureLongPress* gesture,
 void
 Widget::gesture_long_press_cancelled(GtkGestureLongPress* gesture)
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Long Press gesture cancelled");
+	_vte_debug_print(vte::debug::category::EVENTS, "Long Press gesture cancelled");
 }
 
 void
 Widget::event_focus_enter(GtkEventControllerFocus* controller)
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus In");
+	_vte_debug_print(vte::debug::category::EVENTS, "Focus In");
 
         terminal()->widget_focus_in();
 }
@@ -1155,7 +1155,7 @@ Widget::event_focus_enter(GtkEventControllerFocus* controller)
 void
 Widget::event_focus_leave(GtkEventControllerFocus* controller)
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus Out");
+	_vte_debug_print(vte::debug::category::EVENTS, "Focus Out");
 
         terminal()->widget_focus_out();
 }
@@ -1165,7 +1165,7 @@ Widget::event_motion_enter(GtkEventControllerMotion* controller,
                            double x,
                            double y)
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Motion enter x=%.3f y=%.3f\n", x, y);
+        _vte_debug_print(vte::debug::category::EVENTS, "Motion enter x={:.3f} y={:.3f}", x, y);
 
 #if 0
         // FIXMEgtk4 this always returns nullptr, so how do we get the modifiers?
@@ -1185,7 +1185,7 @@ Widget::event_motion_enter(GtkEventControllerMotion* controller,
 void
 Widget::event_motion_leave(GtkEventControllerMotion* controller)
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Motion leave\n");
+        _vte_debug_print(vte::debug::category::EVENTS, "Motion leave");
 
 #if 0
         // FIXMEgtk4 this always returns nullptr, so how do we get the modifiers?
@@ -1209,7 +1209,7 @@ Widget::event_motion(GtkEventControllerMotion* controller,
                      double x,
                      double y)
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Motion x=%.3f y=%.3f\n", x, y);
+        _vte_debug_print(vte::debug::category::EVENTS, "Motion x={:.3f} y={:.3f}", x, y);
 
         auto event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
         if (!event)
@@ -1227,8 +1227,8 @@ Widget::event_motion(GtkEventControllerMotion* controller,
 void
 Widget::event_motion_notify_is_pointer(GtkEventControllerMotion* controller)
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Motion is-pointer now %s\n",
-                         _vte_debug_tf(gtk_event_controller_motion_is_pointer(controller)));
+        _vte_debug_print(vte::debug::category::EVENTS, "Motion is-pointer now {}",
+                         bool(gtk_event_controller_motion_is_pointer(controller)));
 
         // FIXMEgtk4
 }
@@ -1236,15 +1236,15 @@ Widget::event_motion_notify_is_pointer(GtkEventControllerMotion* controller)
 void
 Widget::event_motion_notify_contains_pointer(GtkEventControllerMotion* controller)
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Motion contains-pointer now %s\n",
-                         _vte_debug_tf(gtk_event_controller_motion_contains_pointer(controller)));
+        _vte_debug_print(vte::debug::category::EVENTS, "Motion contains-pointer now {}",
+                         bool(gtk_event_controller_motion_contains_pointer(controller)));
         // FIXMEgtk4
 }
 
 void
 Widget::event_scroll_begin(GtkEventControllerScroll* controller)
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Scroll begin\n");
+        _vte_debug_print(vte::debug::category::EVENTS, "Scroll begin");
 
         // FIXMEgtk4
 }
@@ -1254,7 +1254,7 @@ Widget::event_scroll(GtkEventControllerScroll* controller,
                      double dx,
                      double dy)
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Scroll delta_x=%.3f delta_y=%.3f\n", dx, dy);
+        _vte_debug_print(vte::debug::category::EVENTS, "Scroll delta_x={:.3f} delta_y={:.3f}", dx, dy);
 
         auto event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
         if (!event)
@@ -1267,7 +1267,7 @@ Widget::event_scroll(GtkEventControllerScroll* controller,
 void
 Widget::event_scroll_end(GtkEventControllerScroll* controller)
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Scroll end\n");
+        _vte_debug_print(vte::debug::category::EVENTS, "Scroll end");
 
         // FIXMEgtk4
 }
@@ -1277,7 +1277,7 @@ Widget::event_scroll_decelerate(GtkEventControllerScroll* controller,
                                 double vx,
                                 double vy)
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Scroll decelerate v_x=%.3f v_y=%.3f\n", vx, vy);
+        _vte_debug_print(vte::debug::category::EVENTS, "Scroll decelerate v_x={:.3f} v_y={:.3f}", vx, vy);
 
         // FIXMEgtk4
 }
@@ -1288,7 +1288,7 @@ Widget::gesture_click_pressed(GtkGestureClick* gesture,
                               double x,
                               double y)
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Click gesture pressed press_count=%d x=%.3f y=%.3f\n",
+        _vte_debug_print(vte::debug::category::EVENTS, "Click gesture pressed press_count={} x={:.3f} y={:.3f}",
                          press_count, x, y);
 
         // FIXMEgtk4 why does gtk4 not do that automatically?
@@ -1314,7 +1314,7 @@ Widget::gesture_click_released(GtkGestureClick* gesture,
                                double x,
                                double y)
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Click gesture released press_count=%d x=%.3f y=%.3f\n",
+        _vte_debug_print(vte::debug::category::EVENTS, "Click gesture released press_count={} x={:.3f} y={:.3f}",
                          press_count, x, y);
 
         // FIXMEgtk4 why does gtk4 not do that automatically?
@@ -1335,7 +1335,7 @@ Widget::gesture_click_released(GtkGestureClick* gesture,
 void
 Widget::gesture_click_stopped(GtkGestureClick* gesture)
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Click gesture stopped\n");
+        _vte_debug_print(vte::debug::category::EVENTS, "Click gesture stopped");
 
         // FIXMEgtk4 what's the right thing to do here???
         // Should probably stop selection expansion mode, reset stored buttons, ...?
@@ -1348,7 +1348,7 @@ Widget::gesture_click_unpaired_release(GtkGestureClick* gesture,
                                        unsigned button,
                                        GdkEventSequence* sequence)
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Click gesture unpaired release button=%d x=%.3f y=%.3f\n",
+        _vte_debug_print(vte::debug::category::EVENTS, "Click gesture unpaired release button={} x={:.3f} y={:.3f}",
                          button, x, y);
 
         // FIXMEgtk4 what's the right thing to do here???
@@ -1391,7 +1391,7 @@ Widget::im_preedit_changed() noexcept
                                           vte::glib::StringGetter{str},
                                           vte::get_freeable(attrs),
                                           &cursorpos);
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Input method pre-edit changed (%s,%d).\n",
+        _vte_debug_print(vte::debug::category::EVENTS, "Input method pre-edit changed string \"{}\" cursor-position {}",
                          str.get(), cursorpos);
 
         if (str)
@@ -1456,8 +1456,8 @@ Widget::key_event_translate_ctrlkey(KeyEvent const& event) const noexcept
                                                      i,
                                                      &keyval, NULL, NULL, &consumed_modifiers);
 		if (keyval < 128) {
-			_vte_debug_print (VTE_DEBUG_EVENTS,
-                                          "ctrl+Key, group=%d de-grouped into keyval=0x%x\n",
+			_vte_debug_print (vte::debug::category::EVENTS,
+                                          "ctrl+Key, group={} de-grouped into keyval={:#0x}",
                                           event.group(), keyval);
                         break;
 		}
@@ -1485,8 +1485,8 @@ Widget::key_event_translate_ctrlkey(KeyEvent const& event) const noexcept
                 if (keyval >= 128)
                         continue;
 
-                _vte_debug_print (VTE_DEBUG_EVENTS,
-                                  "ctrl+Key, group=%d de-grouped into keyval=0x%x\n",
+                _vte_debug_print (vte::debug::category::EVENTS,
+                                  "ctrl+Key, group={} de-grouped into keyval={:#0x}",
                                   event.group(), keyval);
                 return keyval;
         }
@@ -1599,8 +1599,8 @@ Widget::notify_char_size_changed(int width,
                 notify_scroll_bounds_changed(true);
         }
 
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `char-size-changed'.\n");
+	_vte_debug_print(vte::debug::category::SIGNALS,
+			"Emitting `char-size-changed'");
         /* FIXME on next API break, change the signature */
 	g_signal_emit(gtk(), signals[SIGNAL_CHAR_SIZE_CHANGED], 0,
                       guint(width), guint(height));
@@ -1609,8 +1609,7 @@ Widget::notify_char_size_changed(int width,
 void
 Widget::notify_scroll_bounds_changed(bool value_changed)
 {
-        _vte_debug_print(VTE_DEBUG_ADJ,
-                         "Updating scroll adjustment\n");
+        _vte_debug_print(vte::debug::category::ADJ, "Updating scroll adjustment");
 
         auto const freezer = vte::glib::FreezeObjectNotify{m_vadjustment.get()};
         auto changed = false;
@@ -1630,8 +1629,8 @@ Widget::notify_scroll_bounds_changed(bool value_changed)
 
         auto current = gtk_adjustment_get_lower(m_vadjustment.get());
         if (!_vte_double_equal(current, dlower)) {
-                _vte_debug_print(VTE_DEBUG_ADJ,
-                                 "Changing lower bound from %.0f to %f\n",
+                _vte_debug_print(vte::debug::category::ADJ,
+                                 "Changing lower bound from {:f} to {:f}",
                                  current, dlower);
                 gtk_adjustment_set_lower(m_vadjustment.get(), dlower);
                 changed = true;
@@ -1639,8 +1638,8 @@ Widget::notify_scroll_bounds_changed(bool value_changed)
 
         current = gtk_adjustment_get_upper(m_vadjustment.get());
         if (!_vte_double_equal(current, dupper)) {
-                _vte_debug_print(VTE_DEBUG_ADJ,
-                                 "Changing upper bound from %.0f to %f\n",
+                _vte_debug_print(vte::debug::category::ADJ,
+                                 "Changing upper bound from {:f} to {:f}",
                                  current, dupper);
                 gtk_adjustment_set_upper(m_vadjustment.get(), dupper);
                 changed = true;
@@ -1649,8 +1648,8 @@ Widget::notify_scroll_bounds_changed(bool value_changed)
         /* The step increment should always be one. */
         current = gtk_adjustment_get_step_increment(m_vadjustment.get());
         if (!_vte_double_equal(current, dline)) {
-                _vte_debug_print(VTE_DEBUG_ADJ,
-                                 "Changing step increment from %.0lf to 1.0\n",
+                _vte_debug_print(vte::debug::category::ADJ,
+                                 "Changing step increment from {:f} to 1.0",
                                  current);
                 gtk_adjustment_set_step_increment(m_vadjustment.get(), dline);
                 changed = true;
@@ -1658,8 +1657,8 @@ Widget::notify_scroll_bounds_changed(bool value_changed)
 
         current = gtk_adjustment_get_page_size(m_vadjustment.get());
         if (!_vte_double_equal(current, row_count)) {
-                _vte_debug_print(VTE_DEBUG_ADJ,
-                                 "Changing page size from %.0f to %ld\n",
+                _vte_debug_print(vte::debug::category::ADJ,
+                                 "Changing page size from {:f} to {}",
                                  current, row_count);
                 gtk_adjustment_set_page_size(m_vadjustment.get(), row_count);
                 changed = true;
@@ -1670,9 +1669,8 @@ Widget::notify_scroll_bounds_changed(bool value_changed)
          */
         current = gtk_adjustment_get_page_increment(m_vadjustment.get());
         if (!_vte_double_equal(current, row_count)) {
-                _vte_debug_print(VTE_DEBUG_ADJ,
-                                 "Changing page increment from "
-                                 "%.0f to %ld\n",
+                _vte_debug_print(vte::debug::category::ADJ,
+                                 "Changing page increment from {:f} to {}",
                                  current, row_count);
                 gtk_adjustment_set_page_increment(m_vadjustment.get(), row_count);
                 changed = true;
@@ -1682,15 +1680,13 @@ Widget::notify_scroll_bounds_changed(bool value_changed)
                 notify_scroll_value_changed();
 
         if (changed)
-                _vte_debug_print(VTE_DEBUG_SIGNALS,
-                                 "Adjustment changed.\n");
+                _vte_debug_print(vte::debug::category::SIGNALS, "Adjustment changed");
 }
 
 void
 Widget::notify_scroll_value_changed()
 {
-        _vte_debug_print(VTE_DEBUG_ADJ,
-                         "Updating scroll adjustment value\n");
+        _vte_debug_print(vte::debug::category::ADJ, "Updating scroll adjustment value");
 
         auto const lower = terminal()->scroll_limit_lower();
         auto value = terminal()->scroll_position() - lower;
@@ -1824,7 +1820,7 @@ Widget::measure(GtkOrientation orientation,
                 int* minimum_baseline,
                 int* natural_baseline) noexcept
 {
-        _vte_debug_print(VTE_DEBUG_WIDGET_SIZE, "Widget measure for_size=%d orientation=%s\n",
+        _vte_debug_print(vte::debug::category::WIDGET_SIZE, "Widget measure for_size={} orientation={}",
                          for_size,
                          orientation == GTK_ORIENTATION_HORIZONTAL ? "horizontal" : "vertical");
 
@@ -1888,11 +1884,12 @@ Widget::realize() noexcept
 	m_default_cursor = create_cursor(VTE_DEFAULT_CURSOR);
 	m_invisible_cursor = create_cursor("none"s);
 	m_mousing_cursor = create_cursor(VTE_MOUSING_CURSOR);
-        if (_vte_debug_on(VTE_DEBUG_HYPERLINK))
+        _VTE_DEBUG_IF(vte::debug::category::HYPERLINK) {
                 /* Differ from the standard regex match cursor in debug mode. */
                 m_hyperlink_cursor = create_cursor(VTE_HYPERLINK_CURSOR_DEBUG);
-        else
+        } else {
                 m_hyperlink_cursor = create_cursor(VTE_HYPERLINK_CURSOR);
+        }
 
 #if VTE_GTK == 3
 	/* Create an input window for the widget. */
@@ -2112,8 +2109,8 @@ Widget::settings_changed()
 #endif
                      nullptr);
 
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Cursor blinking settings: blink=%d time=%d timeout=%d\n",
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Cursor blinking settings: blink={} time={} timeout={}",
                          blink, blink_time_ms, blink_timeout_s * 1000);
 
         m_terminal->set_blink_settings(blink, blink_time_ms, blink_timeout_s * 1000);
@@ -2241,7 +2238,7 @@ Widget::unset_pty() noexcept
 void
 Widget::size_allocate(GtkAllocation* allocation)
 {
-        _vte_debug_print(VTE_DEBUG_WIDGET_SIZE, "Widget size allocate width=%d height=%d x=%d y=%d\n",
+        _vte_debug_print(vte::debug::category::WIDGET_SIZE, "Widget size allocate width={} height={} x={} y={}",
                          allocation->width, allocation->height, allocation->x, allocation->y);
 
         m_terminal->widget_size_allocate(allocation->x, allocation->y,
@@ -2268,7 +2265,7 @@ Widget::size_allocate(int width,
                       int height,
                       int baseline)
 {
-        _vte_debug_print(VTE_DEBUG_WIDGET_SIZE, "Widget size allocate width=%d height=%d baseline=%d\n",
+        _vte_debug_print(vte::debug::category::WIDGET_SIZE, "Widget size allocate width={} height={} baseline={}",
                          width, height, baseline);
 
         terminal()->widget_size_allocate(width, height, baseline,
@@ -2499,7 +2496,7 @@ Widget::set_context_menu(vte::glib::RefPtr<GtkWidget> menu)
 void
 Widget::emit_setup_context_menu(EventContext const* context)
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Emitting setup-context-menu\n");
+        _vte_debug_print(vte::debug::category::EVENTS, "Emitting setup-context-menu");
         g_signal_emit(object(), signals[SIGNAL_SETUP_CONTEXT_MENU], 0,
                       reinterpret_cast<VteEventContext const*>(context));
 }
@@ -2526,7 +2523,8 @@ Widget::show_context_menu(EventContext const& context)
                 m_menu_showing = vte::glib::ref(m_context_menu);
         }
 
-        _vte_debug_print(VTE_DEBUG_EVENTS, "Context menu is %p\n", (void*)m_menu_showing.get());
+        _vte_debug_print(vte::debug::category::EVENTS, "Context menu is {}",
+                         (void*)m_menu_showing.get());
 
         if (!m_menu_showing)
                 return false;

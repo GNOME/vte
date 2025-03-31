@@ -22,7 +22,7 @@
 #include <cmath>
 
 #include "bidi.hh"
-#include "debug.h"
+#include "debug.hh"
 #include "drawing-context.hh"
 #include "fonts-pangocairo.hh"
 
@@ -58,7 +58,7 @@ DrawingContext::set_text_font(GtkWidget* widget,
 	PangoFontDescription *bolditalicdesc = nullptr;
 	gint normal, bold, ratio;
 
-	_vte_debug_print (VTE_DEBUG_DRAW, "draw_set_text_font\n");
+	_vte_debug_print(vte::debug::category::DRAW, "draw_set_text_font");
 
         clear_font_cache();
 
@@ -96,8 +96,9 @@ DrawingContext::set_text_font(GtkWidget* widget,
 	bold   = normal | VTE_DRAW_BOLD;
 	ratio = m_fonts[bold]->width() * 100 / m_fonts[normal]->width();
 	if (abs(ratio - 100) > 10) {
-		_vte_debug_print (VTE_DEBUG_DRAW,
-			"Rejecting bold font (%i%%).\n", ratio);
+		_vte_debug_print(vte::debug::category::DRAW,
+                                 "Rejecting bold font (ratio {}%)",
+                                 ratio);
                 m_fonts[bold]->unref();
                 m_fonts[bold] = m_fonts[normal]->ref();
 	}
@@ -105,8 +106,9 @@ DrawingContext::set_text_font(GtkWidget* widget,
 	bold   = normal | VTE_DRAW_BOLD;
 	ratio = m_fonts[bold]->width() * 100 / m_fonts[normal]->width();
 	if (abs(ratio - 100) > 10) {
-		_vte_debug_print (VTE_DEBUG_DRAW,
-			"Rejecting italic bold font (%i%%).\n", ratio);
+		_vte_debug_print(vte::debug::category::DRAW,
+                                 "Rejecting italic bold font (ratio {}%)",
+                                 ratio);
                 m_fonts[bold]->unref();
                 m_fonts[bold] = m_fonts[normal]->ref();
 	}
@@ -223,10 +225,9 @@ DrawingContext::draw_undercurl(int x,
 
         cairo_save (cr);
 
-        _vte_debug_print (VTE_DEBUG_DRAW,
-                          "draw_undercurl (x=%d, y=%f, count=%d, color=(%d,%d,%d))\n",
-                          x, y, count,
-                          color->red, color->green, color->blue);
+        _vte_debug_print(vte::debug::category::DRAW,
+                         "draw_undercurl (x={}, y={:f}, count={}, color={}",
+                         x, y, count, *color);
 
         if (m_undercurl_surface_scale != scale_factor)
                 m_undercurl_surface.reset();
@@ -242,8 +243,8 @@ DrawingContext::draw_undercurl(int x,
                 double y_center = (y + y_bottom) / 2.;
                 gint surface_bottom = y_bottom + 1;  /* ceil, kind of */
 
-                _vte_debug_print (VTE_DEBUG_DRAW,
-                                  "caching undercurl shape\n");
+                _vte_debug_print(vte::debug::category::DRAW,
+                                 "caching undercurl shape");
 
                 /* Add a line_width of margin horizontally on both sides, for nice antialias overflowing.
                  * Add pixel margin to top/bottom for curl antialiasing.

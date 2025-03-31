@@ -371,7 +371,7 @@ G_DEFINE_TYPE (VteSnake, _vte_snake, G_TYPE_OBJECT)
 static void
 _vte_snake_verify (VteSnake *snake)
 {
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
         int i;
 
         g_assert_cmpuint (snake->tail, <=, snake->head);

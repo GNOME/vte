@@ -26,7 +26,6 @@
 #include <termios.h>
 
 #include <glib.h>
-#include <glib/gprintf.h>
 #include <glib/gi18n.h>
 #include <glib-unix.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
@@ -54,6 +53,8 @@
 #include <cmath>
 #include <vector>
 
+#include <fmt/format.h>
+
 #include "std-glue.hh"
 #include "cairo-glue.hh"
 #include "glib-glue.hh"
@@ -75,23 +76,33 @@
 /* options */
 
 enum {
-        VL0,
+        VL0 = 0,
         VL1,
         VL2,
         VL3
 }; // Verbosity levels
 
-static void G_GNUC_PRINTF(3, 4)
-verbose_fprintf(FILE* fp,
-                int level,
-                char const* format,
-                ...);
+static void
+fprintln(FILE* fp,
+         int level,
+         fmt::string_view fmt,
+         fmt::format_args args) noexcept;
 
-#define verbose_print(...) verbose_fprintf(stdout, VL1, __VA_ARGS__)
-#define verbose_printerr(...) verbose_fprintf(stderr, VL1, __VA_ARGS__)
+template<typename... T>
+void
+verbose_fprintln(FILE* fp,
+                 int level,
+                 fmt::format_string<T...> fmt,
+                 T&&... args) noexcept
+{
+        fprintln(fp, level, fmt, fmt::make_format_args(args...));
+}
 
-#define vverbose_print(...) verbose_fprintf(stdout, __VA_ARGS__)
-#define vverbose_printerr(...) verbose_fprintf(stderr, __VA_ARGS__)
+#define verbose_println(...) verbose_fprintln(stdout, VL1, __VA_ARGS__)
+#define verbose_printerrln(...) verbose_fprintln(stderr, VL1, __VA_ARGS__)
+
+#define vverbose_println(...) verbose_fprintln(stdout, __VA_ARGS__)
+#define vverbose_printerrln(...) verbose_fprintln(stderr, __VA_ARGS__)
 
 
 #define CONFIG_GROUP "VteApp Configuration"
@@ -478,7 +489,7 @@ private:
                         return;
 
                 if (error->domain == GTK_CSS_PARSER_WARNING)
-                        verbose_printerr("Warning parsing CSS: %s", error->message);
+                        verbose_printerrln("Warning parsing CSS: {}", error->message);
                 else
                         *ret_error = g_error_copy(error);
         }
@@ -1517,7 +1528,7 @@ public:
                                 // Allow default load to fail
                                 if (!load_config(config_ini.get(), nullptr, err) &&
                                     !err.matches(G_FILE_ERROR, G_FILE_ERROR_NOENT)) {
-                                        verbose_printerr("Failed to load default configuration: %s\n", err.message());
+                                        verbose_printerrln("Failed to load default configuration: {}", err.message());
                                 }
                         }
 
@@ -1616,19 +1627,16 @@ Options options{}; /* global */
 
 /* debug output */
 
-static void G_GNUC_PRINTF(3, 4)
-verbose_fprintf(FILE* fp,
-                int level,
-                char const* format,
-                ...)
+static void
+fprintln(FILE* fp,
+         int level,
+         fmt::string_view fmt,
+         fmt::format_args args) noexcept
 {
         if (options.verbosity < level)
                 return;
 
-        va_list args;
-        va_start(args, format);
-        g_vfprintf(fp, format, args);
-        va_end(args);
+        fmt::vprintln(stdout, fmt, args);
 }
 
 /* regex */
@@ -1641,7 +1649,7 @@ jit_regex(VteRegex* regex,
         if (!vte_regex_jit(regex, PCRE2_JIT_COMPLETE, error) ||
             !vte_regex_jit(regex, PCRE2_JIT_PARTIAL_SOFT, error)) {
                 if (!error.matches(VTE_REGEX_ERROR, -45 /* PCRE2_ERROR_JIT_BADOPTION: JIT not supported */))
-                        verbose_printerr("JITing regex \"%s\" failed: %s\n", pattern, error.message());
+                        verbose_printerrln("JITing regex \"{}\" failed: {}", pattern, error.message());
         }
 }
 
@@ -2243,16 +2251,16 @@ vteapp_terminal_update_theme_colors(GtkWidget* widget)
 #elif VTE_GTK == 4
         // FIXMEgtk4 "background-color" lookup always fails
         if (!gtk_style_context_lookup_color(context, "text_view_bg", &theme_bg)) {
-                verbose_print("Failed to get theme background color\n");
+                vverbose_println(VL2, "Failed to get theme background color");
                 return;
         }
 #endif
 
         auto dti = [](double d) -> unsigned { return std::clamp(unsigned(d*255), 0u, 255u); };
 
-        verbose_print("Theme colors: foreground is #%02X%02X%02X, background is #%02X%02X%02X\n",
-                      dti(theme_fg.red), dti(theme_fg.green), dti(theme_fg.blue),
-                      dti(theme_bg.red), dti(theme_bg.green), dti(theme_bg.blue));
+        vverbose_println(VL2, "Theme colors: foreground is #{:02X}{:02X}{:02X}, background is #{:02X}{:02X}{:02X}",
+                         dti(theme_fg.red), dti(theme_fg.green), dti(theme_fg.blue),
+                         dti(theme_bg.red), dti(theme_bg.green), dti(theme_bg.blue));
 
         theme_fg.alpha = 1.;
         theme_bg.alpha = options.get_alpha_bg();
@@ -2425,9 +2433,9 @@ vteapp_terminal_class_init(VteappTerminalClass *klass)
         if (options.verbosity >= VL2) {
                 auto n_termprops = gsize{0};
                 auto termprops = vte::glib::take_free_ptr(vte_get_termprops(&n_termprops));
-                vverbose_print(VL2, "Installed termprops are:\n");
+                vverbose_println(VL2, "Installed termprops are:");
                 for (auto i = gsize{0}; i < n_termprops; ++i) {
-                        vverbose_print(VL2, "  %s\n", termprops.get()[i]);
+                        vverbose_println(VL2, "  {}", termprops.get()[i]);
                 }
         }
 }
@@ -2510,9 +2518,9 @@ print_reply_cb(GObject* source,
         if (auto rv = vte::take_freeable(g_dbus_connection_call_finish(G_DBUS_CONNECTION(source),
                                                                        result,
                                                                        err))) {
-                vverbose_printerr(VL3, "%s call successful\n", method);
+                vverbose_printerrln(VL3, "{} call successful", method);
         } else {
-                vverbose_printerr(VL3, "%s call failed: error %s\n", method, err.message());
+                vverbose_printerrln(VL3, "{} call failed: error {}", method, err.message());
         }
 }
 
@@ -2635,9 +2643,9 @@ taskbar_kde_acquire_view_cb(GObject* source,
                                                                        result,
                                                                        err))) {
                 g_variant_get(rv.get(), "(o)", &(taskbar->kde_job_object_path));
-                vverbose_printerr(VL3, KDE_JOBVIEWSERVER_INTERFACE_NAME ".acquireView"
-                                  " call succeeded, view path is %s\n",
-                                  taskbar->kde_job_object_path);
+                vverbose_printerrln(VL3, KDE_JOBVIEWSERVER_INTERFACE_NAME ".acquireView"
+                                    " call succeeded, view path is {}",
+                                    taskbar->kde_job_object_path);
 
                 // Now update the progress, or remove the view if
                 // progress is already cancelled.
@@ -2646,8 +2654,8 @@ taskbar_kde_acquire_view_cb(GObject* source,
                 else
                         taskbar_kde_remove_progress(taskbar.get());
         } else {
-                vverbose_printerr(VL3, KDE_JOBVIEWSERVER_INTERFACE_NAME ".acquireView"
-                                  " call failed: %s\n", err.message());
+                vverbose_printerrln(VL3, KDE_JOBVIEWSERVER_INTERFACE_NAME ".acquireView"
+                                    " call failed: {}", err.message());
                 taskbar->kde_acquisition_failed = true;
         }
 }
@@ -2746,9 +2754,9 @@ taskbar_unity_update_progress(VteappTaskbar* taskbar)
                                            "Update",
                                            g_variant_builder_end(&builder),
                                            err)) [[unlikely]] {
-                vverbose_printerr(VL3, UNITY_LAUNCHERENTRY_INTERFACE_NAME
-                                  ".Update signal emission failed: %s\n",
-                                  err.message());
+                vverbose_printerrln(VL3, UNITY_LAUNCHERENTRY_INTERFACE_NAME
+                                    ".Update signal emission failed: {}",
+                                    err.message());
         }
 }
 
@@ -2945,8 +2953,8 @@ vteapp_window_add_dingus(VteappWindow* window,
                 }
 
                 if (error.error()) {
-                        verbose_printerr("Failed to compile regex \"%s\": %s\n",
-                                         dingus[i], error.message());
+                        verbose_printerrln("Failed to compile regex \"{}\": {}",
+                                           dingus[i], error.message());
                 }
 
                 if (tag != -1)
@@ -3022,10 +3030,10 @@ vteapp_window_update_geometry(VteappWindow* window)
                                                                      GDK_HINT_MIN_SIZE |
                                                                      GDK_HINT_BASE_SIZE));
 
-                        verbose_print("Updating geometry hints base %dx%d inc %dx%d min %dx%d\n",
-                                      geometry.base_width, geometry.base_height,
-                                      geometry.width_inc, geometry.height_inc,
-                                      geometry.min_width, geometry.min_height);
+                        vverbose_println(VL2, "Updating geometry hints base {}x{} inc {}x{} min {}x{}",
+                                         geometry.base_width, geometry.base_height,
+                                         geometry.width_inc, geometry.height_inc,
+                                         geometry.min_width, geometry.min_height);
                 }
         }
 
@@ -3036,11 +3044,11 @@ vteapp_window_update_geometry(VteappWindow* window)
         window->cached_chrome_width = chrome_width;
         window->cached_chrome_height = chrome_height;
 
-        verbose_print("Cached grid %dx%d cell-size %dx%d chrome %dx%d csd %dx%d\n",
-                      columns, rows,
-                      window->cached_cell_width, window->cached_cell_height,
-                      window->cached_chrome_width, window->cached_chrome_height,
-                      window->cached_csd_width, window->cached_csd_height);
+        vverbose_println(VL2, "Cached grid {}x{} cell-size {}x{} chrome {}x{} csd {}x{}",
+                         columns, rows,
+                         window->cached_cell_width, window->cached_cell_height,
+                         window->cached_chrome_width, window->cached_chrome_height,
+                         window->cached_csd_width, window->cached_csd_height);
 #elif VTE_GTK == 4
         // FIXMEgtk4 there appears to be no way to do this with gtk4 ? maybe go to X/wayland
         // directly to set the geometry hints?
@@ -3092,8 +3100,8 @@ vteapp_window_resize(VteappWindow* window)
         int pixel_width = window->cached_chrome_width + window->cached_cell_width * columns;
         int pixel_height = window->cached_chrome_height + window->cached_cell_height * rows;
 
-        verbose_print("VteappWindow resize grid %dx%d pixel %dx%d\n",
-                      columns, rows, pixel_width, pixel_height);
+        vverbose_println(VL2, "VteappWindow resize grid {}x{} pixel {}x{}",
+                         columns, rows, pixel_width, pixel_height);
 
         gtk_window_resize(GTK_WINDOW(window), pixel_width, pixel_height);
 #endif /* VTE_GTK == 3 FIXMEgtk4 */
@@ -3112,7 +3120,7 @@ vteapp_window_parse_geometry(VteappWindow* window)
                 auto rv = gtk_window_parse_geometry(GTK_WINDOW(window), options.geometry);
 
                 if (!rv)
-                        verbose_printerr("Failed to parse geometry spec \"%s\"\n", options.geometry);
+                        verbose_printerrln("Failed to parse geometry spec \"{}\"", options.geometry);
                 else if (options.geometry_hints) {
                         /* After parse_geometry(), we can get the default size in
                          * width/height increments, i.e. in grid size.
@@ -3175,14 +3183,14 @@ window_spawn_cb(VteTerminal* terminal,
         window->child_pid = child_pid;
 
         if (child_pid != -1)
-                verbose_printerr("Spawning succeded, PID=%ld\n", (long)child_pid);
+                verbose_printerrln("Spawning succeded: PID {}", child_pid);
 
         if (error != nullptr) {
-                verbose_printerr("Spawning failed: %s\n", error->message);
+                verbose_printerrln("Spawning failed: {}", error->message);
 
-                auto msg = vte::glib::take_string(g_strdup_printf("Spawning failed: %s", error->message));
+                auto msg = fmt::format("Spawning failed: {}", error->message);
                 if (options.keep)
-                        vte_terminal_feed(window->terminal, msg.get(), -1);
+                        vte_terminal_feed(window->terminal, msg.data(), msg.size());
                 else {
 #if VTE_GTK == 3
                         gtk_widget_destroy(GTK_WIDGET(window));
@@ -3281,10 +3289,10 @@ vteapp_window_fork(VteappWindow* window,
                         switch (i % 3) {
                         case 0:
                         case 1:
-                                g_print("%d\n", i);
+                                vverbose_println(VL0, "{}", i);
                                 break;
                         case 2:
-                                g_printerr("%d\n", i);
+                                vverbose_printerrln(VL0, "{}", i);
                                 break;
                         }
                         g_usleep(G_USEC_PER_SEC);
@@ -3293,7 +3301,7 @@ vteapp_window_fork(VteappWindow* window,
         default: /* parent */
                 vte_terminal_set_pty(window->terminal, pty.get());
                 vte_terminal_watch_child(window->terminal, pid);
-                verbose_print("Child PID is %d (mine is %d).\n", (int)pid, (int)getpid());
+                verbose_println("Child PID is {} (mine is {})", pid, getpid());
                 break;
         }
 
@@ -3304,9 +3312,8 @@ static gboolean
 tick_cb(VteappWindow* window)
 {
         static int i = 0;
-        char buf[256];
-        auto s = g_snprintf(buf, sizeof(buf), "%d\r\n", i++);
-        vte_terminal_feed(window->terminal, buf, s);
+        auto str = fmt::format("{}\r\n", i++);
+        vte_terminal_feed(window->terminal, str.data(), str.size());
         return G_SOURCE_CONTINUE;
 }
 
@@ -3336,7 +3343,7 @@ vteapp_window_launch(VteappWindow* window)
                 rv = vteapp_window_tick(window, error);
 
         if (!rv)
-                verbose_printerr("Error launching: %s\n", error.message());
+                verbose_printerrln("Error launching: {}", error.message());
 }
 
 static void
@@ -3484,12 +3491,12 @@ window_setup_context_menu_cb(VteTerminal* terminal,
 
         // context == nullptr when the menu is dismissed after being shown
         if (!context) {
-                verbose_print("setup-context-menu reset\n");
+                vverbose_println(VL2, "setup-context-menu reset");
                 vte_terminal_set_context_menu_model(terminal, nullptr);
                 return;
         }
 
-        verbose_print("setup-context-menu\n");
+        vverbose_println(VL2, "setup-context-menu");
 
         auto menu = vte::glib::take_ref(g_menu_new());
         g_menu_append(menu.get(), "_Copy", "win.copy::text");
@@ -3511,7 +3518,7 @@ window_setup_context_menu_cb(VteTerminal* terminal,
                 auto hyperlink = vte::glib::take_string(vte_terminal_check_hyperlink_at(window->terminal, x, y));
 #endif
                 if (hyperlink) {
-                        verbose_print("Hyperlink: %s\n", hyperlink.get());
+                        verbose_println("Hyperlink: {}", hyperlink.get());
                         auto target = g_variant_new_string(hyperlink.get()); /* floating */
                         auto item = vte::glib::take_ref(g_menu_item_new("Copy _Hyperlink", nullptr));
                         g_menu_item_set_action_and_target_value(item.get(), "win.copy-match", target);
@@ -3524,7 +3531,7 @@ window_setup_context_menu_cb(VteTerminal* terminal,
                 auto match = vte::glib::take_string(vte_terminal_check_match_at(window->terminal, x, y, nullptr));
 #endif // VTE_GTK
                 if (match) {
-                        verbose_print("Match: %s\n", match.get());
+                        verbose_println("Match: {}", match.get());
                         auto target = g_variant_new_string(match.get()); /* floating */
                         auto item = vte::glib::take_ref(g_menu_item_new("Copy _Match", nullptr));
                         g_menu_item_set_action_and_target_value(item.get(), "win.copy-match", target);
@@ -3557,14 +3564,17 @@ window_setup_context_menu_cb(VteTerminal* terminal,
                                                         PCRE2_SUBSTITUTE_EXTENDED |
                                                         PCRE2_SUBSTITUTE_GLOBAL,
                                                         error)) == nullptr) {
-                        verbose_printerr("Substitution failed: %s\n", error.message());
+                        verbose_printerrln("Substitution failed: {}", error.message());
                 }
 
                 if (extra_match != nullptr) {
-                        if (extra_subst != nullptr)
-                                verbose_print("%s match: %s => %s\n", extra_pattern, extra_match, extra_subst);
-                        else
-                                verbose_print("%s match: %s\n", extra_pattern, extra_match);
+                        if (extra_subst != nullptr) {
+                                verbose_println("{} match: {} => {}",
+                                                extra_pattern, extra_match, extra_subst);
+                        } else {
+                                verbose_println("{} match: {}",
+                                                extra_pattern, extra_match);
+                        }
                 }
                 g_free(extra_match);
                 g_free(extra_subst);
@@ -3598,11 +3608,11 @@ window_child_exited_cb(VteTerminal* term,
                        VteappWindow* window)
 {
         if (WIFEXITED(status))
-                verbose_printerr("Child exited with status %x\n", WEXITSTATUS(status));
+                verbose_printerrln("Child exited with status {:x}", WEXITSTATUS(status));
         else if (WIFSIGNALED(status))
-                verbose_printerr("Child terminated by signal %d\n", WTERMSIG(status));
+                verbose_printerrln("Child terminated by signal {}", WTERMSIG(status));
         else
-                verbose_printerr("Child terminated\n");
+                verbose_printerrln("Child terminated\n");
 
         if (options.output_filename != nullptr) {
                 auto file = vte::glib::take_ref
@@ -3624,8 +3634,8 @@ window_child_exited_cb(VteTerminal* term,
                 }
 
                 if (error.error()) {
-                        verbose_printerr("Failed to write output to \"%s\": %s\n",
-                                         options.output_filename, error.message());
+                        verbose_printerrln("Failed to write output to \"{}\": {}",
+                                           options.output_filename, error.message());
                 }
         }
 
@@ -3814,7 +3824,7 @@ window_notify_cb(GObject* object,
         auto str = g_strdup_value_contents(&value);
         g_value_unset(&value);
 
-        verbose_print("NOTIFY property \"%s\" value %s\n", pspec->name, str);
+        verbose_println("NOTIFY property \"{}\" value {}", pspec->name, str);
         g_free(str);
 }
 
@@ -3855,11 +3865,11 @@ window_termprop_changed_cb(VteTerminal* terminal,
         if (auto const value = vte::take_freeable
             (vte_terminal_ref_termprop_variant(terminal, prop))) {
                 auto str = vte::glib::take_string(g_variant_print(value.get(), true));
-                verbose_print("Termprop '%s' changed to '%s'\n",
-                              prop, str.get());
+                verbose_println("Termprop \"{}\" changed to \"{}\"",
+                                prop, str.get());
         } else {
-                verbose_print("Termprop '%s' changed to no-value\n",
-                              prop);
+                verbose_println("Termprop \"{}\" changed to no-value",
+                                prop);
         }
 }
 
@@ -4220,7 +4230,7 @@ vteapp_window_constructed(GObject *object)
         if (options.encoding != nullptr) {
                 auto error = vte::glib::Error{};
                 if (!vte_terminal_set_encoding(window->terminal, options.encoding, error))
-                        g_printerr("Failed to set encoding: %s\n", error.message());
+                        vverbose_printerrln(VL0, "Failed to set encoding: {}", error.message());
         }
 
         if (options.word_char_exceptions != nullptr)
@@ -4376,7 +4386,7 @@ vteapp_window_realize(GtkWidget* widget)
 
         /* Now we can know the CSD size, and thus apply the geometry. */
         VteappWindow* window = VTEAPP_WINDOW(widget);
-        verbose_print("VteappWindow::realize\n");
+        verbose_println("VteappWindow::realize");
 
 #if VTE_GTK == 3
         auto win = gtk_widget_get_window(GTK_WIDGET(window));
@@ -4444,7 +4454,7 @@ vteapp_window_show(GtkWidget* widget)
 
         /* Re-apply the geometry. */
         VteappWindow* window = VTEAPP_WINDOW(widget);
-        verbose_print("VteappWindow::show\n");
+        verbose_println("VteappWindow::show");
         vteapp_window_resize(window);
 }
 
@@ -4457,7 +4467,7 @@ vteapp_window_style_updated(GtkWidget* widget)
 
         /* Re-apply the geometry. */
         VteappWindow* window = VTEAPP_WINDOW(widget);
-        verbose_print("VteappWindow::style-update\n");
+        verbose_println("VteappWindow::style-update");
         vteapp_window_resize(window);
 }
 
@@ -4611,13 +4621,13 @@ app_clipboard_targets_received_cb(GtkClipboard* clipboard,
                                   int n_targets,
                                   VteappApplication* application)
 {
-        verbose_print("Clipboard has %d targets:", n_targets);
+        verbose_println("Clipboard has {} targets:", n_targets);
 
         for (auto i = 0; i < n_targets; ++i) {
                 auto atom_name = vte::glib::take_string(gdk_atom_name(targets[i]));
-                verbose_print(" %s", atom_name.get());
+                verbose_println("  {}", atom_name.get());
         }
-        verbose_print("\n");
+        verbose_println("");
 }
 
 static void
@@ -4625,7 +4635,7 @@ app_clipboard_owner_change_cb(GtkClipboard* clipboard,
                               GdkEvent* event G_GNUC_UNUSED,
                               VteappApplication* application)
 {
-        verbose_print("Clipboard owner-change, requesting targets\n");
+        verbose_println("Clipboard owner-change, requesting targets");
 
         /* We can do this without holding a reference to @application since
          * the application lives as long as the process.
@@ -4644,7 +4654,7 @@ app_clipboard_changed_cb(GdkClipboard* clipboard,
         auto formats = gdk_clipboard_get_formats(clipboard);
         auto str = vte::glib::take_string(gdk_content_formats_to_string(formats));
 
-        verbose_print("Clipboard owner changed, targets now %s\n", str.get());
+        verbose_println("Clipboard owner changed, targets now {}", str.get());
 }
 
 #endif /* VTE_GTK */
@@ -4656,20 +4666,20 @@ app_load_css_from_resource(GApplication *application,
 {
         auto const base_path = g_application_get_resource_base_path(application);
 
-        char* uri = nullptr;
+        auto uri = std::string{};
         if (theme) {
                 char *str = nullptr;
                 g_object_get(gtk_settings_get_default(), "gtk-theme-name", &str, nullptr);
                 auto theme_name = g_ascii_strdown (str, -1);
-                uri = g_strdup_printf("resource://%s/css/%s/app.css", base_path, theme_name);
+
+                uri = fmt::format("resource://{}/css/{}/app.css", base_path, theme_name);
                 g_free(theme_name);
                 g_free(str);
         } else {
-                uri = g_strdup_printf("resource://%s/css/app.css", base_path);
+                uri = fmt::format("resource://{}/css/app.css", base_path);
         }
 
-        auto file = vte::glib::take_ref(g_file_new_for_uri(uri));
-        g_free(uri);
+        auto file = vte::glib::take_ref(g_file_new_for_uri(uri.c_str()));
 
         if (!g_file_query_exists(file.get(), nullptr /* cancellable */))
                 return false;
@@ -4834,15 +4844,15 @@ main(int argc,
 
        auto error = vte::glib::Error{};
        if (!options.parse_argv(argc, argv, error)) {
-               g_printerr("Error parsing arguments: %s\n", error.message());
+               vverbose_printerrln(VL0, "Error parsing arguments: {}", error.message());
                return EXIT_FAILURE;
        }
 
         if (g_getenv("VTE_CJK_WIDTH") != nullptr)
-                verbose_printerr("VTE_CJK_WIDTH is not supported anymore, use --cjk-width instead\n");
+                verbose_printerrln("VTE_CJK_WIDTH is not supported anymore, use --cjk-width instead");
 
        if (options.version) {
-               g_print("VTE Application %s %s\n", VERSION, vte_get_features());
+               vverbose_println(VL0, "VTE Application {} {}", VERSION, vte_get_features());
                return EXIT_SUCCESS;
        }
 

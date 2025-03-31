@@ -30,6 +30,12 @@
 
 #include "parser-charset-tables.hh"
 
+#ifdef PARSER_INCLUDE_NOP
+#define _VTE_NOQ(...) _VTE_SEQ(__VA_ARGS__)
+#else
+#define _VTE_NOQ(...)
+#endif
+
 namespace vte {
 namespace parser {
 
@@ -230,8 +236,8 @@ Parser::parse_host_escape(vte_seq_t const* seq,
 
         case VTE_SEQ_INTERMEDIATE_BANG:    /* C0-designate */
         case VTE_SEQ_INTERMEDIATE_DQUOTE:  /* C1-designate */
-                *cs_out = VTE_MAKE_CHARSET(parse_charset_control(seq->terminator, intermediates),
-                                           intermediate0 - VTE_SEQ_INTERMEDIATE_BANG);
+                *cs_out = VTE_MAKE_CHARSET_CONTROL(parse_charset_control(seq->terminator, intermediates),
+                                                   intermediate0 - VTE_SEQ_INTERMEDIATE_BANG);
                 return VTE_CMD_CnD;
 
         case VTE_SEQ_INTERMEDIATE_CASH: {  /* Designate multi-byte character sets */
@@ -250,8 +256,8 @@ Parser::parse_host_escape(vte_seq_t const* seq,
                         case '@':
                         case 'A':
                         case 'B': /* G0-designate multibyte charset */
-                                *cs_out = VTE_MAKE_CHARSET(parse_charset_94_n(seq->terminator, remaining_intermediates),
-                                                           0);
+                                *cs_out = VTE_MAKE_CHARSET_94(parse_charset_94_n(seq->terminator, remaining_intermediates),
+                                                              0);
                                 return VTE_CMD_GnDMm;
                         }
                         break;
@@ -260,8 +266,8 @@ Parser::parse_host_escape(vte_seq_t const* seq,
                 case VTE_SEQ_INTERMEDIATE_PCLOSE: /* G1-designate 94^n-set */
                 case VTE_SEQ_INTERMEDIATE_MULT:   /* G2-designate 94^n-set */
                 case VTE_SEQ_INTERMEDIATE_PLUS:   /* G3-designate 94^n-set */
-                        *cs_out = VTE_MAKE_CHARSET(parse_charset_94_n(seq->terminator, remaining_intermediates),
-                                                   intermediate1 - VTE_SEQ_INTERMEDIATE_POPEN);
+                        *cs_out = VTE_MAKE_CHARSET_94(parse_charset_94_n(seq->terminator, remaining_intermediates),
+                                                      intermediate1 - VTE_SEQ_INTERMEDIATE_POPEN);
                         return VTE_CMD_GnDMm;
 
                 case VTE_SEQ_INTERMEDIATE_COMMA:  /* Reserved for future standardisation */
@@ -270,15 +276,15 @@ Parser::parse_host_escape(vte_seq_t const* seq,
                 case VTE_SEQ_INTERMEDIATE_MINUS:  /* G1-designate 96^n-set */
                 case VTE_SEQ_INTERMEDIATE_DOT:    /* G2-designate 96^n-set */
                 case VTE_SEQ_INTERMEDIATE_SLASH:  /* G3-designate 96^n-set */
-                        *cs_out = VTE_MAKE_CHARSET(parse_charset_96_n(seq->terminator, remaining_intermediates),
-                                                   intermediate1 - VTE_SEQ_INTERMEDIATE_COMMA);
+                        *cs_out = VTE_MAKE_CHARSET_96(parse_charset_96_n(seq->terminator, remaining_intermediates),
+                                                      intermediate1 - VTE_SEQ_INTERMEDIATE_COMMA);
                         return VTE_CMD_GnDMm;
                 }
                 break;
         }
 
         case VTE_SEQ_INTERMEDIATE_PERCENT: /* Designate other coding system */
-                *cs_out = parse_charset_ocs(seq->terminator, VTE_SEQ_REMOVE_INTERMEDIATE(intermediates));
+                *cs_out = VTE_MAKE_CHARSET_OCS(parse_charset_ocs(seq->terminator, VTE_SEQ_REMOVE_INTERMEDIATE(intermediates)));
                 return VTE_CMD_DOCS;
 
         case VTE_SEQ_INTERMEDIATE_AND:     /* Identify revised registration */
@@ -293,9 +299,9 @@ Parser::parse_host_escape(vte_seq_t const* seq,
         case VTE_SEQ_INTERMEDIATE_PCLOSE:  /* G1-designate 94-set */
         case VTE_SEQ_INTERMEDIATE_MULT:    /* G2-designate 94-set */
         case VTE_SEQ_INTERMEDIATE_PLUS:    /* G3-designate 94-set */
-                *cs_out = VTE_MAKE_CHARSET(parse_charset_94(seq->terminator,
-                                                            VTE_SEQ_REMOVE_INTERMEDIATE(intermediates)),
-                                           intermediate0 - VTE_SEQ_INTERMEDIATE_POPEN);
+                *cs_out = VTE_MAKE_CHARSET_94(parse_charset_94(seq->terminator,
+                                                               VTE_SEQ_REMOVE_INTERMEDIATE(intermediates)),
+                                              intermediate0 - VTE_SEQ_INTERMEDIATE_POPEN);
                 return VTE_CMD_GnDm;
 
         case VTE_SEQ_INTERMEDIATE_COMMA:   /* Reserved for future standardisation */
@@ -304,9 +310,9 @@ Parser::parse_host_escape(vte_seq_t const* seq,
         case VTE_SEQ_INTERMEDIATE_MINUS:   /* G1-designate 96-set */
         case VTE_SEQ_INTERMEDIATE_DOT:     /* G2-designate 96-set */
         case VTE_SEQ_INTERMEDIATE_SLASH:   /* G3-designate 96-set */
-                *cs_out = VTE_MAKE_CHARSET(parse_charset_96(seq->terminator,
-                                                            VTE_SEQ_REMOVE_INTERMEDIATE(intermediates)),
-                                           intermediate0 - VTE_SEQ_INTERMEDIATE_COMMA);
+                *cs_out = VTE_MAKE_CHARSET_96(parse_charset_96(seq->terminator,
+                                                               VTE_SEQ_REMOVE_INTERMEDIATE(intermediates)),
+                                              intermediate0 - VTE_SEQ_INTERMEDIATE_COMMA);
                 return VTE_CMD_GnDm;
         }
 

@@ -24,7 +24,7 @@
 #include <cstdint>
 
 #if VTE_DEBUG
-#include "debug.h"
+#include "debug.hh"
 #include "libc-glue.hh"
 #endif
 
@@ -476,22 +476,24 @@ Context::image_cairo() noexcept
                                                                               stride));
 
 #if VTE_DEBUG
-        _VTE_DEBUG_IF(VTE_DEBUG_IMAGE) {
+        _VTE_DEBUG_IF(vte::debug::category::IMAGE) {
                 static auto num = 0;
 
-                auto tmpl = vte::glib::take_string(g_strdup_printf("vte-image-sixel-%05d-XXXXXX.png",
-                                                                   ++num));
+                auto tmpl = fmt::format("vte-image-sixel-{:05}-XXXXXX.png", ++num);
                 auto err = vte::glib::Error{};
                 char* path = nullptr;
-                auto fd = vte::libc::FD{g_file_open_tmp(tmpl.get(), &path, err)};
+                auto fd = vte::libc::FD{g_file_open_tmp(tmpl.c_str(), &path, err)};
                 if (fd) {
                         auto rv = cairo_surface_write_to_png(surface.get(), path);
                         if (rv == CAIRO_STATUS_SUCCESS)
-                                g_printerr("SIXEL Image written to '%s'\n", path);
+                                vte::debug::println("SIXEL Image written to \"{}\"",
+                                                    path);
                         else
-                                g_printerr("Failed to write SIXEL image to '%s': %m\n", path);
+                                vte::debug::println("Failed to write SIXEL image to \"{}\": {}",
+                                                    path, unsigned(rv));
                 } else {
-                        g_printerr("Failed to create tempfile for SIXEL image: %s\n", err.message());
+                        vte::debug::println("Failed to create tempfile for SIXEL image: {}",
+                                            err.message());
                 }
                 g_free(path);
         }

@@ -11570,8 +11570,6 @@ static uint8_t _vte_width_min_table[][64] = {
  * For non-printable (control) characters the return value is undefined. */
 static int (_vte_unichar_width)(gunichar c, int utf8_ambiguous_width)
 {
-        vte_assert_cmpuint(c, <=, 0x10FFFFU);
-
         /* TODO bump to 0x0300 when ambiguous width support is removed */
         if (c < 0x0080) [[likely]] {
                 return 1;

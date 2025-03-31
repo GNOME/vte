@@ -34,7 +34,7 @@
 #include <errno.h>
 #include <glib.h>
 #include <gio/gio.h>
-#include "debug.h"
+#include "debug.hh"
 
 #include <glib/gi18n-lib.h>
 

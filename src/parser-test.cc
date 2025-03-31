@@ -47,123 +47,6 @@ using namespace vte::parser;
 Parser parser{};
 Sequence seq{parser};
 
-#if 0
-static char const*
-seq_to_str(unsigned int type)
-{
-        switch (type) {
-        case VTE_SEQ_NONE: return "NONE";
-        case VTE_SEQ_IGNORE: return "IGNORE";
-        case VTE_SEQ_GRAPHIC: return "GRAPHIC";
-        case VTE_SEQ_CONTROL: return "CONTROL";
-        case VTE_SEQ_ESCAPE: return "ESCAPE";
-        case VTE_SEQ_CSI: return "CSI";
-        case VTE_SEQ_DCS: return "DCS";
-        case VTE_SEQ_OSC: return "OSC";
-        case VTE_SEQ_APC: return "APC";
-        case VTE_SEQ_PM: return "PM";
-        case VTE_SEQ_SOS: return "SOS";
-        case VTE_SEQ_SCI: return "SCI";
-        default:
-                g_assert_not_reached();
-        }
-}
-
-static char const*
-cmd_to_str(unsigned int command)
-{
-        switch (command) {
-#define _VTE_CMD(cmd) case VTE_CMD_##cmd: return #cmd;
-#include "parser-cmd.hh"
-#undef _VTE_CMD
-        default:
-                static char buf[32];
-                snprintf(buf, sizeof(buf), "UNKOWN(%u)", command);
-                return buf;
-        }
-}
-
-static char const*
-charset_to_str(unsigned int cs)
-{
-        switch (cs) {
-#define _VTE_CHARSET_PASTE(name) case VTE_CHARSET_##name: return #name;
-#define _VTE_CHARSET(name) _VTE_CHARSET_PASTE(name)
-#define _VTE_CHARSET_ALIAS_PASTE(name1,name2)
-#define _VTE_CHARSET_ALIAS(name1,name2)
-#include "parser-charset.hh"
-#undef _VTE_CHARSET_PASTE
-#undef _VTE_CHARSET
-#undef _VTE_CHARSET_ALIAS_PASTE
-#undef _VTE_CHARSET_ALIAS
-        default:
-                static char buf[32];
-                snprintf(buf, sizeof(buf), "UNKOWN(%u)", cs);
-                return buf;
-        }
-}
-#endif
-
-static const char c0str[][6] = {
-        "NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
-        "BS", "HT", "LF", "VT", "FF", "CR", "SO", "SI",
-        "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB",
-        "CAN", "EM", "SUB", "ESC", "FS", "GS", "RS", "US",
-        "SPACE"
-};
-
-static const char c1str[][5] = {
-        "DEL",
-        "0x80", "0x81", "BPH", "NBH", "0x84", "NEL", "SSA", "ESA",
-        "HTS", "HTJ", "VTS", "PLD", "PLU", "RI", "SS2", "SS3",
-        "DCS", "PU1", "PU2", "STS", "CCH", "MW", "SPA", "EPA",
-        "SOS", "0x99", "SCI", "CSI", "ST", "OSC", "PM", "APC"
-};
-
-static void
-print_escaped(std::u32string const& s)
-{
-        for (auto it : s) {
-                uint32_t c = (char32_t)it;
-
-                if (c <= 0x20)
-                        g_print("%s ", c0str[c]);
-                else if (c < 0x7f)
-                        g_print("%c ", c);
-                else if (c < 0xa0)
-                        g_print("%s ", c1str[c - 0x7f]);
-                else
-                        g_print("U+%04X", c);
-        }
-        g_print("\n");
-}
-
-#if 0
-static void
-print_seq()
-{
-        auto c = seq.terminator();
-        if (seq.command() == VTE_CMD_GRAPHIC) {
-                char buf[7];
-                buf[g_unichar_to_utf8(c, buf)] = 0;
-                g_print("%s U+%04X [%s]\n", cmd_to_str(seq.command()),
-                        c,
-                        g_unichar_isprint(c) ? buf : "�");
-        } else {
-                g_print("%s", cmd_to_str(seq.command()));
-                if (seq.size()) {
-                        g_print(" ");
-                        for (unsigned int i = 0; i < seq.size(); i++) {
-                                if (i > 0)
-                                        g_print(";");
-                                g_print("%d", seq.param(i));
-                        }
-                }
-                g_print("\n");
-        }
-}
-#endif
-
 class vte_seq_builder : public u32SequenceBuilder {
 public:
         vte_seq_builder(unsigned int type,
@@ -192,13 +75,6 @@ public:
         {
                 for (unsigned int i = 0; i < n; ++i)
                         append_param(params[i]);
-        }
-
-        void print(bool c1 = false) const noexcept
-        {
-                std::u32string s;
-                to_string(s, c1);
-                print_escaped(s);
         }
 };
 

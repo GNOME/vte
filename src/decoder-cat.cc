@@ -31,7 +31,9 @@
 
 #include <string>
 
-#include "debug.h"
+#include <fmt/format.h>
+
+#include "debug.hh"
 #include "glib-glue.hh"
 #include "libc-glue.hh"
 #include "utf8.hh"
@@ -134,27 +136,6 @@ private:
         bool m_codepoints{false};
 
         void
-        print(char const* buf,
-              size_t len) noexcept
-        {
-                m_str.append(buf, len);
-        }
-
-        G_GNUC_PRINTF(2, 3)
-        void
-        print_format(char const* format,
-                     ...)
-        {
-                char buf[256];
-                va_list args;
-                va_start(args, format);
-                auto const len = g_vsnprintf(buf, sizeof(buf), format, args);
-                va_end(args);
-
-                m_str.append(buf, len);
-        }
-
-        void
         print_u32(uint32_t const c) noexcept
         {
                 char ubuf[7];
@@ -163,12 +144,14 @@ private:
                 if (m_codepoints) {
                         ubuf[len] = 0;
                         if (g_unichar_isprint(c)) {
-                                print_format("[%04X %s]", c, ubuf);
+                                fmt::format_to(std::back_inserter(m_str),
+                                               "<U+{:04X} '{}'>", c, ubuf);
                         } else {
-                                print_format("[%04X]", c);
+                                fmt::format_to(std::back_inserter(m_str),
+                                               "<U+{:04X}>", c);
                         }
                 } else {
-                        print(ubuf, len);
+                        m_str.append(ubuf, len);
                 }
         }
 
@@ -223,26 +206,32 @@ make_decoder(Options const& options)
 
         auto converter = std::shared_ptr<UConverter>{ucnv_open(options.charset(), err), &ucnv_close};
         if (err.isFailure()) {
-                if (!options.quiet())
-                        g_printerr("Failure to open converter for \"%s\": %s\n",
-                                   options.charset(), err.errorName());
+                if (!options.quiet()) {
+                        fmt::println(stderr,
+                                     "Failure to open converter for \"{}\": {}",
+                                     options.charset(), err.errorName());
                 return {};
+                }
         }
 
         if (err.get() == U_AMBIGUOUS_ALIAS_WARNING) {
                 err.reset();
                 auto canonical = ucnv_getName(converter.get(), err);
-                if (err.isSuccess() && !options.quiet())
-                        g_printerr("Warning: charset \"%s\" is ambigous alias for \"%s\"\n",
-                                   options.charset(), canonical);
+                if (err.isSuccess() && !options.quiet()) {
+                        fmt::println(stderr,
+                                     "Warning: charset \"{}\" is ambigous alias for \"{}\"",
+                                     options.charset(), canonical);
+                }
         }
 
         err.reset();
         auto u32_converter = std::shared_ptr<UConverter>{ucnv_open("utf32platformendian", err), &ucnv_close};
         if (err.isFailure()) {
-                if (!options.quiet())
-                        g_printerr("Failure to open converter for \"%s\": %s\n",
-                                   "UTF-32", err.errorName());
+                if (!options.quiet()) {
+                        fmt::println(stderr,
+                                     "Failure to open converter for \"{}\": {}",
+                                     "UTF-32", err.errorName());
+                }
                 return {};
         }
 
@@ -408,7 +397,8 @@ private:
                 for (auto i = 0; i < options.repeat(); ++i) {
                         if (i > 0 && lseek(fd, 0, SEEK_SET) != 0) {
                                 auto errsv = vte::libc::ErrnoSaver{};
-                                g_printerr("Failed to seek: %s\n", g_strerror(errsv));
+                                fmt::println(stderr,
+                                             "Failed to seek: {}", g_strerror(errsv));
                                 return false;
                         }
 
@@ -452,15 +442,17 @@ public:
                                         fd = STDIN_FILENO;
 
                                         if (options.repeat() != 1) {
-                                                g_printerr("Cannot consume STDIN more than once\n");
+                                                fmt::println(stderr,
+                                                             "Cannot consume STDIN more than once");
                                                 return false;
                                         }
                                 } else {
                                         fd = ::open(filename, O_RDONLY);
                                         if (fd == -1) {
                                                 auto errsv = vte::libc::ErrnoSaver{};
-                                                g_printerr("Error opening file %s: %s\n",
-                                                           filename, g_strerror(errsv));
+                                                fmt::println(stderr,
+                                                             "Error opening file \"{}\": {}",
+                                                             filename, g_strerror(errsv));
                                         }
                                 }
                                 if (fd != -1) {
@@ -480,9 +472,9 @@ public:
 
         void print_statistics() const noexcept
         {
-                g_printerr("%\'16" G_GSIZE_FORMAT " input bytes produced %\'16" G_GSIZE_FORMAT
-                           " unichars and %" G_GSIZE_FORMAT " errors\n",
-                           m_input_bytes, m_output_chars, m_errors);
+                fmt::println(stderr,
+                             "{} input bytes produced {} unichars and {} errors",
+                             m_input_bytes, m_output_chars, m_errors);
         }
 
         void print_benchmark() const noexcept
@@ -498,15 +490,16 @@ public:
                 for (unsigned int i = 0; i < m_bench_times->len; ++i)
                         total_time += g_array_index(m_bench_times, int64_t, i);
 
-                g_printerr("\nTimes: best %\'" G_GINT64_FORMAT "µs "
-                           "worst %\'" G_GINT64_FORMAT "µs "
-                           "average %\'" G_GINT64_FORMAT "µs\n",
-                           g_array_index(m_bench_times, int64_t, 0),
-                           g_array_index(m_bench_times, int64_t, m_bench_times->len - 1),
-                           total_time / (int64_t)m_bench_times->len);
-                for (unsigned int i = 0; i < m_bench_times->len; ++i)
-                        g_printerr("  %\'" G_GINT64_FORMAT "µs\n",
-                                   g_array_index(m_bench_times, int64_t, i));
+                fmt::println(stderr,
+                             "\nTimes: best {}µs worst {}µs average {}µs",
+                             g_array_index(m_bench_times, int64_t, 0),
+                             g_array_index(m_bench_times, int64_t, m_bench_times->len - 1),
+                             total_time / (int64_t)m_bench_times->len);
+                for (unsigned int i = 0; i < m_bench_times->len; ++i) {
+                        fmt::println(stderr,
+                                     "  {:>10}µs",
+                                     g_array_index(m_bench_times, int64_t, i));
+                }
         }
 
 }; // class Processor
@@ -523,20 +516,23 @@ main(int argc,
         auto options = Options{};
         auto error = vte::glib::Error{};
         if (!options.parse(argc, argv, error)) {
-                g_printerr("Failed to parse arguments: %s\n", error.message());
+                fmt::println(stderr,
+                             "Failed to parse arguments: {}",
+                             error.message());
                 return EXIT_FAILURE;
         }
 
         if (options.list()) {
 #if WITH_ICU
                 auto charsets = vte::base::get_icu_charsets(true);
-                for (auto i = 0; charsets[i]; ++i)
-                        g_print("%s\n", charsets[i]);
+                for (auto i = 0; charsets[i]; ++i) {
+                        fmt::println(stdout, "{}", charsets[i]);
+                }
                 g_strfreev(charsets);
 
                 return EXIT_SUCCESS;
 #else
-                g_printerr("ICU support not available.\n");
+                fmt::println(stderr, "ICU support not available");
                 return EXIT_FAILURE;
 #endif
         }

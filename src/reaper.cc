@@ -17,7 +17,7 @@
 
 #include "config.h"
 
-#include "debug.h"
+#include "debug.hh"
 #include "reaper.hh"
 
 struct _VteReaper {
@@ -47,8 +47,8 @@ vte_reaper_child_watch_cb(GPid pid,
                           int status,
                           gpointer data)
 {
-        _vte_debug_print(VTE_DEBUG_SIGNALS,
-                         "Reaper emitting child-exited signal.\n");
+        _vte_debug_print(vte::debug::category::SIGNALS,
+                         "Reaper emitting child-exited signal");
         g_signal_emit_by_name(data, "child-exited", pid, status);
         g_spawn_close_pid (pid);
 }

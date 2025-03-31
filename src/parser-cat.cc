@@ -33,17 +33,20 @@
 
 #include <simdutf.h>
 
-#include "debug.h"
+#include "boxed.hh"
+#include "fmt-glue.hh"
 #include "glib-glue.hh"
 #include "libc-glue.hh"
-#include "parser.hh"
+#include "parser-fmt.hh"
 #include "parser-glue.hh"
+#include "parser.hh"
 #include "std-glue.hh"
 #include "utf8.hh"
 #include "vtedefines.hh"
 
 #if WITH_SIXEL
 #include "sixel-parser.hh"
+#include "sixel-parser-fmt.hh"
 #endif
 
 enum {
@@ -65,372 +68,17 @@ enum class DataSyntax {
         #endif
 };
 
-static constexpr char const*
-seq_to_str(unsigned int type) noexcept
-{
-        switch (type) {
-        case VTE_SEQ_NONE: return "NONE";
-        case VTE_SEQ_IGNORE: return "IGNORE";
-        case VTE_SEQ_GRAPHIC: return "GRAPHIC";
-        case VTE_SEQ_CONTROL: return "CONTROL";
-        case VTE_SEQ_ESCAPE: return "ESCAPE";
-        case VTE_SEQ_CSI: return "CSI";
-        case VTE_SEQ_DCS: return "DCS";
-        case VTE_SEQ_OSC: return "OSC";
-        case VTE_SEQ_SCI: return "SCI";
-        case VTE_SEQ_APC: return "APC";
-        case VTE_SEQ_PM: return "PM";
-        case VTE_SEQ_SOS: return "SOS";
-        default:
-                assert(false);
-        }
-}
-
-static constexpr char const*
-cmd_to_str(unsigned int command) noexcept
-{
-        switch (command) {
-#define _VTE_CMD(cmd) case VTE_CMD_##cmd: return #cmd;
-#define _VTE_NOP(cmd) _VTE_CMD(cmd)
-#include "parser-cmd.hh"
-#undef _VTE_CMD
-#undef _VTE_NOP
-        default:
-                return nullptr;
-        }
-}
-
-#if 0
-static constexepr char const*
-charset_alias_to_str(unsigned int cs) noexcept
-{
-        switch (cs) {
-#define _VTE_CHARSET_PASTE(name)
-#define _VTE_CHARSET(name) _VTE_CHARSET_PASTE(name)
-#define _VTE_CHARSET_ALIAS_PASTE(name1,name2) case VTE_CHARSET_##name1: return #name1 "(" ## #name2 ## ")";
-#define _VTE_CHARSET_ALIAS(name1,name2)
-#include "parser-charset.hh"
-#undef _VTE_CHARSET_PASTE
-#undef _VTE_CHARSET
-#undef _VTE_CHARSET_ALIAS_PASTE
-#undef _VTE_CHARSET_ALIAS
-        default:
-                return nullptr; /* not an alias */
-        }
-}
-
-static constexpr char const*
-charset_to_str(unsigned int cs) noexcept
-{
-        auto alias = charset_alias_to_str(cs);
-        if (alias)
-                return alias;
-
-        switch (cs) {
-#define _VTE_CHARSET_PASTE(name) case VTE_CHARSET_##name: return #name;
-#define _VTE_CHARSET(name) _VTE_CHARSET_PASTE(name)
-#define _VTE_CHARSET_ALIAS_PASTE(name1,name2)
-#define _VTE_CHARSET_ALIAS(name1,name2)
-#include "parser-charset.hh"
-#undef _VTE_CHARSET_PASTE
-#undef _VTE_CHARSET
-#undef _VTE_CHARSET_ALIAS_PASTE
-#undef _VTE_CHARSET_ALIAS
-        default:
-                static char buf[32];
-                snprintf(buf, sizeof(buf), "UNKOWN(%u)", cs);
-                return buf;
-        }
-}
-#endif
-
 class PrettyPrinter {
 private:
         std::string m_str;
         bool m_plain;
         bool m_codepoints;
+        std::string m_seq_fmt;
 #if WITH_SIXEL
         char32_t m_sixel_st;
 #endif
 
         inline constexpr bool plain() const noexcept { return m_plain; }
-
-        class Attribute {
-        public:
-                Attribute(PrettyPrinter* printer,
-                          std::string const& intro,
-                          std::string const& outro) noexcept
-                        : m_printer{printer}
-                        , m_outro{outro} {
-                        if (!m_printer->plain())
-                                m_printer->m_str.append(intro);
-                        }
-
-                ~Attribute() noexcept
-                {
-                        if (!m_printer->plain())
-                                m_printer->m_str.append(m_outro);
-                }
-
-        private:
-                PrettyPrinter* m_printer;
-                std::string m_outro;
-        }; // class Attribute
-
-        class ReverseAttr : private Attribute {
-        public:
-                ReverseAttr(PrettyPrinter* printer)
-                        : Attribute(printer, "\e[7m"s, "\e[27m"s)
-                { }
-        };
-
-        class RedAttr : private Attribute {
-        public:
-                RedAttr(PrettyPrinter* printer)
-                        : Attribute(printer, "\e[7;31m"s, "\e[27;39m"s)
-                { }
-        };
-
-        class GreenAttr : private Attribute {
-        public:
-                GreenAttr(PrettyPrinter* printer)
-                        : Attribute(printer, "\e[7;32m"s, "\e[27;39m"s)
-                { }
-        };
-
-        void
-        print_params(vte::parser::Sequence const& seq) noexcept
-        {
-                auto const size = seq.size();
-                if (size > 0)
-                        m_str.push_back(' ');
-
-                for (unsigned int i = 0; i < size; i++) {
-                        if (!seq.param_default(i))
-                                print_format("%d", seq.param(i));
-                        if (i + 1 < size)
-                                m_str.push_back(seq.param_nonfinal(i) ? ':' : ';');
-                }
-        }
-
-        void
-        print_pintro(vte::parser::Sequence const& seq) noexcept
-        {
-                auto const type = seq.type();
-                if (type != VTE_SEQ_CSI &&
-                    type != VTE_SEQ_DCS)
-                        return;
-
-                auto const p = seq.intermediates() & 0x7;
-                if (p == 0)
-                        return;
-
-                m_str.push_back(' ');
-                m_str.push_back(char(0x40 - p));
-        }
-
-        void
-        print_intermediates(vte::parser::Sequence const& seq) noexcept
-        {
-                auto const type = seq.type();
-                auto intermediates = seq.intermediates();
-                if (type == VTE_SEQ_CSI ||
-                    type == VTE_SEQ_DCS)
-                        intermediates = intermediates >> 3; /* remove pintro */
-
-                while (intermediates != 0) {
-                        unsigned int i = intermediates & 0x1f;
-                        char c = 0x20 + i - 1;
-
-                        m_str.push_back(' ');
-                        if (c == 0x20)
-                                m_str.append("SP"s);
-                        else
-                                m_str.push_back(c);
-
-                        intermediates = intermediates >> 5;
-                }
-        }
-
-        void
-        print_unichar(uint32_t c) noexcept
-        {
-                char buf[7];
-                auto len = g_unichar_to_utf8(c, buf);
-                m_str.append(buf, len);
-        }
-
-        void
-        print_literal(char const* str) noexcept
-        {
-                m_str.append(str);
-        }
-
-        G_GNUC_PRINTF(2, 3)
-        void
-        print_format(char const* format,
-                     ...)
-        {
-                char buf[256];
-                va_list args;
-                va_start(args, format);
-                auto len = g_vsnprintf(buf, sizeof(buf), format, args);
-                va_end(args);
-
-                m_str.append(buf, len);
-        }
-
-        void
-        print_string(vte::parser::Sequence const& seq) noexcept
-        {
-                auto const u32str = seq.string();
-                auto u8len = simdutf::utf8_length_from_utf32(u32str);
-                // alternatively: auto u8len = 4 * u32str.size();
-                auto u8buf = std::make_unique_for_overwrite<char[]>(u8len);
-                if (!u8buf)
-                        return;
-                u8len = simdutf::convert_utf32_to_utf8
-                        (u32str, std::span<char>(u8buf.get(), u8len));
-
-                m_str.push_back('\"');
-                m_str.append(u8buf.get(), u8len);
-                m_str.push_back('\"');
-        }
-
-        void
-        print_seq_and_params(vte::parser::Sequence const& seq) noexcept
-        {
-                ReverseAttr attr(this);
-
-                if (seq.command() != VTE_CMD_NONE) {
-                        m_str.push_back('{');
-                        m_str.append(cmd_to_str(seq.command()));
-                        print_params(seq);
-                        m_str.push_back('}');
-                } else {
-                        m_str.push_back('{');
-                        m_str.append(seq_to_str(seq.type()));
-                        print_pintro(seq);
-                        print_params(seq);
-                        print_intermediates(seq);
-                        m_str.push_back(' ');
-                        m_str.push_back(seq.terminator());
-                        m_str.push_back('}');
-                }
-        }
-
-        void
-        print_seq(vte::parser::Sequence const& seq) noexcept
-        {
-                switch (seq.type()) {
-                case VTE_SEQ_NONE: {
-                        RedAttr attr(this);
-                        m_str.append("{NONE}"s);
-                        break;
-                }
-
-                case VTE_SEQ_IGNORE: {
-                        RedAttr attr(this);
-                        m_str.append("{IGNORE}"s);
-                        break;
-                }
-
-                case VTE_SEQ_GRAPHIC: {
-                        auto const terminator = seq.terminator();
-                        bool const printable = g_unichar_isprint(terminator);
-                        if (m_codepoints || !printable) {
-                                if (printable) {
-                                        char ubuf[7];
-                                        ubuf[g_unichar_to_utf8(terminator, ubuf)] = 0;
-                                        print_format("[%04X %s]", terminator, ubuf);
-                                } else {
-                                        print_format("[%04X]", terminator);
-                                }
-                        } else {
-                                print_unichar(terminator);
-                        }
-                        break;
-                }
-
-                case VTE_SEQ_CONTROL:
-                case VTE_SEQ_ESCAPE: {
-                        ReverseAttr attr(this);
-                        print_format("{%s}", cmd_to_str(seq.command()));
-                        break;
-                }
-
-                case VTE_SEQ_CSI:
-                case VTE_SEQ_DCS: {
-                        print_seq_and_params(seq);
-                        break;
-                }
-
-                case VTE_SEQ_OSC: {
-                        ReverseAttr attr(this);
-                        m_str.append("{OSC "s);
-                        print_string(seq);
-                        m_str.push_back('}');
-                        break;
-                }
-
-                case VTE_SEQ_SCI: {
-                        auto const terminator = seq.terminator();
-                        if (terminator <= 0x20)
-                                print_format("{SCI %d/%d}",
-                                             terminator / 16,
-                                             terminator % 16);
-                        else
-                                print_format("{SCI %c}", terminator);
-                        break;
-                }
-
-                default:
-                        assert(false);
-                }
-        }
-
-#if WITH_SIXEL
-
-        void
-        print_params(vte::sixel::Sequence const& seq) noexcept
-        {
-                auto const size = seq.size();
-                if (size > 0)
-                        m_str.push_back(' ');
-
-                for (unsigned int i = 0; i < size; i++) {
-                        if (!seq.param_default(i))
-                                print_format("%d", seq.param(i));
-                        if (i + 1 < size)
-                                m_str.push_back(';');
-                }
-        }
-
-        void
-        print_seq(vte::sixel::Sequence const& seq) noexcept
-        {
-                ReverseAttr attr(this);
-                GreenAttr green(this);
-
-                m_str.push_back('{');
-                switch (seq.command()) {
-                case vte::sixel::Command::DECGRI: m_str.append("DECGRI"); break;
-                case vte::sixel::Command::DECGRA: m_str.append("DECGRA"); break;
-                case vte::sixel::Command::DECGCI: m_str.append("DECGCI"); break;
-                case vte::sixel::Command::DECGCR: m_str.append("DECGCR"); break;
-                case vte::sixel::Command::DECGCH: m_str.append("DECGCH"); break;
-                case vte::sixel::Command::DECGNL: m_str.append("DECGNL"); break;
-                default:
-                        print_format("%d/%d",
-                                     int(seq.command()) / 16,
-                                     int(seq.command()) % 16);
-                        break;
-                }
-                print_params(seq);
-                m_str.push_back('}');
-        }
-
-#endif /* WITH_SIXEL */
 
         void
         printout() noexcept
@@ -449,7 +97,12 @@ public:
                       bool codepoints) noexcept
                 : m_plain{plain}
                 , m_codepoints{codepoints}
+                , m_seq_fmt{}
         {
+                m_seq_fmt = "{:";
+                if (m_codepoints)
+                        m_seq_fmt += "u";
+                m_seq_fmt += "}";
         }
 
         ~PrettyPrinter() noexcept
@@ -459,16 +112,52 @@ public:
 
         void VT(vte::parser::Sequence const& seq) noexcept
         {
-                print_seq(seq);
-                if (seq.command() == VTE_CMD_LF)
-                        printout();
+                switch (seq.type()) {
+                case VTE_SEQ_GRAPHIC: [[likely]] {
+                        fmt::format_to(std::back_inserter(m_str),
+                                       fmt::runtime(m_codepoints ? "{:u}" : "{}"),
+                                       vte::make_boxed<char32_t, void>(seq.terminator()));
+                        break;
+                }
+
+                case VTE_SEQ_IGNORE:
+                case VTE_SEQ_NONE: {
+                        constexpr auto attr = fmt::fg(fmt::terminal_color::red);
+                        fmt::format_to(std::back_inserter(m_str),
+                                       attr,
+                                       "{}", seq);
+                        break;
+                }
+
+                case VTE_SEQ_APC:
+                case VTE_SEQ_CONTROL:
+                case VTE_SEQ_CSI:
+                case VTE_SEQ_DCS:
+                case VTE_SEQ_ESCAPE:
+                case VTE_SEQ_OSC:
+                case VTE_SEQ_PM:
+                case VTE_SEQ_SOS: {
+                        constexpr auto attr = fmt::text_style(fmt::emphasis::reverse);
+                        fmt::format_to(std::back_inserter(m_str),
+                                       attr,
+                                       fmt::runtime(m_seq_fmt), seq);
+
+                        if (seq.command() == VTE_CMD_LF)
+                                printout();
+                }
+                }
         }
 
 #if WITH_SIXEL
 
         void SIXEL_CMD(vte::sixel::Sequence const& seq) noexcept
         {
-                print_seq(seq);
+                constexpr auto attr = fmt::fg(fmt::terminal_color::green) |
+                        fmt::text_style(fmt::emphasis::reverse);
+
+                fmt::format_to(std::back_inserter(m_str),
+                               attr,
+                               "{}", seq);
 
                 switch (seq.command()) {
                 case vte::sixel::Command::DECGCR:
@@ -483,7 +172,7 @@ public:
 
         void SIXEL(uint8_t sixel) noexcept
         {
-                print_format("%c", sixel + 0x3f);
+                m_str.push_back(char(sixel + 0x3f));
         }
 
         void SIXEL_ST(char32_t st) noexcept
@@ -498,8 +187,11 @@ public:
                 switch (syntax) {
 #if WITH_SIXEL
                 case DataSyntax::DECSIXEL: {
-                        GreenAttr green(this);
-                        print_literal("<SIXEL[");
+                        constexpr auto attr = fmt::fg(fmt::terminal_color::green) |
+                                fmt::text_style(fmt::emphasis::reverse);
+                        fmt::format_to(std::back_inserter(m_str),
+                                       attr,
+                                       "<SIXEL[");
                         m_sixel_st = 0;
                         break;
                 }
@@ -516,11 +208,17 @@ public:
 #if WITH_SIXEL
                 case DataSyntax::DECSIXEL:
                         if (success) {
-                                GreenAttr green(this);
-                                print_literal("]ST>");
+                                constexpr auto attr = fmt::fg(fmt::terminal_color::green) |
+                                        fmt::text_style(fmt::emphasis::reverse);
+                                fmt::format_to(std::back_inserter(m_str),
+                                               attr,
+                                               "]ST>");
                         } else {
-                                RedAttr green(this);
-                                print_literal("]>");
+                                constexpr auto attr = fmt::fg(fmt::terminal_color::red) |
+                                        fmt::text_style(fmt::emphasis::reverse);
+                                fmt::format_to(std::back_inserter(m_str),
+                                               attr,
+                                               "]>");
                         }
                         break;
 #endif
@@ -537,26 +235,29 @@ public:
 
 class Linter {
 private:
-        G_GNUC_PRINTF(2, 3)
+
         void
-        warn(char const* format,
-             ...) const noexcept
+        log(fmt::string_view fmt,
+            fmt::format_args args) const
         {
-                va_list args;
-                va_start(args, format);
-                char* str = g_strdup_vprintf(format, args);
-                va_end(args);
-                g_print("WARNING: %s\n", str);
-                g_free(str);
+                fmt::vprintln(stdout, fmt, args);
+        }
+
+        template<typename... T>
+        void
+        warn(fmt::format_string<T...> fmt,
+             T&&... args) const
+        {
+                log(fmt, fmt::make_format_args(args...));
         }
 
         void
         warn_deprecated(int cmd,
                         int replacement_cmd) const noexcept
         {
-                warn("%s is deprecated; use %s instead",
-                     cmd_to_str(cmd),
-                     cmd_to_str(replacement_cmd));
+                warn("{} is deprecated; use {} instead",
+                     vte::parser::cmd_t(cmd),
+                     vte::parser::cmd_t(replacement_cmd));
         }
 
         void
@@ -581,11 +282,11 @@ private:
 #undef _VTE_SGR
 #undef _VTE_NGR
                 case VTE_SGR_SET_FONT_FIRST+1 ... VTE_SGR_SET_FONT_LAST-1:
-                        warn("SGR %d is unsupported", sgr);
+                        warn("SGR {} is unsupported", sgr);
                         break;
 
                 default:
-                        warn("SGR %d is unknown", sgr);
+                        warn("SGR {} is unknown", sgr);
                         break;
 
                 }
@@ -605,29 +306,29 @@ private:
                         case 2: {
                                 auto const n = seq.next(idx) - idx;
                                 if (n < 4)
-                                        warn("SGR %d:2 not enough parameters", sgr);
+                                        warn("SGR {}:2 not enough parameters", sgr);
                                 else if (n == 4)
-                                        warn("SGR %d:2:r:g:b is deprecated; use SGR %d:2::r:g:b instead",
+                                        warn("SGR {}:2:r:g:b is deprecated; use SGR {}:2::r:g:b instead",
                                              sgr, sgr);
                                 break;
                         }
                         case 5: {
                                 auto const n = seq.next(idx) - idx;
                                 if (n < 2)
-                                        warn("SGR %d:5 not enough parameters", sgr);
+                                        warn("SGR {}:5 not enough parameters", sgr);
                                 break;
                         }
                         case -1:
-                                warn("SGR %d does not admit default parameters", sgr);
+                                warn("SGR {} does not admit default parameters", sgr);
                                 break;
                         case 0:
                         case 1:
                         case 3:
                         case 4:
-                                warn("SGR %d:%d is unsupported", sgr, param);
+                                warn("SGR {}:{} is unsupported", sgr, param);
                                 break;
                         default:
-                                warn("SGR %d:%d is unknown", sgr, param);
+                                warn("SGR {}:{} is unknown", sgr, param);
                         }
                 } else {
                         /* Semicolon version */
@@ -639,27 +340,27 @@ private:
                                 idx = seq.next(idx);
                                 idx = seq.next(idx);
                                 idx = seq.next(idx);
-                                warn("SGR %d;%d;r;g;b is deprecated; use SGR %d:%d::r:g:b instead",
-                                     sgr, param, sgr, param);
+                                warn("SGR {0};{1};r;g;b is deprecated; use SGR {0}:{1}::r:g:b instead",
+                                     sgr, param);
                                 break;
                         case 5:
                                 /* Consume 1 more parameter */
                                 idx = seq.next(idx);
-                                warn("SGR %d;%d;index is deprecated; use SGR %d:%d:index instead",
-                                     sgr, param, sgr, param);
+                                warn("SGR {0};{1};index is deprecated; use SGR {0}:{1}:index instead",
+                                     sgr, param);
                                 break;
                         case -1:
-                                warn("SGR %d does not admit default parameters", sgr);
+                                warn("SGR {} does not admit default parameters", sgr);
                                 break;
                         case 0:
                         case 1:
                         case 3:
                         case 4:
-                                warn("SGR %d;%d;... is unsupported; use SGR %d:%d:... instead",
-                                     sgr, param, sgr, param);
+                                warn("SGR {0};{1};... is unsupported; use SGR {0}:{1}:... instead",
+                                     sgr, param);
                                 break;
                         default:
-                                warn("SGR %d;%d is unknown", sgr, param);
+                                warn("SGR {};{} is unknown", sgr, param);
                                 break;
                         }
                 }
@@ -685,10 +386,10 @@ private:
                         break;
                 case 4:
                 case 5:
-                        warn("SGR %d:%d is unsupported", sgr, param);
+                        warn("SGR {}:{} is unsupported", sgr, param);
                         break;
                 default:
-                        warn("SGR %d:%d is unknown", sgr, param);
+                        warn("SGR {}:{} is unknown", sgr, param);
                         break;
                 }
         }
@@ -714,7 +415,7 @@ private:
 
                         default:
                                 if (seq.param_nonfinal(i))
-                                        warn("SGR %d does not admit subparameters", param);
+                                        warn("SGR {} does not admit subparameters", param);
                                 break;
                         }
                 }
@@ -737,7 +438,7 @@ public:
                 switch (cmd) {
                 case VTE_CMD_OSC:
                         if (seq.st() == 7 /* BEL */)
-                                warn("OSC terminated by BEL may be ignored; use ST (ESC \\) instead.");
+                                warn("OSC terminated by BEL may be ignored; use ST (ESC \\) instead");
                         break;
 
                 case VTE_CMD_DECSLRM_OR_SCOSC:
@@ -773,7 +474,7 @@ public:
 
                 default:
                         if (cmd >= VTE_CMD_NOP_FIRST)
-                                warn("%s is unimplemented", cmd_to_str(cmd));
+                                warn("{} is unimplemented", vte::parser::cmd_t(cmd));
                         break;
                 }
         }
@@ -791,11 +492,11 @@ public:
                 case vte::sixel::Command::DECGRI: {
                         auto const count = seq.param(0, 1);
                         if (count < 3)
-                                warn("DECGRI %d wastes space", seq.param(0));
+                                warn("DECGRI {} wastes space", seq.param(0));
                         else if (count == 3)
-                                warn("DECGRI %d saves no space", count);
+                                warn("DECGRI {} saves no space", count);
                         else if (count > 255)
-                                warn("DECGRI %d exceeds DEC limit of 255", count);
+                                warn("DECGRI {} exceeds DEC limit of 255", count);
                         break;
                 }
 
@@ -811,7 +512,7 @@ public:
                                 warn("DECGCI does not admit a default value for parameter 1");
                                 break;
                         } else if (reg >= VTE_SIXEL_NUM_COLOR_REGISTERS) {
-                                warn("DECGCI %d exceeds number of available colour registers, wrapped to register %d", reg, reg & (VTE_SIXEL_NUM_COLOR_REGISTERS - 1));
+                                warn("DECGCI {} exceeds number of available colour registers, wrapped to register {}", reg, reg & (VTE_SIXEL_NUM_COLOR_REGISTERS - 1));
                                 reg &= (VTE_SIXEL_NUM_COLOR_REGISTERS - 1);
                         }
 
@@ -825,11 +526,11 @@ public:
                                         auto const l = seq.param(3, 0);
                                         auto const s = seq.param(4, 0);
                                         if (h > 360)
-                                                warn("DECGCI HSL colour hue %d exceeds range 0..360", h);
+                                                warn("DECGCI HSL colour hue {} exceeds range 0..360", h);
                                         if (l > 100)
-                                                warn("DECGCI HSL colour luminosity %d exceeds range 0..100", l);
+                                                warn("DECGCI HSL colour luminosity {} exceeds range 0..100", l);
                                         if (s > 100)
-                                                warn("DECGCI HSL colour saturation %d exceeds range 0..100", s);
+                                                warn("DECGCI HSL colour saturation {} exceeds range 0..100", s);
                                         break;
                                 }
 
@@ -838,11 +539,11 @@ public:
                                         auto const g = seq.param(3, 0);
                                         auto const b = seq.param(4, 0);
                                         if (r > 100)
-                                                warn("DECGCI RGB colour red %d exceeds range 0..100", r);
+                                                warn("DECGCI RGB colour red {} exceeds range 0..100", r);
                                         if (g > 100)
-                                                warn("DECGCI RGB colour red %d exceeds range 0..100", g);
+                                                warn("DECGCI RGB colour red {} exceeds range 0..100", g);
                                         if (b > 100)
-                                                warn("DECGCI RGB colour red %d exceeds range 0..100", b);
+                                                warn("DECGCI RGB colour red {} exceeds range 0..100", b);
                                         break;
                                 }
 
@@ -854,7 +555,7 @@ public:
 
                                 case 0:
                                 default:
-                                        warn("DECGCI unknown colour coordinate system %d", seq.param(1));
+                                        warn("DECGCI unknown colour coordinate system {}", seq.param(1));
                                         break;
                                 }
 
@@ -863,7 +564,7 @@ public:
                                 /* Select colour register param[0] */
 
                                 if (!m_sixel_color_set.test(reg))
-                                        warn("DECGCI %d selects colour which has not been defined", reg);
+                                        warn("DECGCI {} selects colour which has not been defined", reg);
                         }
 
                         break;
@@ -880,7 +581,7 @@ public:
                         break;
 
                 default:
-                        warn("Ignoring unknown SIXEL command %d/%d '%c'",
+                        warn("Ignoring unknown SIXEL command {}/{} '{:c}'",
                              int(seq.command()) / 16,
                              int(seq.command()) % 16,
                              char(seq.command()));
@@ -1040,7 +741,7 @@ private:
                         case vte::base::UTF8Decoder::ACCEPT: {
                                 auto ret = m_parser.feed(m_utf8_decoder.codepoint());
                                 if (G_UNLIKELY(ret < 0)) {
-                                        g_printerr("Parser error!\n");
+                                        fmt::println(stderr, "Parser error!");
                                         return bufend;
                                 }
 
@@ -1061,7 +762,7 @@ private:
                     m_utf8_decoder.flush()) {
                         auto ret = m_parser.feed(m_utf8_decoder.codepoint());
                         if (G_UNLIKELY(ret < 0)) {
-                                g_printerr("Parser error!\n");
+                                fmt::println(stderr, "Parser error!");
                                 return bufend;
                         }
 
@@ -1163,14 +864,14 @@ private:
                      int repeat)
         {
                 if (fd == STDIN_FILENO && repeat != 1) {
-                        g_printerr("Cannot consume STDIN more than once\n");
+                        fmt::println(stderr, "Cannot consume STDIN more than once");
                         return false;
                 }
 
                 for (auto i = 0; i < repeat; ++i) {
                         if (i > 0 && lseek(fd, 0, SEEK_SET) != 0) {
                                 auto errsv = vte::libc::ErrnoSaver{};
-                                g_printerr("Failed to seek: %s\n", g_strerror(errsv));
+                                fmt::println("Failed to seek: {}", g_strerror(errsv));
                                 return false;
                         }
 
@@ -1229,8 +930,10 @@ public:
                                         fd = open(filename, O_RDONLY);
                                         if (fd == -1) {
                                                 auto errsv = vte::libc::ErrnoSaver{};
-                                                g_printerr("Error opening file %s: %s\n",
-                                                           filename, g_strerror(errsv));
+                                                fmt::println(stderr,
+                                                             "Error opening file \"{}\": {}",
+                                                             filename,
+                                                             g_strerror(errsv));
                                         }
                                 }
                                 if (fd != -1) {
@@ -1251,16 +954,16 @@ public:
         void print_statistics() const noexcept
         {
                 for (unsigned int s = VTE_SEQ_NONE + 1; s < VTE_SEQ_N; s++) {
-                        g_printerr("%\'16" G_GSIZE_FORMAT " %s\n",  m_seq_stats[s], seq_to_str(s));
+                        fmt::println("{:>16} {}",  m_seq_stats[s], vte::parser::seq_t(s));
                 }
 
-                g_printerr("\n");
+                fmt::println(stderr, "");
                 for (unsigned int s = 0; s < VTE_CMD_N; s++) {
                         if (m_cmd_stats[s] > 0) {
-                                g_printerr("%\'16" G_GSIZE_FORMAT " %s%s\n",
-                                           m_cmd_stats[s],
-                                           cmd_to_str(s),
-                                           s >= VTE_CMD_NOP_FIRST ? " [NOP]" : "");
+                                fmt::println("{:>16} {}{}",
+                                             m_cmd_stats[s],
+                                             vte::parser::cmd_t(s),
+                                             s >= VTE_CMD_NOP_FIRST ? " [NOP]"sv : ""sv);
                         }
                 }
         }
@@ -1278,15 +981,16 @@ public:
                 for (unsigned int i = 0; i < m_bench_times->len; ++i)
                         total_time += g_array_index(m_bench_times, int64_t, i);
 
-                g_printerr("\nTimes: best %\'" G_GINT64_FORMAT "µs "
-                           "worst %\'" G_GINT64_FORMAT "µs "
-                           "average %\'" G_GINT64_FORMAT "µs\n",
-                           g_array_index(m_bench_times, int64_t, 0),
-                           g_array_index(m_bench_times, int64_t, m_bench_times->len - 1),
-                           total_time / (int64_t)m_bench_times->len);
-                for (unsigned int i = 0; i < m_bench_times->len; ++i)
-                        g_printerr("  %\'" G_GINT64_FORMAT "µs\n",
-                                   g_array_index(m_bench_times, int64_t, i));
+                fmt::println(stderr,
+                             "\nTimes: best {}µs worst {}µs average {}µs",
+                             g_array_index(m_bench_times, int64_t, 0),
+                             g_array_index(m_bench_times, int64_t, m_bench_times->len - 1),
+                             total_time / (int64_t)m_bench_times->len);
+                for (unsigned int i = 0; i < m_bench_times->len; ++i) {
+                        fmt::println(stderr,
+                                     "  {:>10}µs",
+                                     g_array_index(m_bench_times, int64_t, i));
+                }
         }
 
 }; // class Processor
@@ -1395,19 +1099,21 @@ main(int argc,
      char *argv[])
 {
         setlocale(LC_ALL, "");
-        _vte_debug_init();
 
         Options options{};
         auto error = vte::glib::Error{};
         if (!options.parse(argc, argv, error)) {
-                g_printerr("Failed to parse arguments: %s\n", error.message());
+                fmt::println(stderr,
+                             "Failed to parse arguments: {}",
+                             error.message());
                 return EXIT_FAILURE;
         }
 
         auto rv = false;
         if (options.lint()) {
                 if (options.repeat() != 1) {
-                        g_printerr("Cannot use repeat option for linter\n");
+                        fmt::println(stderr,
+                                     "Cannot use repeat option for linter");
                 } else {
                         rv = process(options, Linter{});
                 }

@@ -25,7 +25,7 @@
 #include <vte/vte.h>
 #include "vteptyinternal.hh"
 #include "vtespawn.hh"
-#include "debug.h"
+#include "debug.hh"
 #include "reaper.hh"
 
 #include <assert.h>
@@ -339,28 +339,31 @@ SpawnContext::exec(vte::libc::FD& child_report_error_pipe_write,
          * when the exec succeeds!
          */
 
-        _VTE_DEBUG_IF(VTE_DEBUG_MISC) {
-                g_printerr ("Spawning command:\n");
+#if VTE_DEBUG
+        _VTE_DEBUG_IF(vte::debug::category::MISC) {
+                vte::debug::println("Spawning command:");
                 auto argv = m_argv.get();
                 for (auto i = 0; argv[i] != NULL; i++) {
-                        g_printerr("    argv[%d] = %s\n", i, argv[i]);
+                        vte::debug::println("    argv[{}] = {}", i, argv[i]);
                 }
                 if (m_envv) {
                         auto envv = m_envv.get();
                         for (auto i = 0; envv[i] != NULL; i++) {
-                                g_printerr("    env[%d] = %s\n", i, envv[i]);
+                                vte::debug::println("    env[{}] = {}", i, envv[i]);
                         }
                 }
-                g_printerr("    directory: %s\n",
-                           m_cwd ? m_cwd.get() : "(none)");
+                vte::debug::println("    directory: {}",
+                                    m_cwd ? m_cwd.get() : "(none)");
         }
+#endif // VTE_DEBUG
 
         /* Unblock all signals */
         sigset_t set;
         sigemptyset(&set);
         if (pthread_sigmask(SIG_SETMASK, &set, nullptr) == -1) {
                 auto errsv = vte::libc::ErrnoSaver{};
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s\n",
+                _vte_debug_print(vte::debug::category::PTY,
+                                 "{} failed: {}",
                                  "pthread_sigmask", g_strerror(errsv));
                 return ExecError::SIGMASK;
         }
@@ -401,10 +404,11 @@ SpawnContext::exec(vte::libc::FD& child_report_error_pipe_write,
                 /* This starts a new session; we become its process-group leader,
                  * and lose our controlling TTY.
                  */
-                _vte_debug_print(VTE_DEBUG_PTY, "Starting new session\n");
+                _vte_debug_print(vte::debug::category::PTY, "Starting new session");
                 if (setsid() == -1) {
                         auto errsv = vte::libc::ErrnoSaver{};
-                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s\n",
+                        _vte_debug_print(vte::debug::category::PTY,
+                                         "{} failed: {}",
                                          "setsid", g_strerror(errsv));
                         return ExecError::SETSID;
                 }
@@ -422,7 +426,8 @@ SpawnContext::exec(vte::libc::FD& child_report_error_pipe_write,
         if (!(pty()->flags() & VTE_PTY_NO_CTTY)) {
                 if (ioctl(peer_fd, TIOCSCTTY, peer_fd) != 0) {
                         auto errsv = vte::libc::ErrnoSaver{};
-                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s\n",
+                        _vte_debug_print(vte::debug::category::PTY,
+                                         "{} failed: {}",
                                          "ioctl(TIOCSCTTY)", g_strerror(errsv));
                         return ExecError::SCTTY;
                 }
@@ -740,8 +745,8 @@ SpawnOperation::run(vte::glib::Error& error) noexcept
                 if (context().require_systemd_scope())
                         return false;
 
-                _vte_debug_print(VTE_DEBUG_PTY,
-                                 "Failed to create systemd scope: %s",
+                _vte_debug_print(vte::debug::category::PTY,
+                                 "Failed to create systemd scope: {}",
                                  error.message());
                 error.reset();
         }

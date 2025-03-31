@@ -19,7 +19,7 @@
 
 #include "config.h"
 
-#include "debug.h"
+#include "debug.hh"
 #include "ring.hh"
 #include "vterowdata.hh"
 
@@ -58,10 +58,10 @@ using namespace vte::base;
 void
 Ring::validate() const
 {
-	_vte_debug_print(VTE_DEBUG_RING,
-			" Delta = %lu, Length = %lu, Next = %lu, Max = %lu, Writable = %lu.\n",
-			m_start, m_end - m_start, m_end,
-			m_max, m_end - m_writable);
+	_vte_debug_print(vte::debug::category::RING,
+                         "Delta = {}, Length = {}, Next = {}, Max = {}, Writable = {}",
+                         m_start, m_end - m_start, m_end,
+                         m_max, m_end - m_writable);
 
 	vte_assert_cmpuint(m_start, <=, m_writable);
 	vte_assert_cmpuint(m_writable, <=, m_end);
@@ -79,7 +79,7 @@ Ring::Ring(row_t max_rows,
           m_has_streams{has_streams},
           m_last_attr{basic_cell.attr}
 {
-	_vte_debug_print(VTE_DEBUG_RING, "New ring %p.\n", this);
+	_vte_debug_print(vte::debug::category::RING, "New ring {}", (void*)this);
 
 	m_array = (VteRowData* ) g_malloc0 (sizeof (m_array[0]) * (m_mask + 1));
 
@@ -138,15 +138,15 @@ Ring::hyperlink_gc()
         VteRowData* row;
         char *used;
 
-        _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                          "hyperlink: GC starting (highest used idx is %d)\n",
-                          m_hyperlink_highest_used_idx);
+        _vte_debug_print(vte::debug::category::HYPERLINK,
+                         "hyperlink: GC starting (highest used idx is {})",
+                         m_hyperlink_highest_used_idx);
 
         m_hyperlink_maybe_gc_counter = 0;
 
         if (m_hyperlink_highest_used_idx == 0) {
-                _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                                  "hyperlink: GC done (no links at all, nothing to do)\n");
+                _vte_debug_print(vte::debug::category::HYPERLINK,
+                                 "hyperlink: GC done (no links at all, nothing to do)");
                 return;
         }
 
@@ -168,9 +168,10 @@ Ring::hyperlink_gc()
 
         for (idx = 1; idx <= m_hyperlink_highest_used_idx; idx++) {
                 if (!GET_BIT(used, idx) && hyperlink_get(idx)->len != 0) {
-                        _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                                          "hyperlink: GC purging link %d to id;uri=\"%s\"\n",
-                                          idx, hyperlink_get(idx)->str);
+                        _vte_debug_print(vte::debug::category::HYPERLINK,
+                                         "hyperlink: GC purging link {} to id;uri=\"{}\"",
+                                         idx,
+                                         hyperlink_get(idx)->str);
                         /* Wipe out the ID and URI itself so it doesn't linger on in the memory for a long time */
                         memset(hyperlink_get(idx)->str, 0, hyperlink_get(idx)->len);
                         g_string_truncate (hyperlink_get(idx), 0);
@@ -181,9 +182,9 @@ Ring::hyperlink_gc()
                m_hyperlink_highest_used_idx--;
         }
 
-        _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                          "hyperlink: GC done (highest used idx is now %d)\n",
-                          m_hyperlink_highest_used_idx);
+        _vte_debug_print(vte::debug::category::HYPERLINK,
+                         "hyperlink: GC done (highest used idx is now {})",
+                         m_hyperlink_highest_used_idx);
 
         g_free (used);
 }
@@ -196,9 +197,9 @@ Ring::hyperlink_maybe_gc(row_t increment)
 {
         m_hyperlink_maybe_gc_counter += increment;
 
-        _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                          "hyperlink: maybe GC, counter at %ld\n",
-                          m_hyperlink_maybe_gc_counter);
+        _vte_debug_print(vte::debug::category::HYPERLINK,
+                         "hyperlink: maybe GC, counter at {}",
+                         m_hyperlink_maybe_gc_counter);
 
         if (m_hyperlink_maybe_gc_counter >= 65536)
                 hyperlink_gc();
@@ -338,9 +339,9 @@ Ring::get_hyperlink_idx_no_update_current(char const* hyperlink)
         auto const last_idx = m_hyperlink_highest_used_idx + 1;
         for (idx = 1; idx < last_idx; ++idx) {
                 if (strcmp(hyperlink_get(idx)->str, hyperlink) == 0) {
-                        _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                                          "get_hyperlink_idx: already existing idx %d for id;uri=\"%s\"\n",
-                                          idx, hyperlink);
+                        _vte_debug_print(vte::debug::category::HYPERLINK,
+                                         "get_hyperlink_idx: already existing idx {} for id;uri=\"{}\"",
+                                         idx, hyperlink);
                         return idx;
                 }
         }
@@ -351,9 +352,9 @@ Ring::get_hyperlink_idx_no_update_current(char const* hyperlink)
         /* Another linear search for an empty slot where a GString is already allocated */
         for (idx = 1; idx < m_hyperlinks->len; idx++) {
                 if (hyperlink_get(idx)->len == 0) {
-                        _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                                          "get_hyperlink_idx: reassigning old idx %d for id;uri=\"%s\"\n",
-                                          idx, hyperlink);
+                        _vte_debug_print(vte::debug::category::HYPERLINK,
+                                         "get_hyperlink_idx: reassigning old idx {} for id;uri=\"{}\"",
+                                         idx, hyperlink);
                         /* Grow size if required, however, never shrink to avoid long-term memory fragmentation. */
                         g_string_append_len (hyperlink_get(idx), hyperlink, len);
                         m_hyperlink_highest_used_idx = MAX (m_hyperlink_highest_used_idx, idx);
@@ -367,16 +368,16 @@ Ring::get_hyperlink_idx_no_update_current(char const* hyperlink)
         /* VTE_HYPERLINK_COUNT_MAX should be big enough for this not to happen under
            normal circumstances. Anyway, it's cheap to protect against extreme ones. */
         if (m_hyperlink_highest_used_idx == VTE_HYPERLINK_COUNT_MAX) {
-                _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                                  "get_hyperlink_idx: idx 0 (ran out of available idxs) for id;uri=\"%s\"\n",
-                                  hyperlink);
+                _vte_debug_print(vte::debug::category::HYPERLINK,
+                                 "get_hyperlink_idx: idx 0 (ran out of available idxs) for id;uri=\"{}\"",
+                                 hyperlink);
                 return 0;
         }
 
         idx = ++m_hyperlink_highest_used_idx;
-        _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                          "get_hyperlink_idx: brand new idx %d for id;uri=\"%s\"\n",
-                          idx, hyperlink);
+        _vte_debug_print(vte::debug::category::HYPERLINK,
+                         "get_hyperlink_idx: brand new idx {} for id;uri=\"{}\"",
+                         idx, hyperlink);
         str = g_string_new_len (hyperlink, len);
         g_ptr_array_add(m_hyperlinks, str);
 
@@ -416,7 +417,9 @@ Ring::freeze_row(row_t position,
 	int i;
         gboolean froze_hyperlink = FALSE;
 
-	_vte_debug_print (VTE_DEBUG_RING, "Freezing row %lu.\n", position);
+	_vte_debug_print(vte::debug::category::RING,
+                         "Freezing row {}",
+                         position);
 
         g_assert(m_has_streams);
 
@@ -533,7 +536,9 @@ Ring::thaw_row(row_t position,
                 *hyperlink = m_hyperlink_buf;
         }
 
-	_vte_debug_print (VTE_DEBUG_RING, "Thawing row %lu.\n", position);
+	_vte_debug_print(vte::debug::category::RING,
+                         "Thawing row {}",
+                         position);
 
         g_assert(m_has_streams);
 
@@ -598,7 +603,7 @@ Ring::thaw_row(row_t position,
 		}
 
 		cell.attr = attr;
-                _VTE_DEBUG_IF(VTE_DEBUG_RING | VTE_DEBUG_HYPERLINK) {
+                _VTE_DEBUG_IF(vte::debug::category::RING | vte::debug::category::HYPERLINK) {
                         /* Debug: Reverse the colors for the stream's contents. */
                         if (!do_truncate) {
                                 cell.attr.attr ^= VTE_ATTR_REVERSE;
@@ -647,7 +652,7 @@ Ring::thaw_row(row_t position,
            which is the reason for the hyperlink's length being repeated after the hyperlink itself. */
 	if (do_truncate) {
 		gsize attr_stream_truncate_at = records[0].attr_start_offset;
-		_vte_debug_print (VTE_DEBUG_RING, "Truncating\n");
+		_vte_debug_print(vte::debug::category::RING, "Truncating");
 		if (records[0].text_start_offset <= m_last_attr_text_start_offset) {
 			/* Check the previous attr record. If its text ends where truncating, this attr record also needs to be removed. */
                         guint16 hyperlink_length;
@@ -655,7 +660,7 @@ Ring::thaw_row(row_t position,
                                 vte_assert_cmpuint (hyperlink_length, <=, VTE_HYPERLINK_TOTAL_LENGTH_MAX);
                                 if (_vte_stream_read (m_attr_stream, attr_stream_truncate_at - 2 - hyperlink_length - sizeof (attr_change), (char *) &attr_change, sizeof (attr_change))) {
                                         if (records[0].text_start_offset == attr_change.text_end_offset) {
-                                                _vte_debug_print (VTE_DEBUG_RING, "... at attribute change\n");
+                                                _vte_debug_print(vte::debug::category::RING, "... at attribute change");
                                                 attr_stream_truncate_at -= sizeof (attr_change) + hyperlink_length + 2;
                                         }
 				}
@@ -693,7 +698,9 @@ Ring::thaw_row(row_t position,
 void
 Ring::reset_streams(row_t position)
 {
-	_vte_debug_print (VTE_DEBUG_RING, "Reseting streams to %lu.\n", position);
+	_vte_debug_print(vte::debug::category::RING,
+                         "Reseting streams to {}",
+                         position);
 
 	if (m_has_streams) {
 		_vte_stream_reset(m_row_stream, position * sizeof(RowRecord));
@@ -708,7 +715,9 @@ Ring::reset_streams(row_t position)
 Ring::row_t
 Ring::reset()
 {
-        _vte_debug_print (VTE_DEBUG_RING, "Reseting the ring at %lu.\n", m_end);
+        _vte_debug_print(vte::debug::category::RING,
+                         "Reseting the ring at {}",
+                         m_end);
 
         reset_streams(m_end);
         m_start = m_writable = m_end;
@@ -731,7 +740,9 @@ Ring::index(row_t position)
 		return get_writable_index(position);
 
 	if (m_cached_row_num != position) {
-		_vte_debug_print(VTE_DEBUG_RING, "Caching row %lu.\n", position);
+		_vte_debug_print(vte::debug::category::RING,
+                                 "Caching row {}",
+                                 position);
                 thaw_row(position, &m_cached_row, false, -1, nullptr);
 		m_cached_row_num = position;
 	}
@@ -957,7 +968,9 @@ Ring::ensure_writable_room()
 		m_mask = (m_mask << 1) + 1;
         } while (m_mask < m_visible_rows + 1 || m_writable + m_mask + 1 <= m_end);
 
-	_vte_debug_print(VTE_DEBUG_RING, "Enlarging writable array from %lu to %lu\n", old_mask, m_mask);
+	_vte_debug_print(vte::debug::category::RING,
+                         "Enlarging writable array from {} to {}",
+                         old_mask, m_mask);
 
 	m_array = (VteRowData* ) g_malloc0(sizeof (m_array[0]) * (m_mask + 1));
 
@@ -980,7 +993,9 @@ Ring::ensure_writable_room()
 void
 Ring::resize(row_t max_rows)
 {
-	_vte_debug_print(VTE_DEBUG_RING, "Resizing to %lu.\n", max_rows);
+	_vte_debug_print(vte::debug::category::RING,
+                         "Resizing to {}",
+                         max_rows);
 
 	validate();
 
@@ -1002,7 +1017,9 @@ Ring::shrink(row_t max_len)
 	if (length() <= max_len)
 		return;
 
-	_vte_debug_print(VTE_DEBUG_RING, "Shrinking to %lu.\n", max_len);
+	_vte_debug_print(vte::debug::category::RING,
+                         "Shrinking to {}",
+                         max_len);
 
 	validate();
 
@@ -1035,7 +1052,9 @@ Ring::insert(row_t position, guint8 bidi_flags)
 	row_t i;
 	VteRowData* row, tmp;
 
-	_vte_debug_print(VTE_DEBUG_RING, "Inserting at position %lu.\n", position);
+	_vte_debug_print(vte::debug::category::RING,
+                         "Inserting at position {}",
+                         position);
 	validate();
 
 	maybe_discard_one_row();
@@ -1073,7 +1092,9 @@ Ring::remove(row_t position)
 	row_t i;
 	VteRowData tmp;
 
-	_vte_debug_print(VTE_DEBUG_RING, "Removing item at position %lu.\n", position);
+	_vte_debug_print(vte::debug::category::RING,
+                         "Removing item at position {}",
+                         position);
         validate();
 
 	if (G_UNLIKELY(!contains(position)))
@@ -1338,7 +1359,8 @@ Ring::rewrap(column_t columns,
 
 	if (G_UNLIKELY(length() == 0))
 		return;
-	_vte_debug_print(VTE_DEBUG_RING, "Ring before rewrapping:\n");
+	_vte_debug_print(vte::debug::category::RING,
+                         "Ring before rewrapping:");
         validate();
 	new_row_stream = _vte_file_stream_new();
 
@@ -1358,10 +1380,14 @@ Ring::rewrap(column_t columns,
 		if (!frozen_row_column_to_text_offset(markers[i]->row, markers[i]->col, &marker_text_offsets[i]))
 			goto err;
 		new_markers[i].row = new_markers[i].col = -1;
-		_vte_debug_print(VTE_DEBUG_RING,
-				"Marker #%d old coords:  row %ld  col %ld  ->  text_offset %" G_GSIZE_FORMAT " fragment_cells %d  eol_cells %d\n",
-				i, markers[i]->row, markers[i]->col, marker_text_offsets[i].text_offset,
-				marker_text_offsets[i].fragment_cells, marker_text_offsets[i].eol_cells);
+		_vte_debug_print(vte::debug::category::RING,
+                                 "Marker #{} old coords:  row {}  col {}  ->  text_offset {} fragment_cells {}  eol_cells {}",
+                                 i,
+                                 markers[i]->row,
+                                 markers[i]->col,
+                                 marker_text_offsets[i].text_offset,
+                                 marker_text_offsets[i].fragment_cells,
+                                 marker_text_offsets[i].eol_cells);
 	}
 
 	/* Prepare for rewrapping */
@@ -1389,8 +1415,8 @@ Ring::rewrap(column_t columns,
 		RowRecord new_record;
 		column_t col = 0;
 
-		_vte_debug_print(VTE_DEBUG_RING,
-				"  Old paragraph:  row %lu  (text_offset %" G_GSIZE_FORMAT ")  up to (exclusive)  ",  /* no '\n' */
+		_vte_debug_print(vte::debug::category::RING,
+				"  Old paragraph:  row {}  (text_offset {})  up to (exclusive)",
                                  old_row_index - 1,
                                  paragraph_start_text_offset);
 		while (old_row_index <= m_end) {
@@ -1412,12 +1438,13 @@ Ring::rewrap(column_t columns,
 		paragraph_len = paragraph_end_text_offset - paragraph_start_text_offset;
 		if (!prev_record_was_soft_wrapped)  /* The last paragraph can be soft wrapped! */
 			paragraph_len--;  /* Strip trailing '\n' */
-		_vte_debug_print(VTE_DEBUG_RING,
-				"row %lu  (text_offset %" G_GSIZE_FORMAT ")%s  len %" G_GSIZE_FORMAT "  is_ascii %d\n",
+		_vte_debug_print(vte::debug::category::RING,
+				"  row {}  (text_offset {}){}  len {}  is_ascii {}",
                                  old_row_index - 1,
                                  paragraph_end_text_offset,
-				prev_record_was_soft_wrapped ? "  soft_wrapped" : "",
-				paragraph_len, paragraph_is_ascii);
+                                 prev_record_was_soft_wrapped ? "  soft_wrapped" : "",
+                                 paragraph_len,
+                                 paragraph_is_ascii);
 		/* Wrap the paragraph */
 		if (attr_change.text_end_offset <= text_offset) {
 			/* Attr change at paragraph boundary, advance to next attr. */
@@ -1474,16 +1501,19 @@ Ring::rewrap(column_t columns,
                                                 new_record.width = col;
 						new_record.soft_wrapped = 1;
 						_vte_stream_append(new_row_stream, (char const* ) &new_record, sizeof (new_record));
-						_vte_debug_print(VTE_DEBUG_RING,
-								"    New row %ld  text_offset %" G_GSIZE_FORMAT "  attr_offset %" G_GSIZE_FORMAT "  soft_wrapped\n",
-								new_row_index,
-								new_record.text_start_offset, new_record.attr_start_offset);
+						_vte_debug_print(vte::debug::category::RING,
+                                                                 "    New row {}  text_offset {}  attr_offset {}  soft_wrapped",
+                                                                 new_row_index,
+                                                                 new_record.text_start_offset,
+                                                                 new_record.attr_start_offset);
 						for (i = 0; i < num_markers; i++) {
 							if (G_UNLIKELY (marker_text_offsets[i].text_offset >= new_record.text_start_offset &&
 									marker_text_offsets[i].text_offset < text_offset)) {
 								new_markers[i].row = new_row_index;
-								_vte_debug_print(VTE_DEBUG_RING,
-										"      Marker #%d will be here in row %lu\n", i, new_row_index);
+								_vte_debug_print(vte::debug::category::RING,
+										"      Marker #{} will be here in row {}",
+                                                                                 i,
+                                                                                 new_row_index);
 							}
 						}
 
@@ -1531,16 +1561,19 @@ Ring::rewrap(column_t columns,
                 new_record.width = col;
 		new_record.soft_wrapped = prev_record_was_soft_wrapped;
 		_vte_stream_append(new_row_stream, (char const* ) &new_record, sizeof (new_record));
-		_vte_debug_print(VTE_DEBUG_RING,
-				"    New row %ld  text_offset %" G_GSIZE_FORMAT "  attr_offset %" G_GSIZE_FORMAT "\n",
-				new_row_index,
-				new_record.text_start_offset, new_record.attr_start_offset);
+		_vte_debug_print(vte::debug::category::RING,
+                                 "    New row {}  text_offset {}  attr_offset {}",
+                                 new_row_index,
+                                 new_record.text_start_offset,
+                                 new_record.attr_start_offset);
 		for (i = 0; i < num_markers; i++) {
 			if (G_UNLIKELY (marker_text_offsets[i].text_offset >= new_record.text_start_offset &&
 					marker_text_offsets[i].text_offset < paragraph_end_text_offset)) {
 				new_markers[i].row = new_row_index;
-				_vte_debug_print(VTE_DEBUG_RING,
-						"      Marker #%d will be here in row %lu\n", i, new_row_index);
+				_vte_debug_print(vte::debug::category::RING,
+                                                 "      Marker #{} will be here in row {}",
+                                                 i,
+                                                 new_row_index);
 			}
 		}
 
@@ -1577,10 +1610,13 @@ Ring::rewrap(column_t columns,
                          * It would be a bit cumbersome to refactor the code to still revert here. Choose a simple solution. */
                         new_markers[i].col = 0;
                 }
-		_vte_debug_print(VTE_DEBUG_RING,
-				"Marker #%d new coords:  text_offset %" G_GSIZE_FORMAT "  fragment_cells %d  eol_cells %d  ->  row %ld  col %ld\n",
-				i, marker_text_offsets[i].text_offset, marker_text_offsets[i].fragment_cells,
-				marker_text_offsets[i].eol_cells, new_markers[i].row, new_markers[i].col);
+		_vte_debug_print(vte::debug::category::RING,
+                                 "Marker #{} new coords:  text_offset {}  fragment_cells {}  eol_cells {}  ->  row {}  col {}",
+                                 i,
+                                 marker_text_offsets[i].text_offset,
+                                 marker_text_offsets[i].fragment_cells,
+                                 marker_text_offsets[i].eol_cells,
+                                 new_markers[i].row, new_markers[i].col);
 		markers[i]->row = new_markers[i].row;
 		markers[i]->col = new_markers[i].col;
 	}
@@ -1595,14 +1631,14 @@ Ring::rewrap(column_t columns,
         }
 #endif
 
-	_vte_debug_print(VTE_DEBUG_RING, "Ring after rewrapping:\n");
+	_vte_debug_print(vte::debug::category::RING, "Ring after rewrapping:");
         validate();
 	return;
 
 err:
 #if VTE_DEBUG
-	_vte_debug_print(VTE_DEBUG_RING,
-			"Error while rewrapping\n");
+	_vte_debug_print(vte::debug::category::RING,
+			"Error while rewrapping");
 	g_assert_not_reached();
 #endif
 	g_object_unref(new_row_stream);
@@ -1655,7 +1691,7 @@ Ring::write_contents(GOutputStream* stream,
 {
 	row_t i;
 
-	_vte_debug_print(VTE_DEBUG_RING, "Writing contents to GOutputStream.\n");
+	_vte_debug_print(vte::debug::category::RING, "Writing contents to GOutputStream");
 
 	if (m_start < m_writable)
 	{

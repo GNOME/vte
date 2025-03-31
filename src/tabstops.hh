@@ -21,7 +21,7 @@
 #include <cstdint>
 #include <cstring>
 
-#include "debug.h"
+#include "debug.hh"
 
 #include "vtedefines.hh"
 

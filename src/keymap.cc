@@ -26,28 +26,36 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 #include "caps.hh"
-#include "debug.h"
+#include "debug.hh"
 #include "keymap.h"
+
+#include <string>
+
+using namespace std::literals::string_literals;
 
 #if VTE_DEBUG
 static void
 _vte_keysym_print(guint keyval,
                   guint modifiers)
 {
-	g_printerr("Mapping ");
+        auto str = ""s;
 	if (modifiers & GDK_CONTROL_MASK) {
-		g_printerr("Control+");
+		str += "Control+"s;
 	}
 	if (modifiers & VTE_ALT_MASK) {
-		g_printerr("Alt+");
+		str += "Alt+"s;
 	}
 	if (modifiers & VTE_NUMLOCK_MASK) {
-		g_printerr("NumLock+");
+		str += "NumLock+"s;
 	}
 	if (modifiers & GDK_SHIFT_MASK) {
-		g_printerr("Shift+");
+		str += "Shift+";
 	}
-	g_printerr("%s" , gdk_keyval_name(keyval));
+
+        _vte_debug_print(vte::debug::category::KEYBOARD,
+                         "Mapping {} => {}",
+                         str,
+                         gdk_keyval_name(keyval));
 }
 #else
 static void
@@ -724,7 +732,7 @@ _vte_keymap_map(guint keyval,
 	g_return_if_fail(normal != NULL);
 	g_return_if_fail(normal_length != NULL);
 
-	_VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) 
+	_VTE_DEBUG_IF(vte::debug::category::KEYBOARD) 
 		_vte_keysym_print(keyval, modifiers);
 
 	/* Start from scratch. */
@@ -741,8 +749,8 @@ _vte_keymap_map(guint keyval,
 		}
 	}
 	if (entries == NULL) {
-		_vte_debug_print(VTE_DEBUG_KEYBOARD,
-				" (ignoring, no map for key).\n");
+		_vte_debug_print(vte::debug::category::KEYBOARD,
+				" (ignoring, no map for key)");
 		return;
 	}
 
@@ -769,14 +777,14 @@ _vte_keymap_map(guint keyval,
                                                   cursor_mode & cursor_app,
                                                   normal,
                                                   normal_length);
-                _vte_debug_print(VTE_DEBUG_KEYBOARD,
-                                 " to '%s'.\n",
+                _vte_debug_print(vte::debug::category::KEYBOARD,
+                                 " to '{}'",
                                  _vte_debug_sequence_to_string(*normal, *normal_length));
                 return;
 	}
 
-	_vte_debug_print(VTE_DEBUG_KEYBOARD,
-			" (ignoring, no match for modifier state).\n");
+	_vte_debug_print(vte::debug::category::KEYBOARD,
+			" (ignoring, no match for modifier state)");
 }
 
 gboolean

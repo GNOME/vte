@@ -76,79 +76,6 @@ vte::color::rgb::parse(char const* spec)
 	return retval;
 }
 
-#if VTE_DEBUG
-
-#define DEBUG_STRING_SIZE (256)
-#define DEBUG_STRING_SLICES (64)
-
-static char*
-debug_get_buf(void)
-{
-        static char *buf = NULL;
-        static gsize offset = 0;
-
-        if (buf != NULL) {
-                offset = (offset + 1) % DEBUG_STRING_SLICES;
-        } else {
-                buf = g_new0(char, DEBUG_STRING_SIZE * DEBUG_STRING_SLICES);
-        }
-        return buf + offset * DEBUG_STRING_SIZE;
-}
-
-char const*
-vte::grid::coords::to_string() const
-{
-        char *buf = debug_get_buf();
-        g_snprintf(buf, DEBUG_STRING_SIZE, "grid[%ld,%ld]", row(), column());
-        return buf;
-}
-
-char const*
-vte::grid::halfcoords::to_string() const
-{
-        char *buf = debug_get_buf();
-        g_snprintf(buf, DEBUG_STRING_SIZE, "halfgrid[%ld,%ld%c]", row(), halfcolumn().column(), halfcolumn().half() ? 'R' : 'L');
-        return buf;
-}
-
-char const*
-vte::grid::span::to_string() const
-{
-        if (empty())
-                return "grid[empty]";
-
-        char *buf = debug_get_buf();
-        g_snprintf(buf, DEBUG_STRING_SIZE, "grid[(%ld,%ld), (%ld,%ld))",
-                   start_row(), start_column(), end_row(), end_column());
-        return buf;
-}
-
-char const*
-vte::view::coords::to_string() const
-{
-        char *buf = debug_get_buf();
-        g_snprintf(buf, DEBUG_STRING_SIZE, "view[%ld,%ld]", x, y);
-        return buf;
-}
-
-char const*
-vte::view::extents::to_string() const
-{
-        char *buf = debug_get_buf();
-        g_snprintf(buf, DEBUG_STRING_SIZE, "view::extents[%ld x %ld]", width(), height());
-        return buf;
-}
-
-char const*
-vte::color::rgb::to_string() const
-{
-        char *buf = debug_get_buf();
-        g_snprintf(buf, DEBUG_STRING_SIZE, "rgb(%04x,%04x,%04x)", red, green, blue);
-        return buf;
-}
-
-#endif /* VTE_DEBUG */
-
 #ifdef MAIN
 
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -203,11 +130,6 @@ test_grid_coords (void)
         g_assert_true (coords(42, 42) <  coords(43, 160));
         g_assert_false(coords(42, 42) >= coords(43, 160));
         g_assert_false(coords(42, 42) >  coords(43, 160));
-
-#if VTE_DEBUG
-        /* to_string() */
-        g_assert_cmpstr(vte::grid::coords(17, 42).to_string(), ==, "grid[17,42]");
-#endif
 }
 
 static void
@@ -256,12 +178,6 @@ test_grid_halfcoords (void)
         g_assert_true (d <  e);
         g_assert_false(d >  e);
         g_assert_false(d >= e);
-
-#if VTE_DEBUG
-        /* to_string() */
-        g_assert_cmpstr(halfcoords(16, 32, 0).to_string(), ==, "halfgrid[16,32L]");
-        g_assert_cmpstr(halfcoords(16, 32, 1).to_string(), ==, "halfgrid[16,32R]");
-#endif
 }
 
 
@@ -362,11 +278,6 @@ test_grid_span (void)
 
         span s10(16, 16, 32, 1);
         g_assert_cmpint(s10.last_row(), ==, 32);
-
-#if VTE_DEBUG
-        /* to_string() */
-        g_assert_cmpstr(vte::grid::span(17, 42, 18, 3).to_string(), ==, "grid[(17,42), (18,3))");
-#endif
 }
 
 static void
@@ -394,11 +305,6 @@ test_view_coords (void)
         p5.swap(p3);
         g_assert_true(p3 == p4);
         g_assert_true(p5 == p2);
-
-#if VTE_DEBUG
-        /* to_string() */
-        g_assert_cmpstr(vte::view::coords(256, 512).to_string(), ==, "view[256,512]");
-#endif
 }
 
 

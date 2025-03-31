@@ -24,6 +24,8 @@
 #include <cassert>
 #include <version>
 
+#include <fmt/format.h>
+
 namespace vte {
 
 namespace base {
@@ -76,7 +78,7 @@ Regex::check_pcre_config_jit(void)
         char s[256];
         int r = pcre2_config_8(PCRE2_CONFIG_JITTARGET, &s);
         if (r == PCRE2_ERROR_BADOPTION && !warned) {
-                g_printerr("PCRE2 library was built without JIT support\n");
+                fmt::println(stderr, "PCRE2 library was built without JIT support\n");
                 warned = true;
         }
 

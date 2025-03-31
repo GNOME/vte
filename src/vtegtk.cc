@@ -49,7 +49,7 @@
 #include "vte/vteterminal.h"
 #include "vte/vtetypebuiltins.h"
 
-#include "debug.h"
+#include "debug.hh"
 #include "glib-glue.hh"
 #include "gobject-glue.hh"
 #include "marshal.h"
@@ -81,7 +81,7 @@
 #endif
 
 #define I_(string) (g_intern_static_string(string))
-#define _VTE_PARAM_DEPRECATED (_vte_debug_on(VTE_DEBUG_SIGNALS) ? G_PARAM_DEPRECATED : 0)
+#define _VTE_PARAM_DEPRECATED (vte::debug::check_categories(vte::debug::category::SIGNALS) ? G_PARAM_DEPRECATED : 0)
 
 #define VTE_TERMINAL_CSS_NAME "vte-terminal"
 
@@ -1340,7 +1340,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
         _vte_debug_init();
 
 #if VTE_GTK == 3
-	_VTE_DEBUG_IF (VTE_DEBUG_UPDATES) gdk_window_set_debug_updates(TRUE);
+	_VTE_DEBUG_IF (vte::debug::category::UPDATES) gdk_window_set_debug_updates(TRUE);
 #endif
 
 	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
@@ -3524,7 +3524,7 @@ vte_terminal_copy_primary(VteTerminal *terminal) noexcept
 try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to PRIMARY.\n");
+	_vte_debug_print(vte::debug::category::SELECTION, "Copying to PRIMARY");
 	WIDGET(terminal)->copy(vte::platform::ClipboardType::PRIMARY,
                                vte::platform::ClipboardFormat::TEXT);
 }
@@ -3594,7 +3594,7 @@ vte_terminal_paste_primary(VteTerminal *terminal) noexcept
 try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	_vte_debug_print(VTE_DEBUG_SELECTION, "Pasting PRIMARY.\n");
+	_vte_debug_print(vte::debug::category::SELECTION, "Pasting PRIMARY");
 	WIDGET(terminal)->paste(vte::platform::ClipboardType::PRIMARY);
 }
 catch (...)
@@ -6647,12 +6647,12 @@ vte_terminal_get_geometry_hints(VteTerminal *terminal,
         hints->min_width   = hints->base_width  + hints->width_inc  * min_columns;
         hints->min_height  = hints->base_height + hints->height_inc * min_rows;
 
-	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
-                         "[Terminal %p] Geometry cell       width %ld height %ld\n"
-                         "                       base       width %d height %d\n"
-                         "                       increments width %d height %d\n"
-                         "                       minimum    width %d height %d\n",
-                         terminal,
+	_vte_debug_print(vte::debug::category::WIDGET_SIZE,
+                         "[Terminal {}] Geometry cell       width {} height {}\n"
+                         "                       base       width {} height {}\n"
+                         "                       increments width {} height {}\n"
+                         "                       minimum    width {} height {}",
+                         (void*)terminal,
                          impl->m_cell_width, impl->m_cell_height,
                          hints->base_width, hints->base_height,
                          hints->width_inc, hints->height_inc,

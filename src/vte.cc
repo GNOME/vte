@@ -43,7 +43,7 @@
 #include "vteinternal.hh"
 #include "bidi.hh"
 #include "buffer.h"
-#include "debug.h"
+#include "debug.hh"
 #include "reaper.hh"
 #include "ring.hh"
 #include "ringview.hh"
@@ -344,8 +344,8 @@ Terminal::invalidate_rows(vte::grid::row_t row_start,
         if (G_UNLIKELY (row_end < row_start))
                 return;
 
-	_vte_debug_print (VTE_DEBUG_UPDATES,
-                          "Invalidating rows %ld..%ld.\n",
+	_vte_debug_print (vte::debug::category::UPDATES,
+                          "Invalidating rows {}..{}",
                           row_start, row_end);
 
         /* Scrolled back, visible parts didn't change. */
@@ -375,8 +375,8 @@ Terminal::invalidate_rows(vte::grid::row_t row_start,
         int yend = row_to_pixel(row_end + 1) + std::max(cell_overflow_bottom(), VTE_LINE_WIDTH);
         rect.height = yend - rect.y;
 
-	_vte_debug_print (VTE_DEBUG_UPDATES,
-			"Invalidating pixels at (%d,%d)x(%d,%d).\n",
+	_vte_debug_print (vte::debug::category::UPDATES,
+			"Invalidating pixels at ({},{})x({},{})",
 			rect.x, rect.y, rect.width, rect.height);
 #endif
 
@@ -427,8 +427,8 @@ Terminal::invalidate_rows_and_context(vte::grid::row_t row_start,
         if (G_UNLIKELY (row_end < row_start))
                 return;
 
-        _vte_debug_print (VTE_DEBUG_UPDATES,
-                          "Invalidating rows %ld..%ld and context.\n",
+        _vte_debug_print (vte::debug::category::UPDATES,
+                          "Invalidating rows {}..{} and context",
                           row_start, row_end);
 
         /* Safety limit: Scrolled back by so much that changes to the
@@ -525,7 +525,7 @@ Terminal::invalidate_all()
 		return;
 	}
 
-	_vte_debug_print (VTE_DEBUG_UPDATES, "Invalidating all.\n");
+	_vte_debug_print (vte::debug::category::UPDATES, "Invalidating all");
 
 	reset_update_rects();
 	m_invalidated_all = TRUE;
@@ -756,8 +756,8 @@ Terminal::invalidate_cursor_once(bool periodic)
 	if (m_modes_private.DEC_TEXT_CURSOR()) {
                 auto row = m_screen->cursor.row;
 
-		_vte_debug_print(VTE_DEBUG_UPDATES,
-                                 "Invalidating cursor in row %ld.\n",
+		_vte_debug_print(vte::debug::category::UPDATES,
+                                 "Invalidating cursor in row {}",
                                  row);
                 invalidate_row(row);
 	}
@@ -790,8 +790,7 @@ Terminal::cursor_blink_timer_callback()
 void
 Terminal::emit_selection_changed()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `selection-changed'.\n");
+	_vte_debug_print(vte::debug::category::SIGNALS, "Emitting `selection-changed'");
 	g_signal_emit(m_terminal, signals[SIGNAL_SELECTION_CHANGED], 0);
 }
 
@@ -807,29 +806,28 @@ Terminal::emit_commit(std::string_view const& str)
         if (!widget() || !widget()->should_emit_signal(SIGNAL_COMMIT))
                 return;
 
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-                         "Emitting `commit' of %" G_GSSIZE_FORMAT" bytes.\n", str.size());
+	_vte_debug_print(vte::debug::category::SIGNALS,
+                         "Emitting `commit' of {} bytes",
+                         str.size());
 
         // FIXMEchpe we do know for a fact that all uses of this function
         // actually passed a 0-terminated string, so we can use @str directly
         std::string result{str}; // 0-terminated
 
-        _VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) {
+#if VTE_DEBUG
+        _VTE_DEBUG_IF(vte::debug::category::KEYBOARD) {
                 for (size_t i = 0; i < result.size(); i++) {
                         if ((((guint8) result[i]) < 32) ||
                             (((guint8) result[i]) > 127)) {
-                                g_printerr(
-                                           "Sending <%02x> "
-                                           "to child.\n",
-                                           result[i]);
+                                vte::debug::println("Sending <{:02x}> to child",
+                                                    result[i]);
                         } else {
-                                g_printerr(
-                                           "Sending '%c' "
-                                           "to child.\n",
-                                           result[i]);
+                                vte::debug::println("Sending '{:c}' to child",
+                                                    result[i]);
                         }
                 }
         }
+#endif // VTE_DEBUG
 
 	g_signal_emit(m_terminal, signals[SIGNAL_COMMIT], 0, result.c_str(), (guint)result.size());
 }
@@ -837,8 +835,7 @@ Terminal::emit_commit(std::string_view const& str)
 void
 Terminal::queue_contents_changed()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Queueing `contents-changed'.\n");
+	_vte_debug_print(vte::debug::category::SIGNALS, "Queueing `contents-changed'");
 	m_contents_changed_pending = true;
 }
 
@@ -846,8 +843,7 @@ Terminal::queue_contents_changed()
 void
 Terminal::queue_cursor_moved()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Queueing `cursor-moved'.\n");
+	_vte_debug_print(vte::debug::category::SIGNALS, "Queueing `cursor-moved'");
 	m_cursor_moved_pending = true;
 }
 
@@ -875,7 +871,7 @@ catch (...)
 void
 Terminal::queue_eof()
 {
-        _vte_debug_print(VTE_DEBUG_SIGNALS, "Queueing `eof'.\n");
+        _vte_debug_print(vte::debug::category::SIGNALS, "Queueing `eof'");
 
         g_idle_add_full(G_PRIORITY_HIGH,
                         (GSourceFunc)emit_eof_idle_cb,
@@ -913,7 +909,7 @@ catch (...)
 void
 Terminal::queue_child_exited()
 {
-        _vte_debug_print(VTE_DEBUG_SIGNALS, "Queueing `child-exited'.\n");
+        _vte_debug_print(vte::debug::category::SIGNALS, "Queueing `child-exited'");
 
         g_idle_add_full(G_PRIORITY_HIGH,
                         (GSourceFunc)emit_child_exited_idle_cb,
@@ -925,8 +921,7 @@ Terminal::queue_child_exited()
 void
 Terminal::emit_increase_font_size()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `increase-font-size'.\n");
+	_vte_debug_print(vte::debug::category::SIGNALS, "Emitting `increase-font-size'");
 	g_signal_emit(m_terminal, signals[SIGNAL_INCREASE_FONT_SIZE], 0);
 }
 
@@ -934,22 +929,21 @@ Terminal::emit_increase_font_size()
 void
 Terminal::emit_decrease_font_size()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `decrease-font-size'.\n");
+	_vte_debug_print(vte::debug::category::SIGNALS, "Emitting `decrease-font-size'");
 	g_signal_emit(m_terminal, signals[SIGNAL_DECREASE_FONT_SIZE], 0);
 }
 
 void
 Terminal::emit_copy_clipboard()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting 'copy-clipboard'.\n");
+	_vte_debug_print(vte::debug::category::SIGNALS, "Emitting 'copy-clipboard'");
 	g_signal_emit(m_terminal, signals[SIGNAL_COPY_CLIPBOARD], 0);
 }
 
 void
 Terminal::emit_paste_clipboard()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting 'paste-clipboard'.\n");
+	_vte_debug_print(vte::debug::category::SIGNALS, "Emitting 'paste-clipboard'");
 	g_signal_emit(m_terminal, signals[SIGNAL_PASTE_CLIPBOARD], 0);
 }
 
@@ -959,8 +953,8 @@ Terminal::emit_hyperlink_hover_uri_changed(const GdkRectangle *bbox)
 {
         GObject *object = G_OBJECT(m_terminal);
 
-        _vte_debug_print(VTE_DEBUG_SIGNALS,
-                         "Emitting `hyperlink-hover-uri-changed'.\n");
+        _vte_debug_print(vte::debug::category::SIGNALS,
+                         "Emitting `hyperlink-hover-uri-changed'");
         g_signal_emit(m_terminal, signals[SIGNAL_HYPERLINK_HOVER_URI_CHANGED], 0, m_hyperlink_hover_uri, bbox);
         g_object_notify_by_pspec(object, pspecs[PROP_HYPERLINK_HOVER_URI]);
 }
@@ -969,8 +963,8 @@ void
 Terminal::deselect_all()
 {
         if (!m_selection_resolved.empty()) {
-		_vte_debug_print(VTE_DEBUG_SELECTION,
-				"Deselecting all text.\n");
+		_vte_debug_print(vte::debug::category::SELECTION,
+				"Deselecting all text");
 
                 m_selection_origin = m_selection_last = { -1, -1, 1 };
                 resolve_selection();
@@ -1068,17 +1062,15 @@ Terminal::match_rowcol_to_offset(vte::grid::column_t column,
 		}
 	}
 
-	_VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
+	_VTE_DEBUG_IF(vte::debug::category::REGEX) {
 		if (offset < 0)
-			g_printerr("Cursor is not on a character.\n");
+                        _vte_debug_print(vte::debug::category::REGEX,
+                                         "Cursor is not on a character");
 		else {
-                        gunichar c;
-                        char utf[7];
-                        c = g_utf8_get_char (match_contents + offset);
-                        utf[g_unichar_to_utf8(g_unichar_isprint(c) ? c : 0xFFFD, utf)] = 0;
-
-			g_printerr("Cursor is on character U+%04X '%s' at %" G_GSSIZE_FORMAT ".\n",
-                                   c, utf, offset);
+                        auto const c = g_utf8_get_char (match_contents + offset);
+                        _vte_debug_print(vte::debug::category::REGEX,
+                                         "Cursor is on character U+{:04X} at {}",
+                                         c, offset);
                 }
 	}
 
@@ -1089,8 +1081,8 @@ Terminal::match_rowcol_to_offset(vte::grid::column_t column,
 
 	/* If the pointer is on a newline, bug out. */
 	if (match_contents[offset] == '\0') {
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-                                 "Cursor is on newline.\n");
+		_vte_debug_print(vte::debug::category::EVENTS,
+                                 "Cursor is on newline");
 		return false;
 	}
 
@@ -1139,13 +1131,14 @@ Terminal::match_rowcol_to_offset(vte::grid::column_t column,
         *sattr_ptr = sattr;
         *eattr_ptr = eattr;
 
-        _VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
+        _VTE_DEBUG_IF(vte::debug::category::REGEX) {
                 struct _VteCharAttributes *_sattr, *_eattr;
                 _sattr = vte_char_attr_list_get(&m_match_attributes, sattr);
                 _eattr = vte_char_attr_list_get(&m_match_attributes, eattr - 1);
-                g_printerr("Cursor is in line from %" G_GSIZE_FORMAT "(%ld,%ld) to %" G_GSIZE_FORMAT "(%ld,%ld)\n",
-                           sattr, _sattr->column, _sattr->row,
-                           eattr - 1, _eattr->column, _eattr->row);
+                _vte_debug_print(vte::debug::category::REGEX,
+                                 "Cursor is in line from {} ({},{}) to {} ({},{})",
+                                 sattr, _sattr->column, _sattr->row,
+                                 eattr - 1, _eattr->column, _eattr->row);
         }
 
         return true;
@@ -1226,22 +1219,23 @@ Terminal::match_check_pcre(pcre2_match_data_8 *match_data,
                         continue;
                 }
 
-                _VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
+                _VTE_DEBUG_IF(vte::debug::category::REGEX) {
                         gchar *result;
                         struct _VteCharAttributes *_sattr, *_eattr;
                         result = g_strndup(line + rm_so, rm_eo - rm_so);
                         _sattr = vte_char_attr_list_get(&m_match_attributes, rm_so);
                         _eattr = vte_char_attr_list_get(&m_match_attributes, rm_eo - 1);
-                        g_printerr("%s match `%s' from %" G_GSIZE_FORMAT "(%ld,%ld) to %" G_GSIZE_FORMAT "(%ld,%ld) (%" G_GSSIZE_FORMAT ").\n",
-                                   r == PCRE2_ERROR_PARTIAL ? "Partial":"Full",
-                                   result,
-                                   rm_so,
-                                   _sattr->column,
-                                   _sattr->row,
-                                   rm_eo - 1,
-                                   _eattr->column,
-                                   _eattr->row,
-                                   offset);
+                        _vte_debug_print(vte::debug::category::REGEX,
+                                         "{} match `{}' from {} ({},{}) to {} ({},{}) (offset {})",
+                                         r == PCRE2_ERROR_PARTIAL ? "Partial":"Full",
+                                         result,
+                                         rm_so,
+                                         _sattr->column,
+                                         _sattr->row,
+                                         rm_eo - 1,
+                                         _eattr->column,
+                                         _eattr->row,
+                                         offset);
                         g_free(result);
                 }
 
@@ -1269,7 +1263,9 @@ Terminal::match_check_pcre(pcre2_match_data_8 *match_data,
         }
 
         if (G_UNLIKELY(r < PCRE2_ERROR_PARTIAL))
-                _vte_debug_print(VTE_DEBUG_REGEX, "Unexpected pcre2_match error code: %d\n", r);
+                _vte_debug_print(vte::debug::category::REGEX,
+                                 "Unexpected pcre2_match error code: {}",
+                                 r);
 
         *sblank_ptr = sblank;
         *eblank_ptr = eblank;
@@ -1285,8 +1281,9 @@ Terminal::match_check_internal_pcre(vte::grid::column_t column,
 {
 	gsize offset, sattr, eattr, start_blank, end_blank;
 
-	_vte_debug_print(VTE_DEBUG_REGEX,
-                         "Checking for pcre match at (%ld,%ld).\n", row, column);
+	_vte_debug_print(vte::debug::category::REGEX,
+                         "Checking for pcre match at ({}, {})",
+                         row, column);
 
         if (!match_rowcol_to_offset(column, row,
                                     &offset, &sattr, &eattr))
@@ -1311,7 +1308,9 @@ Terminal::match_check_internal_pcre(vte::grid::column_t column,
                                      &dingu_match,
                                      start, end,
                                      &sblank, &eblank)) {
-                        _vte_debug_print(VTE_DEBUG_REGEX, "Matched dingu with tag %d\n", rem.tag());
+                        _vte_debug_print(vte::debug::category::REGEX,
+                                         "Matched dingu with tag {}",
+                                         rem.tag());
                         *match = std::addressof(rem);
                         break;
                 }
@@ -1332,13 +1331,14 @@ Terminal::match_check_internal_pcre(vte::grid::column_t column,
                 *end = end_blank - 1;
                 *match = nullptr;
 
-                _VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
+                _VTE_DEBUG_IF(vte::debug::category::REGEX) {
                         struct _VteCharAttributes *_sattr, *_eattr;
                         _sattr = vte_char_attr_list_get(&m_match_attributes, start_blank);
                         _eattr = vte_char_attr_list_get(&m_match_attributes, end_blank - 1);
-                        g_printerr("No-match region from %" G_GSIZE_FORMAT "(%ld,%ld) to %" G_GSIZE_FORMAT "(%ld,%ld)\n",
-                                   start_blank, _sattr->column, _sattr->row,
-                                   end_blank - 1, _eattr->column, _eattr->row);
+                        _vte_debug_print(vte::debug::category::REGEX,
+                                         "No-match region from {} ({},{}) to {} ({},{})",
+                                         start_blank, _sattr->column, _sattr->row,
+                                         end_blank - 1, _eattr->column, _eattr->row);
                 }
         }
 
@@ -1394,8 +1394,8 @@ Terminal::regex_match_check(vte::grid::column_t column,
                 [[unlikely]] return nullptr;
 
 	long delta = m_screen->scroll_delta;
-	_vte_debug_print(VTE_DEBUG_EVENTS | VTE_DEBUG_REGEX,
-			"Checking for match at (%ld,%ld).\n",
+	_vte_debug_print(vte::debug::category::EVENTS | vte::debug::category::REGEX,
+			"Checking for match at ({},{})",
 			row, column);
 
         char* ret{nullptr};
@@ -1411,8 +1411,11 @@ Terminal::regex_match_check(vte::grid::column_t column,
                                            &match,
                                            &start, &end);
 	}
-	_VTE_DEBUG_IF(VTE_DEBUG_EVENTS | VTE_DEBUG_REGEX) {
-		if (ret != NULL) g_printerr("Matched `%s'.\n", ret);
+	_VTE_DEBUG_IF(vte::debug::category::EVENTS | vte::debug::category::REGEX) {
+                if (ret)
+                        _vte_debug_print(vte::debug::category::EVENTS | vte::debug::category::REGEX,
+                                         "Matched `{}'",
+                                         ret);
 	}
         if (tag != nullptr)
                 *tag = (match != nullptr) ? match->tag() : -1;
@@ -1665,10 +1668,10 @@ Terminal::selection_maybe_swap_endpoints(vte::view::coords const& pos)
                 }
         }
 
-        _vte_debug_print(VTE_DEBUG_SELECTION,
-                         "Selection maybe swap endpoints: origin=%s last=%s\n",
-                         m_selection_origin.to_string(),
-                         m_selection_last.to_string());
+        _vte_debug_print(vte::debug::category::SELECTION,
+                         "Selection maybe swap endpoints: origin={} last={}",
+                         m_selection_origin,
+                         m_selection_last);
 }
 
 bool
@@ -1755,9 +1758,9 @@ Terminal::hyperlink_check(vte::grid::column_t col,
                 hyperlink = separator + 1;
         }
 
-        _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                          "hyperlink_check: \"%s\"\n",
-                          hyperlink);
+        _vte_debug_print(vte::debug::category::HYPERLINK,
+                         "hyperlink_check: \"{}\"",
+                         hyperlink);
 
         return g_strdup(hyperlink);
 }
@@ -1879,7 +1882,9 @@ Terminal::regex_match_check_extra(vte::grid::column_t col,
                                      &match_string,
                                      &start, &end,
                                      &sblank, &eblank)) {
-                        _vte_debug_print(VTE_DEBUG_REGEX, "Matched regex with text: %s\n", match_string);
+                        _vte_debug_print(vte::debug::category::REGEX,
+                                         "Matched regex with text: {}",
+                                         match_string);
                         matches[i] = match_string;
                         any_matches = true;
                 } else
@@ -1924,8 +1929,9 @@ Terminal::queue_adjustment_value_changed(double v)
 	if (_vte_double_equal(v, m_screen->scroll_delta))
                 return;
 
-        _vte_debug_print(VTE_DEBUG_ADJ,
-                         "Scroll value changed to %f\n", v);
+        _vte_debug_print(vte::debug::category::ADJ,
+                         "Scroll value changed to {:f}",
+                         v);
 
 	/* Save the difference. */
 	auto const dy = v - m_screen->scroll_delta;
@@ -1937,8 +1943,9 @@ Terminal::queue_adjustment_value_changed(double v)
         if (!widget_realized()) [[unlikely]]
                 return;
 
-        _vte_debug_print(VTE_DEBUG_ADJ,
-                         "Scrolling by %f\n", dy);
+        _vte_debug_print(vte::debug::category::ADJ,
+                         "Scrolling by {:f}",
+                         dy);
 
         m_ringview.invalidate();
         invalidate_all();
@@ -1992,7 +1999,9 @@ void
 Terminal::scroll_lines(long lines)
 {
 	double destination;
-	_vte_debug_print(VTE_DEBUG_ADJ, "Scrolling %ld lines.\n", lines);
+	_vte_debug_print(vte::debug::category::ADJ,
+                         "Scrolling {} lines",
+                         lines);
 	/* Calculate the ideal position where we want to be before clamping. */
 	destination = m_screen->scroll_delta;
         /* Snap to whole cell offset. */
@@ -2016,8 +2025,8 @@ void
 Terminal::scroll_to_bottom()
 {
 	queue_adjustment_value_changed(m_screen->insert_delta);
-	_vte_debug_print(VTE_DEBUG_ADJ,
-			"Snapping to bottom of screen\n");
+	_vte_debug_print(vte::debug::category::ADJ,
+			"Snapping to bottom of screen");
 }
 
 void
@@ -2115,8 +2124,8 @@ Terminal::set_encoding(char const* charset,
         if (primary_is_current)
                 m_current_data_syntax = m_primary_data_syntax;
 
-	_vte_debug_print(VTE_DEBUG_IO,
-                         "Set terminal encoding to \"%s\" data syntax %d\n",
+	_vte_debug_print(vte::debug::category::IO,
+                         "Set terminal encoding to \"{}\" data syntax {}",
                          encoding(), int(primary_data_syntax()));
 
         return true;
@@ -2265,10 +2274,11 @@ Terminal::set_color(int entry,
 
 	VtePaletteColor *palette_color = &m_palette[entry];
 
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Set %s color[%d] to (%04x,%04x,%04x).\n",
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Set {} color[{}] to {}",
                          source_ == color_palette::ColorSource::Escape ? "escape" : "API",
-                         entry, proposed.red, proposed.green, proposed.blue);
+                         entry,
+                         proposed);
 
         auto const source = vte::to_integral(source_);
         if (palette_color->sources[source].is_set &&
@@ -2305,8 +2315,8 @@ Terminal::reset_color(int entry,
 
 	VtePaletteColor *palette_color = &m_palette[entry];
 
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Reset %s color[%d].\n",
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Reset {} color[{}].\n",
                          source_ == color_palette::ColorSource::Escape ? "escape" : "API",
                          entry);
 
@@ -2342,8 +2352,8 @@ Terminal::set_background_alpha(double alpha)
         if (_vte_double_equal(alpha, m_background_alpha))
                 return false;
 
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Setting background alpha to %.3f\n", alpha);
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Setting background alpha to {:.3f}", alpha);
         m_background_alpha = alpha;
 
         invalidate_all();
@@ -2381,8 +2391,8 @@ Terminal::set_colors(vte::color::rgb const* foreground,
                                vte::color::rgb const* new_palette,
                                gsize palette_size)
 {
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Set color palette [%" G_GSIZE_FORMAT " elements].\n",
+	_vte_debug_print(vte::debug::category::MISC,
+			"Set color palette {} elements]",
 			palette_size);
 
 	/* Accept NULL as the default foreground and background colors if we
@@ -2482,17 +2492,16 @@ Terminal::set_colors(vte::color::rgb const* foreground,
 void
 Terminal::set_color_bold(vte::color::rgb const& color)
 {
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Set %s color to (%04x,%04x,%04x).\n", "bold",
-                         color.red, color.green, color.blue);
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Set {} color to {}", "bold", color);
         set_color(ColorPaletteIndex::bold_fg(), ColorSource::API, color);
 }
 
 void
 Terminal::reset_color_bold()
 {
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Reset %s color.\n", "bold");
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Reset {} color", "bold");
         reset_color(ColorPaletteIndex::bold_fg(), ColorSource::API);
 }
 
@@ -2505,9 +2514,8 @@ Terminal::reset_color_bold()
 void
 Terminal::set_color_foreground(vte::color::rgb const& color)
 {
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Set %s color to (%04x,%04x,%04x).\n", "foreground",
-                         color.red, color.green, color.blue);
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Set {} color to {}", "foreground", color);
 	set_color(ColorPaletteIndex::default_fg(), ColorSource::API, color);
 }
 
@@ -2522,9 +2530,8 @@ Terminal::set_color_foreground(vte::color::rgb const& color)
 void
 Terminal::set_color_background(vte::color::rgb const& color)
 {
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Set %s color to (%04x,%04x,%04x).\n", "background",
-                         color.red, color.green, color.blue);
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Set {} color to {}", "background", color);
 	set_color(ColorPaletteIndex::default_bg(), ColorSource::API, color);
 }
 
@@ -2539,17 +2546,16 @@ Terminal::set_color_background(vte::color::rgb const& color)
 void
 Terminal::set_color_cursor_background(vte::color::rgb const& color)
 {
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Set %s color to (%04x,%04x,%04x).\n", "cursor background",
-                         color.red, color.green, color.blue);
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Set {} color to {}", "cursor background", color);
 	set_color(ColorPaletteIndex::cursor_bg(), ColorSource::API, color);
 }
 
 void
 Terminal::reset_color_cursor_background()
 {
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Reset %s color.\n", "cursor background");
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Reset {} color", "cursor background");
         reset_color(ColorPaletteIndex::cursor_bg(), ColorSource::API);
 }
 
@@ -2564,17 +2570,16 @@ Terminal::reset_color_cursor_background()
 void
 Terminal::set_color_cursor_foreground(vte::color::rgb const& color)
 {
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Set %s color to (%04x,%04x,%04x).\n", "cursor foreground",
-                         color.red, color.green, color.blue);
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Set {} color to {}", "cursor foreground", color);
 	set_color(ColorPaletteIndex::cursor_fg(), ColorSource::API, color);
 }
 
 void
 Terminal::reset_color_cursor_foreground()
 {
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Reset %s color.\n", "cursor foreground");
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Reset {} color", "cursor foreground");
         reset_color(ColorPaletteIndex::cursor_fg(), ColorSource::API);
 }
 
@@ -2590,17 +2595,16 @@ Terminal::reset_color_cursor_foreground()
 void
 Terminal::set_color_highlight_background(vte::color::rgb const& color)
 {
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Set %s color to (%04x,%04x,%04x).\n", "highlight background",
-                         color.red, color.green, color.blue);
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Set {} color to {}", "highlight background", color);
 	set_color(ColorPaletteIndex::highlight_bg(), ColorSource::API, color);
 }
 
 void
 Terminal::reset_color_highlight_background()
 {
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Reset %s color.\n", "highlight background");
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Reset {} color", "highlight background");
         reset_color(ColorPaletteIndex::highlight_bg(), ColorSource::API);
 }
 
@@ -2616,17 +2620,16 @@ Terminal::reset_color_highlight_background()
 void
 Terminal::set_color_highlight_foreground(vte::color::rgb const& color)
 {
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Set %s color to (%04x,%04x,%04x).\n", "highlight foreground",
-                         color.red, color.green, color.blue);
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Set {} color to {}", "highlight foreground", color);
 	set_color(ColorPaletteIndex::highlight_fg(), ColorSource::API, color);
 }
 
 void
 Terminal::reset_color_highlight_foreground()
 {
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Reset %s color.\n", "highlight foreground");
+        _vte_debug_print(vte::debug::category::MISC,
+                         "Reset {} color", "highlight foreground");
         reset_color(ColorPaletteIndex::highlight_fg(), ColorSource::API);
 }
 
@@ -2684,16 +2687,19 @@ Terminal::cleanup_fragments(VteRowData* row,
                         cell_col = _vte_row_data_get_writable (row, col);
                 } while (cell_col->attr.fragment());
                 if (cell_col->c == '\t') {
-                        _vte_debug_print(VTE_DEBUG_MISC,
-                                         "Replacing right part of TAB with a shorter one at %ld (%ld cells) => %ld (%ld cells)\n",
-                                         col, (long) cell_col->attr.columns(), end, (long) cell_col->attr.columns() - (end - col));
+                        _vte_debug_print(vte::debug::category::MISC,
+                                         "Replacing right part of TAB with a shorter one at {} ({} cells) => {} ({} cells)",
+                                         col,
+                                         cell_col->attr.columns(),
+                                         end,
+                                         cell_col->attr.columns() - (end - col));
                         cell_end->c = '\t';
                         cell_end->attr.set_fragment(false);
                         g_assert(cell_col->attr.columns() > end - col);
                         cell_end->attr.set_columns(cell_col->attr.columns() - (end - col));
                 } else {
-                        _vte_debug_print(VTE_DEBUG_MISC,
-                                         "Cleaning CJK right half at %ld\n",
+                        _vte_debug_print(vte::debug::category::MISC,
+                                         "Cleaning CJK right half at {}",
                                          end);
                         g_assert(end - col == 1 && cell_col->attr.columns() == 2);
                         cell_end->c = ' ';
@@ -2714,13 +2720,15 @@ Terminal::cleanup_fragments(VteRowData* row,
                         cell_col = _vte_row_data_get_writable (row, col);
                         if (!cell_col->attr.fragment()) {
                                 if (cell_col->c == '\t') {
-                                        _vte_debug_print(VTE_DEBUG_MISC,
-                                                         "Replacing left part of TAB with spaces at %ld (%ld => %ld cells)\n",
-                                                         col, (long)cell_col->attr.columns(), start - col);
+                                        _vte_debug_print(vte::debug::category::MISC,
+                                                         "Replacing left part of TAB with spaces at {} ({} => {} cells)",
+                                                         col,
+                                                         cell_col->attr.columns(),
+                                                         start - col);
                                         /* nothing to do here */
                                 } else {
-                                        _vte_debug_print(VTE_DEBUG_MISC,
-                                                         "Cleaning CJK left half at %ld\n",
+                                        _vte_debug_print(vte::debug::category::MISC,
+                                                         "Cleaning CJK left half at {}",
                                                          col);
                                         g_assert(start - col == 1);
                                         invalidate_row_and_context(rownum);  /* FIXME can we do cheaper? */
@@ -3330,8 +3338,8 @@ Terminal::insert_char(gunichar c,
                         /* wide character is printed, cursor would cross the DECSLRM right margin */
                         (col <= m_scrolling_region.right() && col + columns > m_scrolling_region.right() + 1)))) {
 		if (m_modes_private.DEC_AUTOWRAP()) {
-			_vte_debug_print(VTE_DEBUG_ADJ,
-					"Autowrapping before character\n");
+			_vte_debug_print(vte::debug::category::ADJ,
+					"Autowrapping before character");
 			/* Wrap. */
 			/* XXX clear to the end of line */
                         col = m_screen->cursor.col = m_scrolling_region.left();
@@ -3361,12 +3369,13 @@ Terminal::insert_char(gunichar c,
 		}
 	}
 
-	_vte_debug_print(VTE_DEBUG_PARSER,
-			"Inserting U+%04X '%lc' (colors %" G_GUINT64_FORMAT ") (%ld+%d, %ld), delta = %ld; ",
-                         (unsigned int)c, g_unichar_isprint(c) ? c : 0xfffd,
+	_vte_debug_print(vte::debug::category::PARSER,
+			"Inserting U+{:04X} (colors {:x}) ({}+{}, {}), delta = {}",
+                         c,
                          m_color_defaults.attr.colors(),
-                        col, columns, (long)m_screen->cursor.row,
-			(long)m_screen->insert_delta);
+                         col, columns,
+                         m_screen->cursor.row,
+                         m_screen->insert_delta);
 
         //FIXMEchpe
         if (G_UNLIKELY(c == 0))
@@ -3379,7 +3388,8 @@ Terminal::insert_char(gunichar c,
 		long row_num;
 		VteCell *cell;
 
-		_vte_debug_print(VTE_DEBUG_PARSER, "combining U+%04X", c);
+		_vte_debug_print(vte::debug::category::PARSER, "  combining U+{:04X}",
+                                 c);
 
                 row_num = m_screen->cursor.row;
 		row = NULL;
@@ -3488,8 +3498,8 @@ done:
 	m_text_inserted_flag = TRUE;
 
 not_inserted:
-	_vte_debug_print(VTE_DEBUG_ADJ|VTE_DEBUG_PARSER,
-			"insertion delta => %ld.\n",
+	_vte_debug_print(vte::debug::category::ADJ|vte::debug::category::PARSER,
+			"  Insertion delta => {}",
 			(long)m_screen->insert_delta);
 }
 
@@ -3530,8 +3540,8 @@ Terminal::insert_single_width_chars(gunichar const *p, int len)
                 /* If we're autowrapping here, do it. */
                 col = m_screen->cursor.col;
                 if (G_UNLIKELY (col >= m_column_count)) {
-                        _vte_debug_print(VTE_DEBUG_ADJ,
-                                        "Autowrapping before character\n");
+                        _vte_debug_print(vte::debug::category::ADJ,
+                                        "Autowrapping before character");
                         /* Wrap. */
                         /* XXX clear to the end of line */
                         col = m_screen->cursor.col = 0;
@@ -3551,13 +3561,17 @@ Terminal::insert_single_width_chars(gunichar const *p, int len)
                 int run = MIN(len, m_column_count - col);
                 vte_assert_cmpint(run, >=, 1);
 
-                _VTE_DEBUG_IF(VTE_DEBUG_PARSER) {
+                _VTE_DEBUG_IF(vte::debug::category::PARSER) {
                         gchar *utf8 = g_ucs4_to_utf8(p, run, NULL, NULL, NULL);
-                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                         "Inserting string of %d single-width characters \"%s\" (colors %" G_GUINT64_FORMAT ") (%ld+%d, %ld), delta = %ld; ",
-                                         run, utf8, m_color_defaults.attr.colors(),
-                                         col, run, (long)m_screen->cursor.row,
-                                         (long)m_screen->insert_delta);
+                        _vte_debug_print(vte::debug::category::PARSER,
+                                         "Inserting string of {} single-width characters \"{}\" (colors {:x}) ({}+{}, {}), delta = {}",
+                                         run,
+                                         utf8,
+                                         m_color_defaults.attr.colors(),
+                                         col,
+                                         run,
+                                         m_screen->cursor.row,
+                                         m_screen->insert_delta);
                         g_free(utf8);
                 }
 
@@ -3590,9 +3604,9 @@ Terminal::insert_single_width_chars(gunichar const *p, int len)
                 /* We added text, so make a note of it. */
                 m_text_inserted_flag = TRUE;
 
-                _vte_debug_print(VTE_DEBUG_ADJ|VTE_DEBUG_PARSER,
-                                 "insertion delta => %ld.\n",
-                                 (long)m_screen->insert_delta);
+                _vte_debug_print(vte::debug::category::ADJ|vte::debug::category::PARSER,
+                                 "  Insertion delta => {}",
+                                 m_screen->insert_delta);
         }
 }
 
@@ -3651,13 +3665,14 @@ Terminal::apply_bidi_attributes(vte::grid::row_t start, guint8 bidi_flags, guint
 
         bidi_flags &= bidi_flags_mask;
 
-        _vte_debug_print(VTE_DEBUG_BIDI,
-                         "Applying BiDi parameters from row %ld.\n", row);
+        _vte_debug_print(vte::debug::category::BIDI,
+                         "Applying BiDi parameters from row {}",
+                         row);
 
         rowdata = m_screen->row_data->index_writable(row);
         if (rowdata == nullptr || (rowdata->attr.bidi_flags & bidi_flags_mask) == bidi_flags) {
-                _vte_debug_print(VTE_DEBUG_BIDI,
-                                 "BiDi parameters didn't change for this paragraph.\n");
+                _vte_debug_print(vte::debug::category::BIDI,
+                                 "BiDi parameters didn't change for this paragraph");
                 return;
         }
 
@@ -3674,8 +3689,9 @@ Terminal::apply_bidi_attributes(vte::grid::row_t start, guint8 bidi_flags, guint
                 row++;
         }
 
-        _vte_debug_print(VTE_DEBUG_BIDI,
-                         "Applied BiDi parameters to rows %ld..%ld.\n", start, row);
+        _vte_debug_print(vte::debug::category::BIDI,
+                         "Applied BiDi parameters to rows {}..{}",
+                         start, row);
 
         m_ringview.invalidate();
         invalidate_rows(start, row);
@@ -3686,12 +3702,12 @@ Terminal::apply_bidi_attributes(vte::grid::row_t start, guint8 bidi_flags, guint
 void
 Terminal::maybe_apply_bidi_attributes(guint8 bidi_flags_mask)
 {
-        _vte_debug_print(VTE_DEBUG_BIDI,
-                         "Maybe applying BiDi parameters on current paragraph.\n");
+        _vte_debug_print(vte::debug::category::BIDI,
+                         "Maybe applying BiDi parameters on current paragraph");
 
         if (m_screen->cursor.col != 0) {
-                _vte_debug_print(VTE_DEBUG_BIDI,
-                                 "No, cursor not in first column.\n");
+                _vte_debug_print(vte::debug::category::BIDI,
+                                 "No, cursor not in first column");
                 return;
         }
 
@@ -3700,14 +3716,14 @@ Terminal::maybe_apply_bidi_attributes(guint8 bidi_flags_mask)
         if (row > (long)m_screen->row_data->delta()) {
                 const VteRowData *rowdata = m_screen->row_data->index(row - 1);
                 if (rowdata != nullptr && rowdata->attr.soft_wrapped) {
-                        _vte_debug_print(VTE_DEBUG_BIDI,
-                                         "No, we're not after a hard wrap.\n");
+                        _vte_debug_print(vte::debug::category::BIDI,
+                                         "No, we're not after a hard wrap");
                         return;
                 }
         }
 
-        _vte_debug_print(VTE_DEBUG_BIDI,
-                         "Yes, applying.\n");
+        _vte_debug_print(vte::debug::category::BIDI,
+                         "Yes, applying");
 
         apply_bidi_attributes (row, get_bidi_flags(), bidi_flags_mask);
 }
@@ -3770,7 +3786,7 @@ Terminal::child_watch_done(pid_t pid,
 static void
 mark_input_source_invalid_cb(vte::terminal::Terminal* that)
 {
-	_vte_debug_print (VTE_DEBUG_IO, "Removed PTY input source\n");
+	_vte_debug_print (vte::debug::category::IO, "Removed PTY input source");
 	that->m_pty_input_source = 0;
 }
 
@@ -3789,7 +3805,7 @@ Terminal::connect_pty_read()
 	if (m_pty_input_source != 0 || !pty())
 		return;
 
-        _vte_debug_print (VTE_DEBUG_IO, "Adding PTY input source\n");
+        _vte_debug_print (vte::debug::category::IO, "Adding PTY input source");
 
         m_pty_input_source = g_unix_fd_add_full(VTE_CHILD_INPUT_PRIORITY,
                                                 pty()->fd(),
@@ -3802,7 +3818,7 @@ Terminal::connect_pty_read()
 static void
 mark_output_source_invalid_cb(vte::terminal::Terminal* that)
 {
-	_vte_debug_print (VTE_DEBUG_IO, "Removed PTY output source\n");
+	_vte_debug_print (vte::debug::category::IO, "Removed PTY output source");
 	that->m_pty_output_source = 0;
 }
 
@@ -3831,7 +3847,7 @@ Terminal::connect_pty_write()
         if (!pty_io_write (pty()->fd(), G_IO_OUT))
                 return;
 
-        _vte_debug_print (VTE_DEBUG_IO, "Adding PTY output source\n");
+        _vte_debug_print (vte::debug::category::IO, "Adding PTY output source");
 
         m_pty_output_source = g_unix_fd_add_full(VTE_CHILD_OUTPUT_PRIORITY,
                                                  pty()->fd(),
@@ -3845,7 +3861,7 @@ void
 Terminal::disconnect_pty_read()
 {
 	if (m_pty_input_source != 0) {
-		_vte_debug_print (VTE_DEBUG_IO, "Removing PTY input source\n");
+		_vte_debug_print (vte::debug::category::IO, "Removing PTY input source");
 		g_source_remove(m_pty_input_source);
                 // FIXMEchpe the destroy notify should already have done this!
 		m_pty_input_source = 0;
@@ -3856,7 +3872,7 @@ void
 Terminal::disconnect_pty_write()
 {
 	if (m_pty_output_source != 0) {
-		_vte_debug_print (VTE_DEBUG_IO, "Removing PTY output source\n");
+		_vte_debug_print (vte::debug::category::IO, "Removing PTY output source");
 		g_source_remove(m_pty_output_source);
                 // FIXMEchpe the destroy notify should already have done this!
 		m_pty_output_source = 0;
@@ -3866,13 +3882,14 @@ Terminal::disconnect_pty_write()
 void
 Terminal::pty_termios_changed()
 {
-        _vte_debug_print(VTE_DEBUG_IO, "Termios changed\n");
+        _vte_debug_print(vte::debug::category::IO, "Termios changed");
 }
 
 void
 Terminal::pty_scroll_lock_changed(bool locked)
 {
-        _vte_debug_print(VTE_DEBUG_IO, "Output %s (^%c)\n",
+        _vte_debug_print(vte::debug::category::IO,
+                         "Output {} (^{:c})",
                          locked ? "stopped" : "started",
                          locked ? 'Q' : 'S');
 }
@@ -3942,8 +3959,8 @@ Terminal::im_reset()
 void
 Terminal::process_incoming()
 {
-        _vte_debug_print(VTE_DEBUG_IO,
-                         "Handler processing %" G_GSIZE_FORMAT " bytes over %" G_GSIZE_FORMAT " chunks.\n",
+        _vte_debug_print(vte::debug::category::IO,
+                         "Handler processing {} bytes over {} chunks",
                          m_input_bytes,
                          m_incoming_queue.size());
 
@@ -3961,12 +3978,12 @@ Terminal::process_incoming()
 
                 auto const start = chunk->begin_reading();
 
-                _VTE_DEBUG_IF(VTE_DEBUG_IO) {
-                        _vte_debug_print(VTE_DEBUG_IO,
-                                         "Processing data syntax %d chunk %p starting at offset %u\n",
-                                         (int)current_data_syntax(),
+                _VTE_DEBUG_IF(vte::debug::category::IO) {
+                        _vte_debug_print(vte::debug::category::IO,
+                                         "Processing data syntax {} chunk {} starting at offset {}",
+                                         int(current_data_syntax()),
                                          (void*)chunk.get(),
-                                         unsigned(chunk->begin_reading() - chunk->data()));
+                                         chunk->begin_reading() - chunk->data());
 
                         _vte_debug_hexdump("Incoming buffer",
                                            chunk->begin_reading(),
@@ -3997,10 +4014,10 @@ Terminal::process_incoming()
 
                 bytes_processed += size_t(chunk->begin_reading() - start);
 
-                _vte_debug_print(VTE_DEBUG_IO, "read %d bytes, chunk %s, data syntax now %d\n",
+                _vte_debug_print(vte::debug::category::IO, "read {} bytes, chunk {}, data syntax now {}",
                                  int(chunk->begin_reading() - start),
                                  chunk->has_reading()?"has more":"finished",
-                                 (int)current_data_syntax());
+                                 int(current_data_syntax()));
                 // If all data from this chunk has been processed, go to the next one
                 if (!chunk->has_reading())
                         m_incoming_queue.pop();
@@ -4072,8 +4089,8 @@ Terminal::process_incoming()
         /* After processing some data, do a hyperlink GC. The multiplier is totally arbitrary, feel free to fine tune. */
         m_screen->row_data->hyperlink_maybe_gc(bytes_processed * 8);
 
-        _vte_debug_print (VTE_DEBUG_IO,
-                          "%" G_GSIZE_FORMAT " bytes in %" G_GSIZE_FORMAT " chunks left to process.\n",
+        _vte_debug_print (vte::debug::category::IO,
+                          "{} bytes in {} chunks left to process",
                           m_input_bytes,
                           m_incoming_queue.size());
 }
@@ -4119,7 +4136,8 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                                 char c_buf[7];
                                 g_snprintf(c_buf, sizeof(c_buf), "%lc", c);
                                 char const* wp_str = g_unichar_isprint(c) ? c_buf : _vte_debug_sequence_to_string(c_buf, -1);
-                                _vte_debug_print(VTE_DEBUG_PARSER, "Parser error on U+%04X [%s]!\n",
+                                _vte_debug_print(vte::debug::category::PARSER,
+                                                 "Parser error on U+{:04X} [{}]!",
                                                  c, wp_str);
 #endif /* VTE_DEBUG */
                                 break;
@@ -4130,11 +4148,13 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                                 g_assert((bool)seq);
 #endif
 
-                        _VTE_DEBUG_IF(VTE_DEBUG_PARSER) {
+#if 0
+                        _VTE_DEBUG_IF(vte::debug::category::PARSER) {
                                 if (rv != VTE_SEQ_NONE) {
-                                        seq.print();
+                                        vte::debug::println("Sequence: {}", seq);
                                 }
                         }
+#endif
 
                         // FIXMEchpe this assumes that the only handler inserting
                         // a character is GRAPHIC, which isn't true (at least ICH, REP, SUB
@@ -4147,10 +4167,9 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
 
                                 // does insert_char(c, false)
                                 GRAPHIC(seq);
-                                _vte_debug_print(VTE_DEBUG_PARSER,
-                                                 "Last graphic is now U+%04X %lc\n",
-                                                 m_last_graphic_character,
-                                                 g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
+                                _vte_debug_print(vte::debug::category::PARSER,
+                                                 "Last graphic is now U+{:04X}",
+                                                 m_last_graphic_character);
 
                                 // It's very common to get batches of printable single-width
                                 // characters. So plan for that and avoid round-tripping
@@ -4201,10 +4220,9 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                                 /* Flush the array of single width chars. */
                                 if (single_width_chars_count > 0) [[likely]] {
                                         insert_single_width_chars(single_width_chars, single_width_chars_count);
-                                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                                         "Last graphic is now U+%04X %lc\n",
-                                                         m_last_graphic_character,
-                                                         g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
+                                        _vte_debug_print(vte::debug::category::PARSER,
+                                                         "Last graphic is now U+{:04X}",
+                                                         m_last_graphic_character);
                                 }
 
                                 context.post_GRAPHIC();
@@ -4231,8 +4249,9 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
 #undef _VTE_CMD_HANDLER_NOP
 #undef _VTE_CMD_HANDLER_R
                                 default:
-                                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                                         "Unknown parser command %d\n", seq.command());
+                                        _vte_debug_print(vte::debug::category::PARSER,
+                                                         "Unknown or NOP parser command {}",
+                                                         seq.command());
                                         break;
                                 }
 
@@ -4291,7 +4310,8 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
                                 char c_buf[7];
                                 g_snprintf(c_buf, sizeof(c_buf), "%lc", c);
                                 char const* wp_str = g_unichar_isprint(c) ? c_buf : _vte_debug_sequence_to_string(c_buf, -1);
-                                _vte_debug_print(VTE_DEBUG_PARSER, "Parser error on U+%04X [%s]!\n",
+                                _vte_debug_print(vte::debug::category::PARSER,
+                                                 "Parser error on U+{:04X} [{}]!",
                                                  c, wp_str);
 #endif
                                 break;
@@ -4302,11 +4322,13 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
                                 g_assert((bool)seq);
 #endif
 
-                        _VTE_DEBUG_IF(VTE_DEBUG_PARSER) {
+#if 0
+                        _VTE_DEBUG_IF(vte::debug::category::PARSER) {
                                 if (rv != VTE_SEQ_NONE) {
-                                        seq.print();
+                                        vte::debug::println("Sequence: {}", seq);
                                 }
                         }
+#endif
 
                         // FIXMEchpe this assumes that the only handler inserting
                         // a character is GRAPHIC, which isn't true (at least ICH, REP, SUB
@@ -4319,10 +4341,9 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
 
                                 // does insert_char(c, false)
                                 GRAPHIC(seq);
-                                _vte_debug_print(VTE_DEBUG_PARSER,
-                                                 "Last graphic is now U+%04X %lc\n",
-                                                 m_last_graphic_character,
-                                                 g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
+                                _vte_debug_print(vte::debug::category::PARSER,
+                                                 "Last graphic is now U+{:04X}",
+                                                 m_last_graphic_character);
 
                                 context.post_GRAPHIC();
                                 break;
@@ -4349,8 +4370,9 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
 #undef _VTE_CMD_HANDLER_NOP
 #undef _VTE_CMD_HANDLER_R
                                 default:
-                                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                                         "Unknown parser command %d\n", seq.command());
+                                        _vte_debug_print(vte::debug::category::PARSER,
+                                                         "Unknown or NOP parser command {}",
+                                                         seq.command());
                                         break;
                                 }
 
@@ -4463,7 +4485,9 @@ Terminal::pty_io_read(int const fd,
                       GIOCondition const condition,
                       int amount)
 {
-        _vte_debug_print(VTE_DEBUG_IO, "::pty_io_read condition %02x\n", condition);
+        _vte_debug_print(vte::debug::category::IO,
+                         "::pty_io_read condition {:02x}",
+                         unsigned(condition));
 
         /* We need to check for EOS so that we can shut down the PTY.
          * When we get G_IO_HUP without G_IO_IN, we can process the EOF now.
@@ -4661,10 +4685,11 @@ out:
 		m_input_bytes = bytes;
 		again = bytes < max_bytes;
 
-		_vte_debug_print (VTE_DEBUG_IO, "read %d/%d bytes, again? %s, active? %s\n",
-				bytes, max_bytes,
-				again ? "yes" : "no",
-				m_pty_input_active ? "yes" : "no");
+		_vte_debug_print (vte::debug::category::IO,
+                                  "read {}/{} bytes, again={}, active={}",
+                                  bytes, max_bytes,
+                                  bool(again),
+                                  bool(m_pty_input_active));
 	}
 
         if (condition & G_IO_ERR)
@@ -4682,13 +4707,14 @@ out:
                 break;
         default:
                 auto errsv = vte::libc::ErrnoSaver{};
-                _vte_debug_print (VTE_DEBUG_IO, "Error reading from child: %s",
+                _vte_debug_print (vte::debug::category::IO,
+                                  "Error reading from child: {}",
                                   g_strerror(errsv));
                 break;
 	}
 
         if (eos) {
-		_vte_debug_print(VTE_DEBUG_IO, "got PTY EOF\n");
+		_vte_debug_print(vte::debug::category::IO, "got PTY EOF");
 
                 /* Make a note of the EOS; but do not process it since there may be data
                  * to be processed first in the incoming queue.
@@ -4765,7 +4791,7 @@ Terminal::pty_io_write(int const fd,
                                  m_outgoing->data,
                                  _vte_byte_array_length(m_outgoing));
 	if (count != -1) {
-		_VTE_DEBUG_IF (VTE_DEBUG_IO) {
+		_VTE_DEBUG_IF (vte::debug::category::IO) {
                         _vte_debug_hexdump("Outgoing buffer written",
                                            (uint8_t const*)m_outgoing->data,
                                            count);
@@ -4967,8 +4993,9 @@ Terminal::im_commit(std::string_view const& str)
         if (!m_input_enabled)
                 return;
 
-        _vte_debug_print(VTE_DEBUG_EVENTS,
-                         "Input method committed `%s'.\n", std::string{str}.c_str());
+        _vte_debug_print(vte::debug::category::EVENTS,
+                         "Input method committed `{}'",
+                         str);
         send_child(str);
 
 	/* Committed text was committed because the user pressed a key, so
@@ -5242,8 +5269,8 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 	if (!steal && m_input_enabled) {
                 // FIXMEchpe FIXMEgtk4: update IM position? im_set_cursor_location()
                 if (m_real_widget->im_filter_keypress(event)) {
-			_vte_debug_print(VTE_DEBUG_EVENTS,
-					"Keypress taken by IM.\n");
+			_vte_debug_print(vte::debug::category::EVENTS,
+					"Keypress taken by IM");
 			return true;
 		}
 	}
@@ -5252,7 +5279,7 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
         if (!handled &&
             (event.matches(GDK_KEY_Menu, 0) ||
              event.matches(GDK_KEY_F10, GDK_SHIFT_MASK))) {
-                _vte_debug_print(VTE_DEBUG_EVENTS, "Showing context menu\n");
+                _vte_debug_print(vte::debug::category::EVENTS, "Showing context menu");
                 handled = widget()->show_context_menu(vte::platform::EventContext{event});
         }
 
@@ -5566,13 +5593,15 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 					}
 				}
 			}
-			_VTE_DEBUG_IF (VTE_DEBUG_EVENTS) {
-				if (normal) g_printerr(
-						"Keypress, modifiers=0x%x, "
-						"keyval=0x%x, cooked string=`%s'.\n",
-						m_modifiers,
-						keyval, normal);
+#if VTE_DEBUG
+			_VTE_DEBUG_IF (vte::debug::category::EVENTS) {
+				if (normal)
+                                        vte::debug::println("Keypress, modifiers={:#x}, "
+                                                            "keyval={:#x}, cooked string='{}'",
+                                                            m_modifiers,
+                                                            keyval, normal);
 			}
+#endif // VTE_DEBUG
 		}
 		/* If we got normal characters, send them to the child. */
 		if (normal != NULL) {
@@ -5995,7 +6024,9 @@ Terminal::resolve_selection()
         if (m_selection_origin.row() < 0 || m_selection_last.row() < 0) {
                 invalidate (m_selection_resolved);
                 m_selection_resolved.clear();
-                _vte_debug_print(VTE_DEBUG_SELECTION, "Selection resolved to %s.\n", m_selection_resolved.to_string());
+                _vte_debug_print(vte::debug::category::SELECTION,
+                                 "Selection resolved to {}",
+                                 m_selection_resolved);
                 return;
         }
 
@@ -6026,7 +6057,9 @@ Terminal::resolve_selection()
         if (!m_selection_resolved.empty())
                 m_selecting_had_delta = true;
 
-        _vte_debug_print(VTE_DEBUG_SELECTION, "Selection resolved to %s.\n", m_selection_resolved.to_string());
+        _vte_debug_print(vte::debug::category::SELECTION,
+                         "Selection resolved to {}",
+                         m_selection_resolved);
 
         invalidate_symmetrical_difference (m_selection_resolved_old, m_selection_resolved, m_selection_block_mode);
 }
@@ -6044,9 +6077,9 @@ Terminal::modify_selection (vte::view::coords const& pos)
         if (current == m_selection_last)
                 return;
 
-        _vte_debug_print(VTE_DEBUG_SELECTION,
-                         "Selection dragged to %s.\n",
-                         current.to_string());
+        _vte_debug_print(vte::debug::category::SELECTION,
+                         "Selection dragged to {}",
+                         current);
 
         m_selection_last = current;
         resolve_selection();
@@ -6360,9 +6393,9 @@ Terminal::hyperlink_invalidate_and_get_bbox(vte::base::Ring::hyperlink_idx_t idx
         bbox->y = allocation.y + m_border.top + row_to_pixel(top);
         bbox->width = (right - left + 1) * m_cell_width;
         bbox->height = (bottom - top + 1) * m_cell_height;
-        _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                          "Hyperlink bounding box: x=%d y=%d w=%d h=%d\n",
-                          bbox->x, bbox->y, bbox->width, bbox->height);
+        _vte_debug_print(vte::debug::category::HYPERLINK,
+                         "Hyperlink bounding box: x={} y={} w={} h={}",
+                         bbox->x, bbox->y, bbox->width, bbox->height);
 }
 
 /*
@@ -6384,8 +6417,8 @@ Terminal::hyperlink_hilite_update()
         if (!m_allow_hyperlink)
                 return;
 
-        _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                         "hyperlink_hilite_update\n");
+        _vte_debug_print (vte::debug::category::HYPERLINK,
+                         "hyperlink_hilite_update");
 
         /* Need to ensure the ringview is updated. */
         ringview_update();
@@ -6407,8 +6440,8 @@ Terminal::hyperlink_hilite_update()
         }
 
         if (new_hyperlink_hover_idx == m_hyperlink_hover_idx) {
-                _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                                  "hyperlink did not change\n");
+                _vte_debug_print(vte::debug::category::HYPERLINK,
+                                 "hyperlink did not change");
                 return;
         }
 
@@ -6437,8 +6470,8 @@ Terminal::hyperlink_hilite_update()
                 hyperlink_invalidate_and_get_bbox(m_hyperlink_hover_idx, &bbox);
                 g_assert(bbox.width > 0 && bbox.height > 0);
         }
-        _vte_debug_print(VTE_DEBUG_HYPERLINK,
-                         "Hover idx: %d \"%s\"\n",
+        _vte_debug_print(vte::debug::category::HYPERLINK,
+                         "Hover idx: {} \"{}\"",
                          m_hyperlink_hover_idx,
                          m_hyperlink_hover_uri);
 
@@ -6474,8 +6507,9 @@ Terminal::match_hilite_clear()
 void
 Terminal::invalidate_match_span()
 {
-        _vte_debug_print(VTE_DEBUG_EVENTS,
-                         "Invalidating match span %s\n", m_match_span.to_string());
+        _vte_debug_print(vte::debug::category::EVENTS,
+                         "Invalidating match span {}",
+                         m_match_span);
         invalidate(m_match_span);
 }
 
@@ -6489,7 +6523,7 @@ Terminal::invalidate_match_span()
 void
 Terminal::match_hilite_update()
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Match hilite update\n");
+	_vte_debug_print(vte::debug::category::EVENTS, "Match hilite update");
 
         /* Need to ensure the ringview is updated. */
         ringview_update();
@@ -6546,12 +6580,12 @@ Terminal::match_hilite_update()
 	m_match = new_match;
 
 	if (m_match) {
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Matched %s.\n", m_match_span.to_string());
+		_vte_debug_print(vte::debug::category::EVENTS,
+                                 "Matched {}", m_match_span);
                 invalidate_match_span();
         } else {
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-                                 "No matches %s.\n", m_match_span.to_string());
+		_vte_debug_print(vte::debug::category::EVENTS,
+                                 "No matches {}", m_match_span);
 	}
 
         apply_mouse_cursor();
@@ -6567,7 +6601,8 @@ Terminal::widget_clipboard_data_clear(vte::platform::Clipboard const& clipboard)
         case vte::platform::ClipboardType::PRIMARY:
 		if (m_selection_owned[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] &&
                     !m_selection_resolved.empty()) {
-			_vte_debug_print(VTE_DEBUG_SELECTION, "Lost selection.\n");
+			_vte_debug_print(vte::debug::category::SELECTION,
+                                         "Lost selection");
 			deselect_all();
 		}
 
@@ -6587,13 +6622,15 @@ Terminal::widget_clipboard_data_get(vte::platform::Clipboard const& clipboard,
         if (m_selection[sel] == nullptr)
                 return std::nullopt;
 
-        _VTE_DEBUG_IF(VTE_DEBUG_SELECTION) {
-                g_printerr("Setting selection %d (%" G_GSIZE_FORMAT " UTF-8 bytes.) for target %s\n",
-                           sel,
-                           m_selection[sel]->len,
-                           format == vte::platform::ClipboardFormat::HTML ? "HTML" : "TEXT");
+#if VTE_DEBUG
+        _VTE_DEBUG_IF(vte::debug::category::SELECTION) {
+                vte::debug::println("Setting selection {} ({} UTF-8 bytes.) for target {}",
+                                    sel,
+                                    m_selection[sel]->len,
+                                    format == vte::platform::ClipboardFormat::HTML ? "HTML" : "TEXT");
                 _vte_debug_hexdump("Selection data", (uint8_t const*)m_selection[sel]->str, m_selection[sel]->len);
         }
+#endif // VTE_DEBUG
 
         return std::string_view{m_selection[sel]->str, m_selection[sel]->len};
 }
@@ -7119,8 +7156,8 @@ Terminal::widget_copy(vte::platform::ClipboardType type,
         vte_char_attr_list_clear(&attributes);
 
 	/* Place the text on the clipboard. */
-        _vte_debug_print(VTE_DEBUG_SELECTION,
-                         "Assuming ownership of selection.\n");
+        _vte_debug_print(vte::debug::category::SELECTION,
+                         "Assuming ownership of selection");
 
         m_selection_owned[sel] = true;
         m_selection_format[sel] = format;
@@ -7184,9 +7221,9 @@ Terminal::start_selection (vte::view::coords const& pos,
         m_selecting_had_delta = false;  /* resolve_selection() below will most likely flip it to true. */
         m_will_select_after_threshold = false;
 
-	_vte_debug_print(VTE_DEBUG_SELECTION,
-                         "Selection started at %s.\n",
-                         m_selection_origin.to_string());
+	_vte_debug_print(vte::debug::category::SELECTION,
+                         "Selection started at {}",
+                         m_selection_origin);
 
         /* Take care of updating the display. */
         resolve_selection();
@@ -7236,7 +7273,7 @@ Terminal::select_all()
         m_selection_resolved.set ({ (vte::grid::row_t)m_screen->row_data->delta(), 0 },
                                   { (vte::grid::row_t)m_screen->row_data->next(),  0 });
 
-	_vte_debug_print(VTE_DEBUG_SELECTION, "Selecting *all* text.\n");
+	_vte_debug_print(vte::debug::category::SELECTION, "Selecting *all* text");
 
         widget_copy(vte::platform::ClipboardType::PRIMARY,
                     vte::platform::ClipboardFormat::TEXT);
@@ -7261,7 +7298,7 @@ Terminal::mouse_autoscroll_timer_callback()
                 queue_adjustment_value_changed_clamped(adj);
                 extend = true;
 
-		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling down.\n");
+		_vte_debug_print(vte::debug::category::EVENTS, "Autoscrolling down");
 	}
 	if (m_mouse_last_position.y >= m_view_usable_extents.height()) {
                 /* Try to scroll up by one line. */
@@ -7269,7 +7306,7 @@ Terminal::mouse_autoscroll_timer_callback()
                 queue_adjustment_value_changed_clamped(adj);
                 extend = true;
 
-		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling up.\n");
+		_vte_debug_print(vte::debug::category::EVENTS, "Autoscrolling up");
 	}
 	if (extend) {
                 // FIXMEchpe use confine_view_coords here
@@ -7316,8 +7353,9 @@ Terminal::widget_mouse_motion(vte::platform::MouseEvent const& event)
         auto pos = view_coords_from_event(event);
         auto rowcol = grid_coords_from_view_coords(pos);
 
-	_vte_debug_print(VTE_DEBUG_EVENTS,
-                         "Motion grid %s\n", rowcol.to_string());
+	_vte_debug_print(vte::debug::category::EVENTS,
+                         "Motion {}",
+                         rowcol);
 
         m_modifiers = event.modifiers();
 
@@ -7335,7 +7373,7 @@ Terminal::widget_mouse_motion(vte::platform::MouseEvent const& event)
         auto handled = bool{false};
         if (m_selecting &&
             (m_mouse_handled_buttons & 1) != 0) {
-                _vte_debug_print(VTE_DEBUG_EVENTS, "Mousing drag 1.\n");
+                _vte_debug_print(vte::debug::category::EVENTS, "Mousing drag 1");
                 modify_selection(pos);
 
                 /* Start scrolling if we need to. */
@@ -7379,10 +7417,10 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
         auto pos = view_coords_from_event(event);
         auto rowcol = grid_coords_from_view_coords(pos);
 
-        _vte_debug_print(VTE_DEBUG_EVENTS,
-                         "Click gesture pressed button=%d at grid %s\n",
+        _vte_debug_print(vte::debug::category::EVENTS,
+                         "Click gesture pressed button={} at {}",
                          event.button_value(),
-                         rowcol.to_string());
+                         rowcol);
 
         m_modifiers = event.modifiers();
 
@@ -7391,8 +7429,8 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 		/* Handle this event ourselves. */
                 switch (event.button()) {
                 case vte::platform::MouseEvent::Button::eLEFT:
-			_vte_debug_print(VTE_DEBUG_EVENTS,
-					"Handling click ourselves.\n");
+			_vte_debug_print(vte::debug::category::EVENTS,
+					"Handling click ourselves");
 			/* Grab focus. */
 			if (!m_has_focus)
                                 widget()->grab_focus();
@@ -7456,7 +7494,8 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
                                             GDK_SUPER_MASK |
                                             GDK_HYPER_MASK |
                                             GDK_META_MASK)) == GDK_SHIFT_MASK) {
-                                _vte_debug_print(VTE_DEBUG_EVENTS, "Showing context menu\n");
+                                _vte_debug_print(vte::debug::category::EVENTS,
+                                                 "Showing context menu");
                                 handled = widget()->show_context_menu(vte::platform::EventContext{event});
                         }
                         break;
@@ -7542,7 +7581,7 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
                              GDK_SUPER_MASK |
                              GDK_HYPER_MASK |
                              GDK_META_MASK)) == 0)) {
-                _vte_debug_print(VTE_DEBUG_EVENTS, "Showing context menu\n");
+                _vte_debug_print(vte::debug::category::EVENTS, "Showing context menu");
                 handled = widget()->show_context_menu(vte::platform::EventContext{event});
         }
 
@@ -7570,9 +7609,9 @@ Terminal::widget_mouse_release(vte::platform::MouseEvent const& event)
         auto pos = view_coords_from_event(event);
         auto rowcol = grid_coords_from_view_coords(pos);
 
-        _vte_debug_print(VTE_DEBUG_EVENTS,
-                         "Click gesture released button=%d at grid %s\n",
-                         event.button_value(), rowcol.to_string());
+        _vte_debug_print(vte::debug::category::EVENTS,
+                         "Click gesture released button={} at {}",
+                         event.button_value(), rowcol);
 
 	stop_autoscroll();
 
@@ -7684,7 +7723,9 @@ Terminal::widget_mouse_enter(vte::platform::MouseEvent const& event)
         // FIXMEchpe read event modifiers here
         // FIXMEgtk4 or maybe not since there is no event to read them from on gtk4
 
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Motion enter at grid %s\n", pos.to_string());
+	_vte_debug_print(vte::debug::category::EVENTS,
+                         "Motion enter at {}",
+                         pos);
 
         m_mouse_cursor_over_widget = TRUE;
         m_mouse_last_position = pos;
@@ -7704,7 +7745,9 @@ Terminal::widget_mouse_leave(vte::platform::MouseEvent const& event)
         // FIXMEchpe read event modifiers here
         // FIXMEgtk4 or maybe not since there is no event to read them from on gtk4
 
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Motion leave at grid %s\n", pos.to_string());
+	_vte_debug_print(vte::debug::category::EVENTS,
+                         "Motion leave at {}",
+                         pos);
 
         m_mouse_cursor_over_widget = FALSE;
         m_mouse_last_position = pos;
@@ -7948,17 +7991,19 @@ Terminal::update_font_desc()
 
 	if (m_api_font_desc) {
 		pango_font_description_merge(desc.get(), m_api_font_desc.get(), true);
-		_VTE_DEBUG_IF(VTE_DEBUG_MISC) {
+#if VTE_DEBUG
+		_VTE_DEBUG_IF(vte::debug::category::MISC) {
 			if (desc) {
 				char *tmp;
 				tmp = pango_font_description_to_string(desc.get());
-				g_printerr("Using pango font \"%s\".\n", tmp);
+                                vte::debug::println("Using pango font \"{}\"", tmp);
 				g_free (tmp);
 			}
 		}
+#endif // VTE_DEBUG
 	} else {
-		_vte_debug_print(VTE_DEBUG_MISC,
-				"Using default monospace font.\n");
+		_vte_debug_print(vte::debug::category::MISC,
+				"Using default monospace font");
 	}
 
         /* Sanitise the font description.
@@ -8107,15 +8152,15 @@ Terminal::screen_set_size(VteScreen *screen_,
         if (m_selection_block_mode && do_rewrap && old_columns != m_column_count)
                 deselect_all();
 
-	_vte_debug_print(VTE_DEBUG_RESIZE,
-			"Resizing %s screen_\n"
-			"Old  insert_delta=%ld  scroll_delta=%f\n"
-                        "     cursor (absolute)  row=%ld  col=%ld\n"
-			"     cursor_saved (relative to insert_delta)  row=%ld  col=%ld\n",
-			screen_ == &m_normal_screen ? "normal" : "alternate",
-			screen_->insert_delta, screen_->scroll_delta,
-                        screen_->cursor.row, screen_->cursor.col,
-                        screen_->saved.cursor.row, screen_->saved.cursor.col);
+	_vte_debug_print(vte::debug::category::RESIZE,
+                         "Resizing {} screen\n"
+                         "Old  insert_delta={}  scroll_delta={:f}\n"
+                         "     cursor (absolute)  row={}  col={}\n"
+                         "     cursor_saved (relative to insert_delta)  row={}  col={}",
+                         screen_ == &m_normal_screen ? "normal" : "alternate",
+                         screen_->insert_delta, screen_->scroll_delta,
+                         screen_->cursor.row, screen_->cursor.col,
+                         screen_->saved.cursor.row, screen_->saved.cursor.col);
 
         cursor_saved_absolute.row = screen_->saved.cursor.row + screen_->insert_delta;
         cursor_saved_absolute.col = screen_->saved.cursor.col;
@@ -8159,9 +8204,9 @@ Terminal::screen_set_size(VteScreen *screen_,
 		drop = MIN(MIN(drop1, drop2), drop3);
 		if (drop > 0) {
 			int new_ring_next = screen_->insert_delta + m_row_count - drop;
-			_vte_debug_print(VTE_DEBUG_RESIZE,
-					"Dropping %ld [== MIN(%ld, %ld, %ld)] rows at the bottom\n",
-					drop, drop1, drop2, drop3);
+			_vte_debug_print(vte::debug::category::RESIZE,
+					"Dropping {} [== MIN({}, {}, {})] rows at the bottom",
+                                         drop, drop1, drop2, drop3);
 			ring->shrink(new_ring_next - ring->delta());
 		}
 	}
@@ -8176,21 +8221,21 @@ Terminal::screen_set_size(VteScreen *screen_,
 		/* Everything fits without scrollbars. Align at top. */
 		screen_->insert_delta = ring->delta();
 		new_scroll_delta = screen_->insert_delta;
-		_vte_debug_print(VTE_DEBUG_RESIZE,
-				"Everything fits without scrollbars\n");
+		_vte_debug_print(vte::debug::category::RESIZE,
+				"Everything fits without scrollbars");
 	} else {
 		/* Scrollbar required. Can't afford unused lines at bottom. */
 		screen_->insert_delta = ring->next() - m_row_count;
 		if (was_scrolled_to_bottom) {
 			/* Was scrolled to bottom, keep this way. */
 			new_scroll_delta = screen_->insert_delta;
-			_vte_debug_print(VTE_DEBUG_RESIZE,
-					"Scroll to bottom\n");
+			_vte_debug_print(vte::debug::category::RESIZE,
+					"Scroll to bottom");
 		} else if (was_scrolled_to_top) {
 			/* Was scrolled to top, keep this way. Not sure if this special case is worth it. */
 			new_scroll_delta = ring->delta();
-			_vte_debug_print(VTE_DEBUG_RESIZE,
-					"Scroll to top\n");
+			_vte_debug_print(vte::debug::category::RESIZE,
+					"Scroll to top");
 		} else {
 			/* Try to scroll so that the bottom visible row stays.
 			   More precisely, the character below the bottom left corner stays in that
@@ -8202,8 +8247,8 @@ Terminal::screen_set_size(VteScreen *screen_,
 			new_scroll_delta = below_viewport.row - m_row_count;
 			/* Keep the old fractional part. */
 			new_scroll_delta += screen_->scroll_delta - floor(screen_->scroll_delta);
-			_vte_debug_print(VTE_DEBUG_RESIZE,
-					"Scroll so bottom row stays\n");
+			_vte_debug_print(vte::debug::category::RESIZE,
+					"Scroll so bottom row stays");
 		}
 	}
 
@@ -8212,13 +8257,13 @@ Terminal::screen_set_size(VteScreen *screen_,
         screen_->saved.cursor.row = cursor_saved_absolute.row - screen_->insert_delta;
         screen_->saved.cursor.col = cursor_saved_absolute.col;
 
-	_vte_debug_print(VTE_DEBUG_RESIZE,
-			"New  insert_delta=%ld  scroll_delta=%f\n"
-                        "     cursor (absolute)  row=%ld  col=%ld\n"
-			"     cursor_saved (relative to insert_delta)  row=%ld  col=%ld\n\n",
-			screen_->insert_delta, new_scroll_delta,
-                        screen_->cursor.row, screen_->cursor.col,
-                        screen_->saved.cursor.row, screen_->saved.cursor.col);
+	_vte_debug_print(vte::debug::category::RESIZE,
+                         "New  insert_delta={} scroll_delta={:f}\n"
+                         "     cursor (absolute) row={} col={}\n"
+                         "     cursor_saved (relative to insert_delta) row={} col={}",
+                         screen_->insert_delta, new_scroll_delta,
+                         screen_->cursor.row, screen_->cursor.col,
+                         screen_->saved.cursor.row, screen_->saved.cursor.col);
 
 	if (screen_ == m_screen)
 		queue_adjustment_value_changed(new_scroll_delta);
@@ -8235,9 +8280,9 @@ Terminal::set_size(long columns,
 
         update_insert_delta();  /* addresses https://gitlab.gnome.org/GNOME/vte/-/issues/2258 */
 
-	_vte_debug_print(VTE_DEBUG_RESIZE,
-			"Setting PTY size to %ldx%ld.\n",
-			columns, rows);
+	_vte_debug_print(vte::debug::category::RESIZE,
+                         "Setting PTY size to {}x{}",
+                         columns, rows);
 
 	old_rows = m_row_count;
 	old_columns = m_column_count;
@@ -8319,15 +8364,15 @@ Terminal::set_scroll_value(double value)
 
         /* FIXME: do this check in pixel space */
         if (!_vte_double_equal(dy, 0)) {
-                _vte_debug_print(VTE_DEBUG_ADJ,
-                                 "Scrolling by %f\n", dy);
+                _vte_debug_print(vte::debug::category::ADJ,
+                                 "Scrolling by {:f}", dy);
 
                 invalidate_all();
                 match_contents_clear();
                 emit_text_scrolled(dy);
                 queue_contents_changed();
         } else {
-                _vte_debug_print(VTE_DEBUG_ADJ, "Not scrolling\n");
+                _vte_debug_print(vte::debug::category::ADJ, "Not scrolling");
         }
 }
 
@@ -8446,11 +8491,11 @@ Terminal::widget_measure_width(int *minimum_width,
         *natural_width += m_style_border.left + m_style_border.right;
 #endif
 
-	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
-			"[Terminal %p] minimum_width=%d, natural_width=%d for %ldx%ld cells (padding %d,%d;%d,%d).\n",
-                        m_terminal,
-			*minimum_width, *natural_width,
-			m_column_count,
+	_vte_debug_print(vte::debug::category::WIDGET_SIZE,
+                         "[Terminal {}] minimum_width={}, natural_width={} for {}x{} cells (padding {},{},{},{})",
+                         (void*)m_terminal,
+                         *minimum_width, *natural_width,
+                         m_column_count,
                          m_row_count,
                          m_style_border.left, m_style_border.right,
                          m_style_border.top, m_style_border.bottom);
@@ -8472,11 +8517,11 @@ Terminal::widget_measure_height(int *minimum_height,
         *natural_height += m_style_border.top + m_style_border.bottom;
 #endif
 
-	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
-			"[Terminal %p] minimum_height=%d, natural_height=%d for %ldx%ld cells (padding %d,%d;%d,%d).\n",
-                        m_terminal,
-			*minimum_height, *natural_height,
-			m_column_count,
+	_vte_debug_print(vte::debug::category::WIDGET_SIZE,
+                         "[Terminal {}] minimum_height={}, natural_height={} for {}x{} cells (padding {},{},{},{})",
+                         (void*)m_terminal,
+                         *minimum_height, *natural_height,
+                         m_column_count,
                          m_row_count,
                          m_style_border.left, m_style_border.right,
                          m_style_border.top, m_style_border.bottom);
@@ -8554,9 +8599,9 @@ Terminal::widget_size_allocate(
         grid_width = std::max(grid_width, VTE_MIN_GRID_WIDTH);
         grid_height = std::max(grid_height, VTE_MIN_GRID_HEIGHT);
 
-        _vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
-                         "[Terminal %p] Sizing window to %dx%d (%dx%d, effective border %d,%d;%d,%d).\n",
-                         m_terminal,
+        _vte_debug_print(vte::debug::category::WIDGET_SIZE,
+                         "[Terminal {}] Sizing window to {}x{} ({}x{}, effective border {},{};{},{})",
+                         (void*)m_terminal,
                          allocation_width, allocation_height,
                          grid_width, grid_height,
                          m_border.left, m_border.right, m_border.top, m_border.bottom);
@@ -8880,23 +8925,6 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
         vte::color::rgb fg, bg, dc;
 
 	g_assert(n > 0);
-#if 0
-	_VTE_DEBUG_IF(VTE_DEBUG_CELLS) {
-		GString *str = g_string_new (NULL);
-		gchar *tmp;
-		for (i = 0; i < n; i++) {
-			g_string_append_unichar (str, items[i].c);
-		}
-		tmp = g_string_free (str, FALSE);
-                g_printerr ("draw_cells('%s', fore=%d, back=%d, deco=%d, bold=%d,"
-                                " ul=%d, strike=%d, ol=%d, blink=%d,"
-                                " hyperlink=%d, hilite=%d, boxed=%d)\n",
-                                tmp, fore, back, deco, bold,
-                                underline, strikethrough, overline, blink,
-                                hyperlink, hilite, boxed);
-		g_free (tmp);
-	}
-#endif
 
         rgb_from_index<8, 8, 8>(fore, fg);
         rgb_from_index<8, 8, 8>(back, bg);
@@ -9448,7 +9476,7 @@ Terminal::draw_rows(VteScreen *screen_,
                 bidirow = m_ringview.get_bidirow(row);
 
 #if VTE_GTK == 3
-                _VTE_DEBUG_IF (VTE_DEBUG_BIDI) {
+                _VTE_DEBUG_IF (vte::debug::category::BIDI) {
                         /* Debug: Highlight the paddings of RTL rows with a slightly different background. */
                         if (bidirow->base_is_rtl()) {
                                 vte::color::rgb bg;
@@ -9493,7 +9521,7 @@ Terminal::draw_rows(VteScreen *screen_,
                                 selected = cell_is_selected_vis(j, row);
                                 determine_colors(cell, selected, &nfore, &nback, &ndeco);
                                 nrtl = bidirow->vis_is_rtl(j);
-                                if (nback != back || (_vte_debug_on (VTE_DEBUG_BIDI) && nrtl != rtl)) {
+                                if (nback != back || (vte::debug::check_categories(vte::debug::category::BIDI) && nrtl != rtl)) {
                                         break;
                                 }
                         }
@@ -9504,7 +9532,7 @@ Terminal::draw_rows(VteScreen *screen_,
                         }
 
 #if VTE_GTK == 3
-                        _VTE_DEBUG_IF (VTE_DEBUG_BIDI) {
+                        _VTE_DEBUG_IF (vte::debug::category::BIDI) {
                                 /* Debug: Highlight RTL letters and RTL rows with a slightly different background. */
                                 vte::color::rgb bg;
                                 rgb_from_index<8, 8, 8>(back, bg);
@@ -10011,14 +10039,14 @@ void
 Terminal::widget_draw(cairo_t* cr) noexcept
 {
 #if VTE_DEBUG
-        _VTE_DEBUG_IF(VTE_DEBUG_UPDATES) do {
+        _VTE_DEBUG_IF(vte::debug::category::UPDATES) do {
                 auto clip_rect = cairo_rectangle_int_t{};
                 if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
                         break;
 
-                _vte_debug_print (VTE_DEBUG_UPDATES, "Draw (%d,%d)x(%d,%d)\n",
-                                  clip_rect.x, clip_rect.y,
-                                  clip_rect.width, clip_rect.height);
+                _vte_debug_print(vte::debug::category::UPDATES, "Draw ({},{})x({},{})",
+                                 clip_rect.x, clip_rect.y,
+                                 clip_rect.width, clip_rect.height);
         } while (0);
 #endif /* VTE_DEBUG */
 
@@ -10045,7 +10073,7 @@ Terminal::widget_draw(cairo_t* cr) noexcept
 void
 Terminal::widget_snapshot(GtkSnapshot* snapshot_object) noexcept
 {
-        _vte_debug_print(VTE_DEBUG_DRAW, "Widget snapshot\n");
+        _vte_debug_print(vte::debug::category::DRAW, "Widget snapshot");
 
         m_draw.set_snapshot(snapshot_object);
         m_draw.translate(m_border.left, m_border.top);
@@ -10265,9 +10293,12 @@ Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
 
                 m_mouse_smooth_scroll_x_delta -= cnt_x;
                 m_mouse_smooth_scroll_y_delta -= cnt_y;
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-                                 "Scroll application by %d lines, %d columns, smooth scroll delta set back to y=%f, x=%f\n",
-                                 cnt_y, cnt_x, m_mouse_smooth_scroll_y_delta, m_mouse_smooth_scroll_x_delta);
+		_vte_debug_print(vte::debug::category::EVENTS,
+                                 "Scroll application by {} lines, {} columns, smooth scroll delta set back to y={:f}, x={:f}",
+                                 cnt_y,
+                                 cnt_x,
+                                 m_mouse_smooth_scroll_y_delta,
+                                 m_mouse_smooth_scroll_x_delta);
 
                 button = cnt_y > 0 ? 5 : 4;
                 if (cnt_y < 0)
@@ -10297,9 +10328,9 @@ Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
         m_mouse_smooth_scroll_x_delta = 0;
 
         v = MAX (1., ceil (m_row_count /* page increment */ / 10.));
-	_vte_debug_print(VTE_DEBUG_EVENTS,
-			"Scroll speed is %d lines per non-smooth scroll unit\n",
-			(int) v);
+	_vte_debug_print(vte::debug::category::EVENTS,
+                         "Scroll speed is {} lines per non-smooth scroll unit",
+                         v);
 	if (m_screen == &m_alternate_screen &&
             m_modes_private.XTERM_ALTBUF_SCROLL()) {
 		char *normal;
@@ -10309,9 +10340,10 @@ Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
                 if (cnt_y == 0)
 			return true;
                 m_mouse_smooth_scroll_y_delta -= cnt_y / v;
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-                                "Scroll by %d lines, smooth scroll y_delta set back to %f\n",
-                                cnt_y, m_mouse_smooth_scroll_y_delta);
+		_vte_debug_print(vte::debug::category::EVENTS,
+                                 "Scroll by {} lines, smooth scroll y_delta set back to {:f}",
+                                 cnt_y,
+                                 m_mouse_smooth_scroll_y_delta);
 
                 /* In the alternate screen there is no scrolling, so fake a few cursor keystrokes (only vertically). */
 		_vte_keymap_map (
@@ -10641,8 +10673,8 @@ Terminal::set_scrollback_lines(long lines)
                 return false;
 #endif
 
-	_vte_debug_print (VTE_DEBUG_MISC,
-			"Setting scrollback lines to %ld\n", lines);
+	_vte_debug_print(vte::debug::category::MISC,
+                         "Setting scrollback lines to {}", lines);
 
 	m_scrollback_lines = lines;
 
@@ -11080,22 +11112,22 @@ Terminal::emit_pending_signals()
                 // Emit deprecated signals and notify:: for deprecated properties,
 
                 if (m_pending_changes & vte::to_integral(PendingChanges::TITLE)) {
-                        _vte_debug_print(VTE_DEBUG_SIGNALS,
-                                         "Emitting `window-title-changed'.\n");
+                        _vte_debug_print(vte::debug::category::SIGNALS,
+                                         "Emitting `window-title-changed'");
                         g_signal_emit(freezer.get(), signals[SIGNAL_WINDOW_TITLE_CHANGED], 0);
                         g_object_notify_by_pspec(freezer.get(), pspecs[PROP_WINDOW_TITLE]);
                 }
 
                 if (m_pending_changes & vte::to_integral(PendingChanges::CWD)) {
-                        _vte_debug_print(VTE_DEBUG_SIGNALS,
-                                         "Emitting `current-directory-uri-changed'.\n");
+                        _vte_debug_print(vte::debug::category::SIGNALS,
+                                         "Emitting `current-directory-uri-changed'");
                         g_signal_emit(freezer.get(), signals[SIGNAL_CURRENT_DIRECTORY_URI_CHANGED], 0);
                         g_object_notify_by_pspec(freezer.get(), pspecs[PROP_CURRENT_DIRECTORY_URI]);
                 }
 
                 if (m_pending_changes & vte::to_integral(PendingChanges::CWF)) {
-                        _vte_debug_print(VTE_DEBUG_SIGNALS,
-                                         "Emitting `current-file-uri-changed'.\n");
+                        _vte_debug_print(vte::debug::category::SIGNALS,
+                                         "Emitting `current-file-uri-changed'");
                         g_signal_emit(freezer.get(), signals[SIGNAL_CURRENT_FILE_URI_CHANGED], 0);
                         g_object_notify_by_pspec(freezer.get(), pspecs[PROP_CURRENT_FILE_URI]);
                 }
@@ -11106,26 +11138,26 @@ Terminal::emit_pending_signals()
 	/* Flush any pending "inserted" signals. */
 
         if (m_cursor_moved_pending) {
-                _vte_debug_print(VTE_DEBUG_SIGNALS,
-                                 "Emitting `cursor-moved'.\n");
+                _vte_debug_print(vte::debug::category::SIGNALS,
+                                 "Emitting `cursor-moved'");
                 g_signal_emit(freezer.get(), signals[SIGNAL_CURSOR_MOVED], 0);
                 m_cursor_moved_pending = false;
         }
         if (m_text_modified_flag) {
-                _vte_debug_print(VTE_DEBUG_SIGNALS,
-                                 "Emitting buffered `text-modified'.\n");
+                _vte_debug_print(vte::debug::category::SIGNALS,
+                                 "Emitting buffered `text-modified'");
                 emit_text_modified();
                 m_text_modified_flag = false;
         }
         if (m_text_inserted_flag) {
-                _vte_debug_print(VTE_DEBUG_SIGNALS,
-                                 "Emitting buffered `text-inserted'\n");
+                _vte_debug_print(vte::debug::category::SIGNALS,
+                                 "Emitting buffered `text-inserted'");
                 emit_text_inserted();
                 m_text_inserted_flag = false;
         }
         if (m_text_deleted_flag) {
-                _vte_debug_print(VTE_DEBUG_SIGNALS,
-                                 "Emitting buffered `text-deleted'\n");
+                _vte_debug_print(vte::debug::category::SIGNALS,
+                                 "Emitting buffered `text-deleted'");
                 emit_text_deleted();
                 m_text_deleted_flag = false;
 	}
@@ -11137,8 +11169,8 @@ Terminal::emit_pending_signals()
                         match_hilite_update();
 		}
 
-		_vte_debug_print(VTE_DEBUG_SIGNALS,
-				"Emitting `contents-changed'.\n");
+		_vte_debug_print(vte::debug::category::SIGNALS,
+				"Emitting `contents-changed'");
 		g_signal_emit(m_terminal, signals[SIGNAL_CONTENTS_CHANGED], 0);
 		m_contents_changed_pending = false;
 	}
@@ -11592,15 +11624,6 @@ Terminal::process_word_char_exceptions(std::string_view str_view) const noexcept
 
                 return std::nullopt;
         }
-
-#if 0
-        /* Debug */
-        for (auto const c : array) {
-                char utf[7];
-                utf[g_unichar_to_utf8(c, utf)] = '\0';
-                g_printerr("Word char exception: U+%04X %s\n", c, utf);
-        }
-#endif
 
         return array;
 }

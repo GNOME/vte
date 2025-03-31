@@ -24,7 +24,11 @@
 #include <stdexcept>
 
 #include "uuid.hh"
+#include "uuid-fmt.hh"
+
 #include "cxx-utils.hh"
+
+using namespace std::literals::string_view_literals;
 
 /*
  * SECTION:uuid
@@ -56,54 +60,30 @@
 
 namespace vte {
 
-vte::glib::StringPtr
-uuid::g_str(uuid::format fmt) const
-{
-        switch (fmt) {
-                using enum format;
-        case SIMPLE:
-                return vte::glib::take_string(g_strdup_printf("%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x"
-                                                              "-%02x%02x%02x%02x%02x%02x",
-                                                              m_bytes[0], m_bytes[1], m_bytes[2], m_bytes[3],
-                                                              m_bytes[4], m_bytes[5], m_bytes[6], m_bytes[7],
-                                                              m_bytes[8], m_bytes[9], m_bytes[10], m_bytes[11],
-                                                              m_bytes[12], m_bytes[13], m_bytes[14], m_bytes[15]));
-
-        case BRACED:
-                return vte::glib::take_string(g_strdup_printf("{%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x"
-                                                              "-%02x%02x%02x%02x%02x%02x}",
-                                                              m_bytes[0], m_bytes[1], m_bytes[2], m_bytes[3],
-                                                              m_bytes[4], m_bytes[5], m_bytes[6], m_bytes[7],
-                                                              m_bytes[8], m_bytes[9], m_bytes[10], m_bytes[11],
-                                                              m_bytes[12], m_bytes[13], m_bytes[14], m_bytes[15]));
-
-        case URN:
-                return vte::glib::take_string(g_strdup_printf("urn:uuid:%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x"
-                                                              "-%02x%02x%02x%02x%02x%02x",
-                                                              m_bytes[0], m_bytes[1], m_bytes[2], m_bytes[3],
-                                                              m_bytes[4], m_bytes[5], m_bytes[6], m_bytes[7],
-                                                              m_bytes[8], m_bytes[9], m_bytes[10], m_bytes[11],
-                                                              m_bytes[12], m_bytes[13], m_bytes[14], m_bytes[15]));
-
-        default:
-                __builtin_unreachable();
-                g_assert_not_reached();
-        }
-}
-
 std::string
 uuid::str(uuid::format fmt) const
 {
-        return {g_str(fmt).get()};
+        auto fmtstr = ""sv;
+        switch (fmt) {
+                using enum vte::uuid::format;
+        case SIMPLE: fmtstr = "{:s}"sv; break;
+        case BRACED: fmtstr = "{:b}"sv; break;
+        case URN:    fmtstr = "{:u}"sv; break;
+                //case ID128:  fmtstr = "{:i}"sv;
+        default: __builtin_unreachable(); return {};
+        }
+        return fmt::format(fmt::runtime(fmtstr), *this);
 }
 
 // FIXME: replace g_ascii_xdigit_value use to make this constructor constexpr
 uuid::uuid(std::string_view str,
            uuid::format fmt) // throws
 {
+        auto dashes = 0b0000'0010'1010'1000u;
+
         if (str.starts_with("urn:uuid:")) {
                 if ((fmt & uuid::format::URN) == uuid::format{})
-                        throw std::invalid_argument{"urn form not accepted"};
+                        throw std::invalid_argument{"urn format not accepted"};
 
                 str.remove_prefix(strlen("urn:uuid:"));
         } else if (str.starts_with('{')) {
@@ -111,34 +91,31 @@ uuid::uuid(std::string_view str,
                         throw std::invalid_argument{"Closing brace not found"};
 
                 if ((fmt & uuid::format::BRACED) == uuid::format{})
-                    throw std::invalid_argument{"braced form not accepted"};
+                    throw std::invalid_argument{"braced format not accepted"};
 
                 str.remove_prefix(1);
                 str.remove_suffix(1);
         } else {
                 if ((fmt & uuid::format::SIMPLE) == uuid::format{})
-                        throw std::invalid_argument{"simple form not accepted"};
+                        throw std::invalid_argument{"simple format not accepted"};
         }
 
         if (str.size() != 36)
                 throw std::invalid_argument{"Invalid length"};
 
-        for (auto i = 0, j = 0; i < 16; ) {
-                if (j == 8 || j == 13 || j == 18 || j == 23) {
-                        if (str[j++] != '-')
-                                throw std::invalid_argument{"Invalid character"};
-
-                        continue;
-                }
-
+        for (auto i = 0u, j = 0u; i < 16; ) {
                 auto const hi = g_ascii_xdigit_value(str[j++]);
                 auto const lo = g_ascii_xdigit_value(str[j++]);
+
+                if (dashes & (1u << i)) {
+                        if (str[j++] != '-')
+                                throw std::invalid_argument{"Invalid character"};
+                }
 
                 if (hi == -1 || lo == -1)
                         throw std::invalid_argument{"Invalid value"};
 
                 m_bytes[i++] = hi << 4 | lo;
-                g_assert(j <= 36);
         }
 
         if (is_nil()) [[unlikely]] // special exception, don't check version/variant
@@ -215,3 +192,44 @@ uuid::uuid(int version,
 }
 
 } // namespace vte
+
+FMT_BEGIN_NAMESPACE
+
+auto
+formatter<vte::uuid>::format(vte::uuid const& u,
+                             format_context& ctx) const -> format_context::iterator
+{
+        auto&& it = ctx.out();
+
+        auto dashes = 0b0000'0010'1010'1000u;
+        switch (m_format) {
+                using enum vte::uuid::format;
+        case SIMPLE: break;
+        case BRACED: *it = '{'; ++it; break;
+        case URN: it = fmt::format_to(it, "urn:uuid:"); break;
+                // case ID128: dashes = 0u; break;
+        default: __builtin_unreachable();
+                g_assert_not_reached();
+                break;
+        }
+
+        auto const bytes = u.bytes();
+        for (auto i = 0u; i < 16; ++i) {
+                it = fmt::format_to(it, "{:02x}", bytes[i]);
+
+                if (dashes & (1u << i)) {
+                        *it = '-';
+                        ++it;
+                }
+        }
+
+        if (m_format == vte::uuid::format::BRACED) {
+                *it = '}';
+                ++it;
+        }
+
+        ctx.advance_to(it);
+        return it;
+}
+
+FMT_END_NAMESPACE

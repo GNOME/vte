@@ -25,6 +25,8 @@ app_common_cppflags = [
 ]
 
 app_common_deps = [
+  fmt_dep,
+  glib_dep,
   pcre2_dep,
 ]
 

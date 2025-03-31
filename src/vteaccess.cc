@@ -21,7 +21,6 @@
 #include <gtk/gtk.h>
 #include <gtk/gtk-a11y.h>
 #include <string.h>
-#include "debug.h"
 #include <vte/vte.h>
 #include "vteaccess.h"
 #include "vteinternal.hh"
@@ -142,9 +141,6 @@ xy_from_offset (VteTerminalAccessiblePrivate *priv,
 static void
 emit_text_caret_moved(GObject *object, glong caret)
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS|VTE_DEBUG_ALLY,
-			"Accessibility peer emitting "
-			"`text-caret-moved'.\n");
 	g_signal_emit_by_name(object, "text-caret-moved", caret);
 }
 
@@ -159,12 +155,6 @@ emit_text_changed_insert(GObject *object,
 	/* Convert the byte offsets to character offsets. */
 	start = g_utf8_pointer_to_offset (text, text + offset);
 	count = g_utf8_pointer_to_offset (text + offset, text + offset + len);
-	_vte_debug_print(VTE_DEBUG_SIGNALS|VTE_DEBUG_ALLY,
-			"Accessibility peer emitting "
-			"`text-changed::insert' (%ld, %ld) (%ld, %ld).\n"
-			"Inserted text was `%.*s'.\n",
-			offset, len, start, count,
-			(int) len, text + offset);
 	g_signal_emit_by_name(object, "text-changed::insert", start, count);
 }
 
@@ -179,12 +169,6 @@ emit_text_changed_delete(GObject *object,
 	/* Convert the byte offsets to characters. */
 	start = g_utf8_pointer_to_offset (text, text + offset);
 	count = g_utf8_pointer_to_offset (text + offset, text + offset + len);
-	_vte_debug_print(VTE_DEBUG_SIGNALS|VTE_DEBUG_ALLY,
-			"Accessibility peer emitting "
-			"`text-changed::delete' (%ld, %ld) (%ld, %ld).\n"
-			"Deleted text was `%.*s'.\n",
-			offset, len, start, count,
-			(int) len, text + offset);
 	g_signal_emit_by_name(object, "text-changed::delete", start, count);
 }
 
@@ -302,10 +286,6 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 			 * it's a new line and we need to keep track of where
 			 * it is. */
 			if ((i == 0) || (attrs.row != row)) {
-				_vte_debug_print(VTE_DEBUG_ALLY,
-						"Row %d/%ld begins at %u.\n",
-						priv->snapshot_linebreaks->len,
-						attrs.row, i);
 				g_array_append_val(priv->snapshot_linebreaks, i);
 			}
 			row = attrs.row;
@@ -318,8 +298,6 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 
 	/* Update the caret position. */
 	vte_terminal_get_cursor_position(terminal, &ccol, &crow);
-	_vte_debug_print(VTE_DEBUG_ALLY,
-			"Cursor at (%ld, " "%ld).\n", ccol, crow);
 
 	/* Get the offsets to the beginnings of each line. */
 	caret = 0;
@@ -345,12 +323,6 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 
 	/* Done updating the caret position, whether we needed to or not. */
 	priv->snapshot_caret_invalid = FALSE;
-
-	_vte_debug_print(VTE_DEBUG_ALLY,
-			"Refreshed accessibility snapshot, "
-			"%ld cells, %ld characters.\n",
-			(long)vte_char_attr_list_get_size(&priv->snapshot_attributes),
-			(long)priv->snapshot_characters->len);
 }
 
 static void
@@ -805,8 +777,6 @@ vte_terminal_accessible_invalidate_cursor(VteTerminal *terminal, gpointer data)
         if (!vte_terminal_get_enable_a11y (terminal))
                 return;
 
-	_vte_debug_print(VTE_DEBUG_ALLY,
-			"Invalidating accessibility cursor.\n");
 	priv->snapshot_caret_invalid = TRUE;
 	vte_terminal_accessible_update_private_data_if_needed(accessible,
 							      NULL, NULL);
@@ -922,8 +892,6 @@ _vte_terminal_accessible_init (VteTerminalAccessible *accessible)
 {
         VteTerminalAccessiblePrivate *priv = (VteTerminalAccessiblePrivate *)_vte_terminal_accessible_get_instance_private (accessible);
 
-	_vte_debug_print(VTE_DEBUG_ALLY, "Initialising accessible peer.\n");
-
 	priv->snapshot_text = NULL;
 	priv->snapshot_characters = NULL;
 	priv->snapshot_linebreaks = NULL;
@@ -942,8 +910,6 @@ vte_terminal_accessible_finalize(GObject *object)
 	VteTerminalAccessiblePrivate *priv = (VteTerminalAccessiblePrivate *)_vte_terminal_accessible_get_instance_private(accessible);
         GtkWidget *widget;
 	gint i;
-
-	_vte_debug_print(VTE_DEBUG_ALLY, "Finalizing accessible peer.\n");
 
         widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(accessible));
 
@@ -1014,11 +980,6 @@ vte_terminal_accessible_get_text(AtkText *text,
 	vte_terminal_accessible_update_private_data_if_needed(accessible,
 							      NULL, NULL);
 
-	_vte_debug_print(VTE_DEBUG_ALLY,
-			"Getting text from %d to %d of %d.\n",
-			start_offset, end_offset,
-			priv->snapshot_characters->len);
-
 	/* If the requested area is after all of the text, just return an
 	 * empty string. */
 	if (start_offset >= (int) priv->snapshot_characters->len) {
@@ -1066,18 +1027,6 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 
         auto impl = IMPL_FROM_ACCESSIBLE(text);
 
-	_vte_debug_print(VTE_DEBUG_ALLY,
-			"Getting %s %s at %d of %" G_GSIZE_FORMAT " .\n",
-			(direction == direction_current) ? "this" :
-			((direction == direction_next) ? "next" : "previous"),
-			(boundary_type == ATK_TEXT_BOUNDARY_CHAR) ? "char" :
-			((boundary_type == ATK_TEXT_BOUNDARY_LINE_START) ? "line (start)" :
-			((boundary_type == ATK_TEXT_BOUNDARY_LINE_END) ? "line (end)" :
-			((boundary_type == ATK_TEXT_BOUNDARY_WORD_START) ? "word (start)" :
-			((boundary_type == ATK_TEXT_BOUNDARY_WORD_END) ? "word (end)" :
-			((boundary_type == ATK_TEXT_BOUNDARY_SENTENCE_START) ? "sentence (start)" :
-			((boundary_type == ATK_TEXT_BOUNDARY_SENTENCE_END) ? "sentence (end)" : "unknown")))))),
-			offset, vte_char_attr_list_get_size(&priv->snapshot_attributes));
 	g_assert(priv->snapshot_text != NULL);
 	g_assert(priv->snapshot_characters != NULL);
 	if (offset >= (int) priv->snapshot_characters->len) {
@@ -1269,9 +1218,6 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 					break;
 				}
 			}
-			_vte_debug_print(VTE_DEBUG_ALLY,
-					"Character %d is on line %d.\n",
-					offset, line);
 			/* Perturb the line number to handle before/at/after. */
 			line += direction;
 			line = MIN(line, priv->snapshot_linebreaks->len - 1);
@@ -1282,9 +1228,6 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			line = MIN(line, priv->snapshot_linebreaks->len - 1);
 			end = g_array_index(priv->snapshot_linebreaks,
 						    int, line);
-			_vte_debug_print(VTE_DEBUG_ALLY,
-					"Line runs from %d to %d.\n",
-					start, end);
 			break;
 		case ATK_TEXT_BOUNDARY_SENTENCE_START:
 		case ATK_TEXT_BOUNDARY_SENTENCE_END:

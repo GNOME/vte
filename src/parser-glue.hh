@@ -24,7 +24,11 @@
 
 #include "parser.hh"
 
+#include "debug.hh"
+
 #include <fast_float/fast_float.h>
+
+#include <fmt/format.h>
 
 namespace vte {
 
@@ -270,16 +274,14 @@ private:
                         if (m_param_intro != 0)
                                 s.push_back(m_param_intro);
                         auto n_args = m_seq.n_args;
-                        for (unsigned int n = 0; n < n_args; n++) {
+                        auto it = std::back_inserter(s);
+                        for (auto n = 0u; n < n_args; n++) {
                                 auto arg = vte_seq_arg_value(m_seq.args[n]);
                                 if (arg != -1) {
-                                        char buf[16];
-                                        int l = g_snprintf(buf, sizeof(buf), "%d", arg);
-                                        for (int j = 0; j < l; j++)
-                                                s.push_back(buf[j]);
+                                        fmt::format_to(it, "{}", arg);
                                 }
                                 if (n + 1 < n_args) {
-                                        s.push_back(vte_seq_arg_nonfinal(m_seq.args[n]) ? ':' : ';');
+                                        *it = vte_seq_arg_nonfinal(m_seq.args[n]) ? ':' : ';';
                                 }
                         }
                         break;

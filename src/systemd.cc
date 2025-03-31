@@ -25,6 +25,8 @@
 
 #include "glib-glue.hh"
 #include "refptr.hh"
+#include "uuid.hh"
+#include "uuid-fmt.hh"
 
 namespace vte::systemd {
 
@@ -52,22 +54,23 @@ create_scope_for_pid_sync(pid_t pid,
         if (!bus)
                 return false;
 
-        auto uuid = vte::glib::take_string(g_uuid_string_random());
-        auto scope = vte::glib::take_string(g_strdup_printf("vte-spawn-%s.scope", uuid.get()));
+        auto uuid = vte::uuid_string_random();
+        auto scope = fmt::format("vte-spawn-{}.scope", uuid);
         auto prgname = vte::glib::take_string(g_utf8_make_valid(g_get_prgname(), -1));
-        auto description = vte::glib::take_string(g_strdup_printf("VTE child process %d launched by %s process %d", pid, prgname.get(), getpid()));
+        auto description = fmt::format("VTE child process {} launched by {} process {}",
+                                       pid, prgname.get(), getpid());
 
         auto builder_stack = GVariantBuilder{};
         auto builder = &builder_stack;
         g_variant_builder_init(builder, G_VARIANT_TYPE("(ssa(sv)a(sa(sv)))"));
 
-        g_variant_builder_add(builder, "s", scope.get()); // unit name
+        g_variant_builder_add(builder, "s", scope.c_str()); // unit name
         g_variant_builder_add(builder, "s", "fail");      // failure mode
 
         // Unit properties
         g_variant_builder_open(builder, G_VARIANT_TYPE("a(sv)"));
 
-        g_variant_builder_add(builder, "(sv)", "Description", g_variant_new_string(description.get()));
+        g_variant_builder_add(builder, "(sv)", "Description", g_variant_new_string(description.c_str()));
 
         g_variant_builder_open(builder, G_VARIANT_TYPE("(sv)"));
         g_variant_builder_add(builder, "s", "PIDs");

@@ -273,10 +273,10 @@ try
 {
         g_return_val_if_fail(uuid, nullptr);
 
-        auto str = _vte_uuid_unwrap(uuid).g_str(vte::uuid::format(fmt));
+        auto const str = _vte_uuid_unwrap(uuid).str(vte::uuid::format(fmt));
         if (len)
-                *len = strlen(str.get());
-        return str.release();
+                *len = str.size();
+        return g_strdup(str.c_str());
 }
 catch (...)
 {

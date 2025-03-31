@@ -43,7 +43,7 @@
 #include "config.h"
 
 #include "bidi.hh"
-#include "debug.h"
+#include "debug.hh"
 #include "vtedefines.hh"
 #include "vteinternal.hh"
 
@@ -702,7 +702,7 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
 
                 /* From vis2log create the log2vis mapping too.
                  * In debug mode assert that we have a bijective mapping. */
-                if (_vte_debug_on (VTE_DEBUG_BIDI)) {
+                _VTE_DEBUG_IF(vte::debug::category::BIDI) {
                         for (tl = 0; tl < width; tl++) {
                                 bidirow->m_log2vis[tl] = -1;
                         }
@@ -712,7 +712,7 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
                         bidirow->m_log2vis[bidirow->m_vis2log[tv]] = tv;
                 }
 
-                if (_vte_debug_on (VTE_DEBUG_BIDI)) {
+                _VTE_DEBUG_IF(vte::debug::category::BIDI) {
                         for (tl = 0; tl < width; tl++) {
                                 vte_assert_cmpint (bidirow->m_log2vis[tl], !=, -1);
                         }

@@ -19,7 +19,7 @@
 
 #include <config.h>
 
-#include "debug.h"
+#include "debug.hh"
 #include "vterowdata.hh"
 
 #include <string.h>
@@ -61,7 +61,9 @@ _vte_cells_realloc (VteCells *cells, guint32 len)
 {
 	guint32 alloc_len = (1 << g_bit_storage (MAX (len, 80))) - 1;
 
-	_vte_debug_print(VTE_DEBUG_RING, "Enlarging cell array of %d cells to %d cells\n", cells ? cells->alloc_len : 0, alloc_len);
+	_vte_debug_print(vte::debug::category::RING,
+                         "Enlarging cell array of {} cells to {} cells",
+                         cells ? cells->alloc_len : 0, alloc_len);
 	cells = (VteCells *)g_realloc (cells, G_STRUCT_OFFSET (VteCells, cells) + alloc_len * sizeof (cells->cells[0]));
 	cells->alloc_len = alloc_len;
 
@@ -71,7 +73,9 @@ _vte_cells_realloc (VteCells *cells, guint32 len)
 static void
 _vte_cells_free (VteCells *cells)
 {
-	_vte_debug_print(VTE_DEBUG_RING, "Freeing cell array of %d cells\n", cells->alloc_len);
+	_vte_debug_print(vte::debug::category::RING,
+                         "Freeing cell array of {} cells",
+                         cells->alloc_len);
 	g_free (cells);
 }
 

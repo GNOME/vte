@@ -24,7 +24,7 @@
 
 #include <unicode/errorcode.h>
 
-#include "debug.h"
+#include "debug.hh"
 #include "icu-glue.hh"
 
 namespace vte::base {
@@ -71,8 +71,8 @@ ICUConverter::convert(std::string_view const& data)
                                       data.data(), data.size(),
                                       err);
         if (err.isFailure() && (err.get() != U_BUFFER_OVERFLOW_ERROR)) {
-                _vte_debug_print(VTE_DEBUG_CONVERSION,
-                                 "Error converting from UTF-8 to UTF-16 in preflight: %s\n",
+                _vte_debug_print(vte::debug::category::CONVERSION,
+                                 "Error converting from UTF-8 to UTF-16 in preflight: {}",
                                  err.errorName());
                 return {};
         }
@@ -90,8 +90,8 @@ ICUConverter::convert(std::string_view const& data)
                                  data.size(),
                                  err);
         if (err.isFailure()) {
-                _vte_debug_print(VTE_DEBUG_CONVERSION,
-                                 "Error converting from UTF-8 to UTF-16: %s\n",
+                _vte_debug_print(vte::debug::category::CONVERSION,
+                                 "Error converting from UTF-8 to UTF-16: {}",
                                  err.errorName());
                 return {};
         }
@@ -105,8 +105,8 @@ ICUConverter::convert(std::string_view const& data)
                                            u16_size,
                                            err);
         if (err.isFailure() && (err.get() != U_BUFFER_OVERFLOW_ERROR)) {
-                _vte_debug_print(VTE_DEBUG_CONVERSION,
-                                 "Error converting from UTF-8 to %s in preflight: %s\n",
+                _vte_debug_print(vte::debug::category::CONVERSION,
+                                 "Error converting from UTF-8 to {} in preflight: {}",
                                  m_charset.c_str(),
                                  err.errorName());
                 return {};
@@ -125,8 +125,8 @@ ICUConverter::convert(std::string_view const& data)
                                       u16_size,
                                       err);
         if (err.isFailure()) {
-                _vte_debug_print(VTE_DEBUG_CONVERSION,
-                                 "Error converting from UTF-16 to %s: %s\n",
+                _vte_debug_print(vte::debug::category::CONVERSION,
+                                 "Error converting from UTF-16 to {}: {}",
                                  m_charset.c_str(),
                                  err.errorName());
                 return {};

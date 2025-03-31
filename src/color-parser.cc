@@ -31,6 +31,8 @@
 
 #include <fast_float/fast_float.h>
 
+#include <fmt/format.h>
+
 #include "color-names.hh"
 
 namespace vte::color::impl {
@@ -508,14 +510,10 @@ to_string(color_tuple const& tuple,
 {
         switch (fmt) {
                 using enum color_output_format;
-        case HEX: {
-                char buf[32];
-                auto const len = g_snprintf(buf,
-                                            sizeof(buf),
-                                            alpha ? "#%08X" : "#%06X",
-                                            unsigned(impl::to_bits(tuple, 8, alpha)));
-                return {buf, size_t(len)};
-        }
+        case HEX:
+                return fmt::format("#{:0{}X}",
+                                   unsigned(impl::to_bits(tuple, 8, alpha)),
+                                   alpha ? 8 : 6);
 
         default:
                 __builtin_unreachable();

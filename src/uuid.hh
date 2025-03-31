@@ -146,9 +146,9 @@ public:
                 return operator==(uuid(), *this);
         }
 
-        vte::glib::StringPtr g_str(format fmt = format::SIMPLE) const;
-
         std::string str(format fmt = format::SIMPLE) const;
+
+        constexpr uint8_t const* bytes() const noexcept { return m_bytes; }
 
 private:
         uint8_t m_bytes[16]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};

@@ -21,7 +21,7 @@
 #include "fonts-pangocairo.hh"
 
 #include "cairo-glue.hh"
-#include "debug.h"
+#include "debug.hh"
 #include "vtedefines.hh"
 
 /* Have a space between letters to make sure ligatures aren't used when caching the glyphs: bug 793391. */
@@ -175,9 +175,9 @@ FontInfo::cache_ascii()
 	}
 
 #if VTE_DEBUG
-	_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
-			  "vtepangocairo: %p cached %d ASCII letters\n",
-			  (void*)this, m_coverage_count[0]);
+	_vte_debug_print(vte::debug::category::PANGOCAIRO,
+                         "vtepangocairo: {} cached {} ASCII letters",
+                         (void*)this, m_coverage_count[0]);
 #endif
 }
 
@@ -219,9 +219,9 @@ FontInfo::measure_font()
 
 FontInfo::FontInfo(vte::glib::RefPtr<PangoContext> context)
 {
-	_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
-			  "vtepangocairo: %p allocating FontInfo\n",
-			  (void*)this);
+	_vte_debug_print(vte::debug::category::PANGOCAIRO,
+                         "vtepangocairo: {} allocating FontInfo",
+                         (void*)this);
 
 	m_layout = vte::glib::take_ref(pango_layout_new(context.get()));
 
@@ -258,7 +258,8 @@ FontInfo::FontInfo(vte::glib::RefPtr<PangoContext> context)
                  * we only use the metrics when its height is at least that which we measured.
                  */
                 if (ascent > 0 && height >= m_height) {
-                        _vte_debug_print(VTE_DEBUG_PANGOCAIRO, "Using pango metrics\n");
+                        _vte_debug_print(vte::debug::category::PANGOCAIRO,
+                                         "Using pango metrics");
 
                         m_ascent = ascent;
                         m_height = height;
@@ -266,17 +267,23 @@ FontInfo::FontInfo(vte::glib::RefPtr<PangoContext> context)
                         m_width = width;
 #endif
                 } else if (ascent >= 0 && height > 0) {
-                        _vte_debug_print(VTE_DEBUG_PANGOCAIRO, "Disregarding pango metrics due to incorrect height (%d < %d)\n",
-                                         height, m_height);
+                        _vte_debug_print(vte::debug::category::PANGOCAIRO,
+                                         "Disregarding pango metrics due to incorrect height ({} < {})",
+                                         height,
+                                         m_height);
                 } else {
-                        _vte_debug_print(VTE_DEBUG_PANGOCAIRO, "Not using pango metrics due to not providing height or ascent\n");
+                        _vte_debug_print(vte::debug::category::PANGOCAIRO,
+                                         "Not using pango metrics due to not providing height or ascent");
                 }
 	}
 #endif /* pango >= 1.44 */
 
-	_vte_debug_print (VTE_DEBUG_PANGOCAIRO | VTE_DEBUG_MISC,
-			  "vtepangocairo: %p font metrics = %dx%d (%d)\n",
-			  (void*)this, m_width, m_height, m_ascent);
+	_vte_debug_print(vte::debug::category::PANGOCAIRO | vte::debug::category::MISC,
+                         "vtepangocairo: {} font metrics = {}x{} ({})",
+                         (void*)this,
+                         m_width,
+                         m_height,
+                         m_ascent);
 
 	g_hash_table_insert(s_font_info_for_context,
                             pango_layout_get_context(m_layout.get()),
@@ -290,13 +297,13 @@ FontInfo::~FontInfo()
                             pango_layout_get_context(m_layout.get()));
 
 #if VTE_DEBUG
-	_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
-			  "vtepangocairo: %p freeing font_info.  coverages %d = %d + %d + %d\n",
-			  (void*)this,
-			  m_coverage_count[0],
-			  m_coverage_count[1],
-			  m_coverage_count[2],
-			  m_coverage_count[3]);
+	_vte_debug_print(vte::debug::category::PANGOCAIRO,
+                         "vtepangocairo: {} freeing font_info.  coverages {} = {} + {} + {}",
+                         (void*)this,
+                         m_coverage_count[0],
+                         m_coverage_count[1],
+                         m_coverage_count[2],
+                         m_coverage_count[3]);
 #endif
 
 	g_string_free(m_string, true);
@@ -432,9 +439,9 @@ FontInfo::create_for_context(vte::glib::RefPtr<PangoContext> context,
 
 	auto info = reinterpret_cast<FontInfo*>(g_hash_table_lookup(s_font_info_for_context, context.get()));
 	if (G_LIKELY(info)) {
-		_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
-				  "vtepangocairo: %p found FontInfo in cache\n",
-				  info);
+		_vte_debug_print(vte::debug::category::PANGOCAIRO,
+                                 "vtepangocairo: {} found FontInfo in cache",
+                                 (void*)info);
 		info = info->ref();
 	} else {
                 info = new FontInfo{std::move(context)};
