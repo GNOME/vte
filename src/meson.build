@@ -342,6 +342,7 @@ libvte_common_deps = libvte_common_public_deps + [
   libm_dep,
   liblz4_dep,
   pthreads_dep,
+  simdutf_dep,
   systemd_dep,
 ]
 
@@ -532,10 +533,15 @@ if get_option('sixel')
   parser_cat_sources += sixel_parser_sources
 endif
 
+parser_cat_deps = [
+  glib_dep,
+  simdutf_dep,
+]
+
 parser_cat = executable(
   'parser-cat',
   parser_cat_sources,
-  dependencies: [glib_dep,],
+  dependencies: parser_cat_deps,
   cpp_args: ['-DPARSER_INCLUDE_NOP'],
   include_directories: top_inc,
   install: false,
@@ -744,10 +750,15 @@ test_parser_sources = config_sources + parser_sources + files(
   'parser-test.cc',
 )
 
+test_parser_deps = [
+  fast_float_dep,
+  glib_dep
+]
+
 test_parser = executable(
   'test-parser',
   sources: test_parser_sources,
-  dependencies: [glib_dep],
+  dependencies: test_parser_deps,
   cpp_args: ['-DPARSER_INCLUDE_NOP'],
   include_directories: top_inc,
   install: false,
@@ -862,7 +873,6 @@ test_properties = executable(
     cairo_dep,
     cairo_gobject_dep,
     fast_float_dep,
-    simdutf_dep,
   ],
   include_directories: top_inc,
   install: false,

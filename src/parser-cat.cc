@@ -31,6 +31,8 @@
 
 #include <string>
 
+#include <simdutf.h>
+
 #include "debug.h"
 #include "glib-glue.hh"
 #include "libc-glue.hh"
@@ -62,13 +64,6 @@ enum class DataSyntax {
         DECSIXEL,
         #endif
 };
-
-char*
-vte::parser::Sequence::ucs4_to_utf8(gunichar const* str,
-                                    ssize_t len) const noexcept
-{
-        return g_ucs4_to_utf8(str, len, nullptr, nullptr, nullptr);
-}
 
 static constexpr char const*
 seq_to_str(unsigned int type) noexcept
@@ -288,13 +283,18 @@ private:
         void
         print_string(vte::parser::Sequence const& seq) noexcept
         {
-                auto u8str = seq.string_param();
+                auto const u32str = seq.string();
+                auto u8len = simdutf::utf8_length_from_utf32(u32str);
+                // alternatively: auto u8len = 4 * u32str.size();
+                auto u8buf = std::make_unique_for_overwrite<char[]>(u8len);
+                if (!u8buf)
+                        return;
+                u8len = simdutf::convert_utf32_to_utf8
+                        (u32str, std::span<char>(u8buf.get(), u8len));
 
                 m_str.push_back('\"');
-                m_str.append(u8str);
+                m_str.append(u8buf.get(), u8len);
                 m_str.push_back('\"');
-
-                g_free(u8str);
         }
 
         void

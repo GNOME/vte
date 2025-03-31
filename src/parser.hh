@@ -1169,9 +1169,6 @@ public:
 
         typedef int number;
 
-        char* ucs4_to_utf8(gunichar const* str,
-                           ssize_t len = -1) const noexcept;
-
         void print() const noexcept;
 
         /* type:
@@ -1318,51 +1315,18 @@ public:
                 return m_seq->intermediates;
         }
 
-        // FIXMEchpe: upgrade to C++17 and use the u32string_view version below, instead
         /*
          * string:
          *
-         * This is the string argument of a DCS or OSC sequence.
+         * This is the string argument of a DCS, OSC, APC, PM, or SOS sequence.
          *
-         * Returns: the string argument
+         * Returns: the control string
          */
-        inline std::u32string string() const noexcept
+        inline std::u32string_view string() const noexcept
         {
                 size_t len;
                 auto buf = vte_seq_string_get(&m_seq->arg_str, &len);
-                return std::u32string(reinterpret_cast<char32_t*>(buf), len);
-        }
-
-        #if 0
-        /*
-         * string:
-         *
-         * This is the string argument of a DCS or OSC sequence.
-         *
-         * Returns: the string argument
-         */
-        inline constexpr std::u32string_view string() const noexcept
-        {
-                size_t len = 0;
-                auto buf = vte_seq_string_get(&m_seq->arg_str, &len);
-                return std::u32string_view(buf, len);
-        }
-        #endif
-
-        /*
-         * string:
-         *
-         * This is the string argument of a DCS or OSC sequence.
-         *
-         * Returns: the string argument
-         */
-        std::string string_utf8() const noexcept;
-
-        inline char* string_param() const noexcept
-        {
-                size_t len = 0;
-                auto buf = vte_seq_string_get(&m_seq->arg_str, &len);
-                return ucs4_to_utf8(buf, len);
+                return std::u32string_view{reinterpret_cast<char32_t*>(buf), len};
         }
 
         /* size:

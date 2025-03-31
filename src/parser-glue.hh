@@ -425,37 +425,41 @@ public:
 
 }; // class ReplyBuilder
 
-class StringTokeniser {
+template<typename CharT>
+class StringTokeniserBase {
 public:
-        using string_type = std::string;
-        using string_view_type = std::string_view;
-        using char_type = std::string::value_type;
+        using string_type = std::basic_string<CharT>;
+        using string_view_type = std::basic_string_view<CharT>;
+        using char_type = CharT;
+
+        // Can be string_type or string_view_type
+        using tokenstr_type = string_type;
 
 private:
-        string_type const& m_string;
+        tokenstr_type const& m_string;
         char_type m_separator{';'};
 
 public:
-        StringTokeniser(string_type& s,
-                        char_type separator = ';')
+        StringTokeniserBase(tokenstr_type const& s,
+                            char_type separator = ';')
                 : m_string{s},
                   m_separator{separator}
         {
         }
 
-        StringTokeniser(string_type&& s,
-                        char_type separator = ';')
-                : m_string{s},
+        StringTokeniserBase(tokenstr_type&& s,
+                            char_type separator = ';')
+                : m_string{std::move(s)},
                   m_separator{separator}
         {
         }
 
-        StringTokeniser(StringTokeniser const&) = delete;
-        StringTokeniser(StringTokeniser&&) = delete;
-        ~StringTokeniser() = default;
+        StringTokeniserBase(StringTokeniserBase const&) = delete;
+        StringTokeniserBase(StringTokeniserBase&&) = delete;
+        ~StringTokeniserBase() = default;
 
-        StringTokeniser& operator=(StringTokeniser const&) = delete;
-        StringTokeniser& operator=(StringTokeniser&&) = delete;
+        StringTokeniserBase& operator=(StringTokeniserBase const&) = delete;
+        StringTokeniserBase& operator=(StringTokeniserBase&&) = delete;
 
         /*
          * const_iterator:
@@ -465,20 +469,20 @@ public:
         class const_iterator {
         public:
                 using difference_type = ptrdiff_t;
-                using value_type = string_type;
-                using pointer = string_type;
-                using reference = string_type;
+                using value_type = tokenstr_type;
+                using pointer = tokenstr_type;
+                using reference = tokenstr_type;
                 using iterator_category = std::input_iterator_tag;
-                using size_type = string_type::size_type;
+                using size_type = string_view_type::size_type;
 
         private:
-                string_type const* m_string;
+                tokenstr_type const* m_string;
                 char_type m_separator{';'};
-                string_type::size_type m_position;
-                string_type::size_type m_next_separator;
+                string_view_type::size_type m_position;
+                string_view_type::size_type m_next_separator;
 
         public:
-                const_iterator(string_type const* str,
+                const_iterator(tokenstr_type const* str,
                                char_type separator,
                                size_type position)
                         : m_string{str},
@@ -488,7 +492,7 @@ public:
                 {
                 }
 
-                const_iterator(string_type const* str,
+                const_iterator(tokenstr_type const* str,
                                char_type separator)
                         : m_string{str},
                           m_separator{separator},
@@ -519,7 +523,7 @@ public:
 
                 const_iterator& operator=(const_iterator&& o)
                 {
-                        m_string = std::move(o.m_string);
+                        m_string = o.m_string;
                         m_separator = o.m_separator;
                         m_position = o.m_position;
                         m_next_separator = o.m_next_separator;
@@ -538,7 +542,7 @@ public:
 
                 inline const_iterator& operator++() noexcept
                 {
-                        if (m_next_separator != string_type::npos) {
+                        if (m_next_separator != string_view_type::npos) {
                                 m_position = ++m_next_separator;
                                 m_next_separator = m_string->find(m_separator, m_position);
                         } else
@@ -600,7 +604,7 @@ public:
 
                 inline size_type size() const noexcept
                 {
-                        if (m_next_separator != string_type::npos)
+                        if (m_next_separator != string_view_type::npos)
                                 return m_next_separator - m_position;
                         else
                                 return m_string->size() - m_position;
@@ -611,9 +615,19 @@ public:
                         return m_string->size() - m_position;
                 }
 
-                inline string_type operator*() const noexcept
+                inline string_type string() const
                 {
                         return m_string->substr(m_position, size());
+                }
+
+                inline string_view_type string_view() const noexcept
+                {
+                        return string_view_type{*m_string}.substr(m_position, size());
+                }
+
+                inline string_type operator*() const
+                {
+                        return string();
                 }
 
                 /*
@@ -626,11 +640,6 @@ public:
                         return m_string->substr(m_position);
                 }
 
-                /*
-                 * string_remaining:
-                 *
-                 * Returns the whole string left, including possibly more separators.
-                 */
                 inline string_view_type string_view_remaining() const noexcept
                 {
                         return string_view_type{*m_string}.substr(m_position);
@@ -668,7 +677,9 @@ public:
                 return cend();
         }
 
-}; // class StringTokeniser
+}; // class StringTokeniserBase
+
+using StringTokeniser = StringTokeniserBase<char>;
 
 } // namespace parser
 

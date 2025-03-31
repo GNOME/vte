@@ -1542,18 +1542,30 @@ test_seq_glue_string(void)
         g_assert_true(seq.string() == str);
 }
 
+template<typename CharT>
 static void
 test_seq_glue_string_tokeniser(void)
 {
-        std::string str{"a;1b:17:test::b:;3;5;def;17 a;ghi;"s};
+        using string_type = std::basic_string<CharT>;
+        using tokeniser_type = StringTokeniserBase<CharT>;
+        using char_type = CharT;
 
-        StringTokeniser tokeniser{str, ';'};
+        auto L = [](char const* str) constexpr -> auto {
+                auto rv = string_type{};
+                for (auto i = size_t(0); str[i]; ++i)
+                        rv.push_back(char_type(str[i]));
+                return rv;
+        };
+
+        auto str = L("a;1b:17:test::b:;3;5;def;17 a;ghi;65535;65536;-1;");
+
+        auto tokeniser = tokeniser_type{str, ';'};
 
         auto start = tokeniser.cbegin();
         auto end = tokeniser.cend();
 
         auto pit = start;
-        for (auto it : {"a"s, "1b:17:test::b:"s, "3"s, "5"s, "def"s, "17 a"s, "ghi"s, ""s}) {
+        for (auto it : {L("a"), L("1b:17:test::b:"), L("3"), L("5"), L("def"), L("17 a"), L("ghi"), L("65535"), L("65536"), L("-1"), L("")}) {
                 g_assert_true(it == *pit);
 
                 /* Use std::find to see if the InputIterator implementation
@@ -1569,7 +1581,7 @@ test_seq_glue_string_tokeniser(void)
         auto len = str.size();
         size_t pos = 0;
         pit = start;
-        for (auto it : {1, 14, 1, 1, 3, 4, 3, 0}) {
+        for (auto it : {1, 14, 1, 1, 3, 4, 3, 5, 5, 2, 0}) {
                 g_assert_cmpuint(it, ==, pit.size());
                 g_assert_cmpuint(len, ==, pit.size_remaining());
 
@@ -1584,19 +1596,20 @@ test_seq_glue_string_tokeniser(void)
         g_assert_cmpuint(pos, ==, str.size() + 1);
 
         pit = start;
-        for (auto it : {-2, -2, 3, 5, -2, -2, -2, -1}) {
-                int num;
-                bool v = pit.number(num);
-                if (it == -2)
-                        g_assert_false(v);
-                else
-                        g_assert_cmpint(it, ==, num);
+        for (auto it : {-2, -2, 3, 5, -2, -2, -2, 65535, -2, -2, -1}) {
+                auto v = pit.number();
+                if (it == -2) {
+                        g_assert_false(bool(v));
+                } else {
+                        g_assert_true(bool(v));
+                        g_assert_cmpint(it, ==, *v);
+                }
 
                 ++pit;
         }
 
         /* Test range for */
-        for (auto it : tokeniser)
+        for ([[maybe_unused]] auto it : tokeniser)
                 ;
 
         /* Test different separator */
@@ -1604,10 +1617,10 @@ test_seq_glue_string_tokeniser(void)
         ++pit;
 
         auto substr = *pit;
-        StringTokeniser subtokeniser{substr, ':'};
+        auto subtokeniser = tokeniser_type{substr, ':'};
 
         auto subpit = subtokeniser.cbegin();
-        for (auto it : {"1b"s, "17"s, "test"s, ""s, "b"s, ""s}) {
+        for (auto it : {L("1b"), L("17"), L("test"), L(""), L("b"), L("")}) {
                 g_assert_true(it == *subpit);
 
                 ++subpit;
@@ -1615,36 +1628,36 @@ test_seq_glue_string_tokeniser(void)
         g_assert_true(subpit == subtokeniser.cend());
 
         /* Test another string, one that doesn't end with an empty token */
-        std::string str2{"abc;defghi"s};
-        StringTokeniser tokeniser2{str2, ';'};
+        auto str2 = L("abc;defghi");
+        auto tokeniser2 = tokeniser_type{str2, ';'};
 
         g_assert_cmpint(std::distance(tokeniser2.cbegin(), tokeniser2.cend()), ==, 2);
         auto pit2 = tokeniser2.cbegin();
-        g_assert_true(*pit2 == "abc"s);
+        g_assert_true(*pit2 == L("abc"));
         ++pit2;
-        g_assert_true(*pit2 == "defghi"s);
+        g_assert_true(*pit2 == L("defghi"));
         ++pit2;
         g_assert_true(pit2 == tokeniser2.cend());
 
         /* Test another string, one that starts with an empty token */
-        std::string str3{";abc"s};
-        StringTokeniser tokeniser3{str3, ';'};
+        auto str3 = L(";abc");
+        auto tokeniser3 = tokeniser_type{str3, ';'};
 
         g_assert_cmpint(std::distance(tokeniser3.cbegin(), tokeniser3.cend()), ==, 2);
         auto pit3 = tokeniser3.cbegin();
-        g_assert_true(*pit3 == ""s);
+        g_assert_true(*pit3 == L(""));
         ++pit3;
-        g_assert_true(*pit3 == "abc"s);
+        g_assert_true(*pit3 == L("abc"));
         ++pit3;
         g_assert_true(pit3 == tokeniser3.cend());
 
         /* And try an empty string, which should split into one empty token */
-        std::string str4{""s};
-        StringTokeniser tokeniser4{str4, ';'};
+        auto str4 = L("");
+        auto tokeniser4 = tokeniser_type{str4, ';'};
 
         g_assert_cmpint(std::distance(tokeniser4.cbegin(), tokeniser4.cend()), ==, 1);
         auto pit4 = tokeniser4.cbegin();
-        g_assert_true(*pit4 == ""s);
+        g_assert_true(*pit4 == L(""));
         ++pit4;
         g_assert_true(pit4 == tokeniser4.cend());
 }
@@ -1693,7 +1706,10 @@ main(int argc,
         g_test_add_func("/vte/parser/sequences/glue/bignum", test_seq_glue_bignum);
         g_test_add_func("/vte/parser/sequences/glue/uchar", test_seq_glue_uchar);
         g_test_add_func("/vte/parser/sequences/glue/string", test_seq_glue_string);
-        g_test_add_func("/vte/parser/sequences/glue/string-tokeniser", test_seq_glue_string_tokeniser);
+        g_test_add_func("/vte/parser/sequences/glue/string-tokeniser/char", test_seq_glue_string_tokeniser<char>);
+        // requires newest fast_float
+        // g_test_add_func("/vte/parser/sequences/glue/string-tokeniser/char8_t", test_seq_glue_string_tokeniser<char8_t>);
+        g_test_add_func("/vte/parser/sequences/glue/string-tokeniser/char32_t", test_seq_glue_string_tokeniser<char32_t>);
         g_test_add_func("/vte/parser/sequences/glue/sequence-builder", test_seq_glue_sequence_builder);
         g_test_add_func("/vte/parser/sequences/glue/reply-builder", test_seq_glue_reply_builder);
         g_test_add_func("/vte/parser/sequences/control", test_seq_control);

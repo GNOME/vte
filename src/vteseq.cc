@@ -40,6 +40,11 @@
 #define ST_C0 _VTE_CAP_ST
 
 #include <algorithm>
+#include <string>
+#include <string_view>
+#include <version>
+
+#include <simdutf.h>
 
 using namespace std::literals;
 
@@ -88,11 +93,13 @@ vte::parser::Sequence::print() const noexcept
                 }
                 g_printerr(" ]");
         }
+#if 0
         if (m_seq->type == VTE_SEQ_OSC || m_seq->type == VTE_SEQ_DCS) {
                 char* str = string_param();
                 g_printerr(" \"%s\"", str);
                 g_free(str);
         }
+#endif
         g_printerr("\n");
 #endif
 }
@@ -139,60 +146,6 @@ vte::parser::Sequence::command_string() const
                 snprintf(buf, sizeof(buf), "NOP OR UNKOWN(%u)", command());
                 return buf;
         }
-}
-
-// FIXMEchpe optimise this
-std::string
-vte::parser::Sequence::string_utf8() const noexcept
-{
-        std::string str;
-
-        size_t len;
-        auto buf = vte_seq_string_get(&m_seq->arg_str, &len);
-
-        char u[6];
-        for (size_t i = 0; i < len; ++i) {
-                auto ulen = g_unichar_to_utf8(buf[i], u);
-                str.append((char const*)u, ulen);
-        }
-
-        return str;
-}
-
-/* A couple are duplicated from vte.c, to keep them static... */
-
-/* Check how long a string of unichars is.  Slow version. */
-static gsize
-vte_unichar_strlen(gunichar const* c)
-{
-	gsize i;
-	for (i = 0; c[i] != 0; i++) ;
-	return i;
-}
-
-/* Convert a wide character string to a multibyte string */
-/* Simplified from glib's g_ucs4_to_utf8() to simply allocate the maximum
- * length instead of walking the input twice.
- */
-char*
-vte::parser::Sequence::ucs4_to_utf8(gunichar const* str,
-                                    ssize_t len) const noexcept
-{
-        if (len < 0)
-                len = vte_unichar_strlen(str);
-        auto outlen = (len * VTE_UTF8_BPC) + 1;
-
-        auto result = (char*)g_try_malloc(outlen);
-        if (result == nullptr)
-                return nullptr;
-
-        auto end = str + len;
-        auto p = result;
-        for (auto i = str; i < end; i++)
-                p += g_unichar_to_utf8(*i, p);
-        *p = '\0';
-
-        return result;
 }
 
 namespace vte {
@@ -7716,6 +7669,7 @@ Terminal::NUL(vte::parser::Sequence const& seq)
 
 void
 Terminal::OSC(vte::parser::Sequence const& seq)
+try
 {
         /*
          * OSC - operating system command
@@ -7731,17 +7685,32 @@ Terminal::OSC(vte::parser::Sequence const& seq)
          * First, extract the number.
          */
 
-        auto str = seq.string_utf8();
+        auto const u32str = seq.string();
+
+        auto str = std::string{};
+#if defined(__cpp_lib_string_resize_and_overwrite) && __cpp_lib_string_resize_and_overwrite >= 202110l
+        str.resize_and_overwrite
+                (simdutf::utf8_length_from_utf32(u32str),
+                 [&](char* data,
+                     size_t data_size) constexpr noexcept -> size_t {
+                         return simdutf::convert_utf32_to_utf8
+                                 (u32str, std::span<char>(data, data_size));
+                 });
+#else
+        str.resize(simdutf::utf8_length_from_utf32(u32str) + 1);
+        str.resize(simdutf::convert_utf32_to_utf8(u32str, std::span<char>(str.data(), str.size())));
+#endif // C++23
+
         vte::parser::StringTokeniser tokeniser{str, ';'};
         auto it = tokeniser.cbegin();
-        int osc;
-        if (!it.number(osc))
+        auto const osc = it.number();
+        if (!osc)
                 return;
 
         auto const cend = tokeniser.cend();
         ++it; /* could now be cend */
 
-        switch (osc) {
+        switch (*osc) {
         case VTE_OSC_VTECWF:
                 set_termprop_uri(seq, it, cend,
                                  VTE_PROPERTY_ID_CURRENT_FILE_URI,
@@ -7793,31 +7762,31 @@ Terminal::OSC(vte::parser::Sequence const& seq)
         }
 
         case VTE_OSC_XTERM_SET_COLOR:
-                set_color(seq, it, cend, OSCValuedColorSequenceKind::XTermColor, osc);
+                set_color(seq, it, cend, OSCValuedColorSequenceKind::XTermColor, *osc);
                 break;
 
         case VTE_OSC_XTERM_SET_COLOR_SPECIAL:
-                set_color(seq, it, cend, OSCValuedColorSequenceKind::XTermSpecialColor, osc);
+                set_color(seq, it, cend, OSCValuedColorSequenceKind::XTermSpecialColor, *osc);
                 break;
 
         case VTE_OSC_XTERM_SET_COLOR_TEXT_FG:
-                set_special_color(seq, it, cend, ColorPaletteIndex::default_fg(), osc);
+                set_special_color(seq, it, cend, ColorPaletteIndex::default_fg(), *osc);
                 break;
 
         case VTE_OSC_XTERM_SET_COLOR_TEXT_BG:
-                set_special_color(seq, it, cend, ColorPaletteIndex::default_bg(), osc);
+                set_special_color(seq, it, cend, ColorPaletteIndex::default_bg(), *osc);
                 break;
 
         case VTE_OSC_XTERM_SET_COLOR_CURSOR_BG:
-                set_special_color(seq, it, cend, ColorPaletteIndex::cursor_bg(), osc);
+                set_special_color(seq, it, cend, ColorPaletteIndex::cursor_bg(), *osc);
                 break;
 
         case VTE_OSC_XTERM_SET_COLOR_HIGHLIGHT_BG:
-                set_special_color(seq, it, cend, ColorPaletteIndex::highlight_bg(), osc);
+                set_special_color(seq, it, cend, ColorPaletteIndex::highlight_bg(), *osc);
                 break;
 
         case VTE_OSC_XTERM_SET_COLOR_HIGHLIGHT_FG:
-                set_special_color(seq, it, cend, ColorPaletteIndex::highlight_fg(), osc);
+                set_special_color(seq, it, cend, ColorPaletteIndex::highlight_fg(), *osc);
                 break;
 
         case VTE_OSC_XTERM_RESET_COLOR:
@@ -7903,6 +7872,10 @@ Terminal::OSC(vte::parser::Sequence const& seq)
         default:
                 break;
         }
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 void
