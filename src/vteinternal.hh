@@ -801,11 +801,7 @@ public:
         long m_hyperlink_auto_id{0};
 
         /* Accessibility support */
-#if VTE_GTK == 3
         bool m_enable_a11y{true};
-#elif VTE_GTK == 4
-        bool m_enable_a11y{false};
-#endif
 
         /* RingView and friends */
         vte::base::RingView m_ringview;
