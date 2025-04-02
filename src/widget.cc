@@ -1740,6 +1740,17 @@ Widget::notify_termprops_changed(int const* props,
                       &retval);
 }
 
+void
+Widget::notify_systemd_context(VteSystemdContextOperation op,
+                               vte::property::Store const& properties) const noexcept
+{
+        g_signal_emit(object(),
+                      signals[SIGNAL_SYSTEMD_CONTEXT],
+                      0, // detail,
+                      op,
+                      _vte_facade_wrap_pr(properties));
+}
+
 #if VTE_GTK == 3
 
 std::optional<ScrollEvent>

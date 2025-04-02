@@ -747,6 +747,9 @@ protected:
         void notify_termprops_changed(int const* props,
                                       int n_props) noexcept;
 
+        void notify_systemd_context(VteSystemdContextOperation op,
+                                    vte::property::Store const& properties) const noexcept;
+
 public:
 
         auto const& termprops() const noexcept

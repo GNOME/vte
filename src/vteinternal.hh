@@ -55,6 +55,7 @@
 #include "fwd.hh"
 #include "color-palette.hh"
 #include "osc-colors.hh"
+#include "systemdcontext.hh"
 #include "rect.hh"
 
 #include "pcre2-glue.hh"
@@ -770,11 +771,12 @@ public:
 
         enum class PendingChanges {
                 TERMPROPS = 1u << 0,
+                SYSTEMD_CONTEXT = 1u << 1,
 
                 // deprecated but still emitted for now
-                TITLE = 1u << 1,
-                CWD   = 1u << 2,
-                CWF   = 1u << 3,
+                TITLE = 1u << 2,
+                CWD   = 1u << 3,
+                CWF   = 1u << 4,
         };
         unsigned m_pending_changes{0};
 
@@ -892,6 +894,9 @@ public:
         {
                 return m_enable_legacy_osc777;
         }
+
+        // Systemd contexts
+        std::vector<std::unique_ptr<vte::systemd::Context>> m_systemd_contexts_pending{};
 
 public:
 
@@ -1829,6 +1834,9 @@ public:
         void conemu_extension(vte::parser::Sequence const& seq,
                               vte::parser::StringTokeniser::const_iterator& token,
                               vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+        void systemd_extension(vte::parser::Sequence const& seq,
+                               vte::parser::StringTokeniser::const_iterator& token,
+                               vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
 
         // helpers
 

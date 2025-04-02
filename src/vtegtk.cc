@@ -2203,6 +2203,46 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                    g_cclosure_marshal_VOID__POINTERv);
 
         /**
+         * VteTerminal::systemd-context:
+         * @vteterminal: the object which received the signal
+         * @op: whether the context was opened or closed
+         * @properties: the #VteProperties associated with the context
+         *
+         * The "systemd-context" signal is emitted when a systemd context
+         * is opened or closed. The context's properties are passed as
+         * a #VteProperties; see its documentation for how to retrieve
+         * individual properties and the list of properties in
+         * #VteSystemPropertyId and the %VTE_SYSTEM_PROPERTY_*
+         * property names.
+         *
+         * The handler may use the vte_properties_get_*()
+         * functions (and their by-ID variants), to retrieve the value of
+         * any property, as well as call any other getter on #VteTerminal,
+         * but it must not call any setter (even on a parent class).
+         *
+         * Note that @properties is only valid during the signal emission;
+         * you may not retain it to call methods on it afterwards.
+         *
+         * Since: 0.82
+         */
+        signals[SIGNAL_SYSTEMD_CONTEXT] =
+                g_signal_new(I_("systemd-context"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             GSignalFlags(G_SIGNAL_RUN_LAST |
+                                          G_SIGNAL_DETAILED),
+                             G_STRUCT_OFFSET(VteTerminalClass, systemd_context),
+                             nullptr,
+                             nullptr,
+                             _vte_marshal_VOID__ENUM_POINTER,
+                             G_TYPE_NONE,
+                             1,
+                             VTE_TYPE_SYSTEMD_CONTEXT_OPERATION,
+                             VTE_TYPE_PROPERTIES | G_SIGNAL_TYPE_STATIC_SCOPE);
+        g_signal_set_va_marshaller(signals[SIGNAL_SYSTEMD_CONTEXT],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   _vte_marshal_VOID__ENUM_POINTERv);
+
+        /**
          * VteTerminal:allow-bold:
          *
          * Controls whether or not the terminal will attempt to draw bold text,

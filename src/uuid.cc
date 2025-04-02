@@ -69,7 +69,7 @@ uuid::str(uuid::format fmt) const
         case SIMPLE: fmtstr = "{:s}"sv; break;
         case BRACED: fmtstr = "{:b}"sv; break;
         case URN:    fmtstr = "{:u}"sv; break;
-                //case ID128:  fmtstr = "{:i}"sv;
+        case ID128:  fmtstr = "{:i}"sv; break;
         default: __builtin_unreachable(); return {};
         }
         return fmt::format(fmt::runtime(fmtstr), *this);
@@ -80,6 +80,7 @@ uuid::uuid(std::string_view str,
            uuid::format fmt) // throws
 {
         auto dashes = 0b0000'0010'1010'1000u;
+        auto size = 36u;
 
         if (str.starts_with("urn:uuid:")) {
                 if ((fmt & uuid::format::URN) == uuid::format{})
@@ -95,12 +96,15 @@ uuid::uuid(std::string_view str,
 
                 str.remove_prefix(1);
                 str.remove_suffix(1);
+        } else if ((fmt & uuid::format::ID128) == uuid::format::ID128) {
+                dashes = 0u;
+                size = 32;
         } else {
                 if ((fmt & uuid::format::SIMPLE) == uuid::format{})
                         throw std::invalid_argument{"simple format not accepted"};
         }
 
-        if (str.size() != 36)
+        if (str.size() != size)
                 throw std::invalid_argument{"Invalid length"};
 
         for (auto i = 0u, j = 0u; i < 16; ) {
@@ -119,6 +123,9 @@ uuid::uuid(std::string_view str,
         }
 
         if (is_nil()) [[unlikely]] // special exception, don't check version/variant
+                return;
+
+        if (!dashes) // version and variant not set for ID128
                 return;
 
         if (auto const v = version(); v == 0 || v > 5) [[unlikely]]
@@ -207,7 +214,7 @@ formatter<vte::uuid>::format(vte::uuid const& u,
         case SIMPLE: break;
         case BRACED: *it = '{'; ++it; break;
         case URN: it = fmt::format_to(it, "urn:uuid:"); break;
-                // case ID128: dashes = 0u; break;
+        case ID128: dashes = 0u; break;
         default: __builtin_unreachable();
                 g_assert_not_reached();
                 break;

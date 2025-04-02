@@ -2088,6 +2088,36 @@ vteapp_terminal_icon_image_changed_cb(VteappTerminal* terminal,
 }
 
 static void
+vteapp_terminal_systemd_context_cb(VteTerminal* terminal,
+                                   VteSystemdContextOperation op,
+                                   VteProperties const* properties,
+                                   void* user_data)
+{
+        auto opstr = [](VteSystemdContextOperation o) -> char const*
+        {
+                if (o == VTE_SYSTEMD_CONTEXT_OPERATION_START)
+                        return "start";
+                if (o == VTE_SYSTEMD_CONTEXT_OPERATION_END)
+                        return "end";
+                __builtin_unreachable();
+        };
+
+        verbose_println("Systemd context {}:", opstr(op));
+
+        auto const registry = vte_properties_get_registry(properties);
+        auto const props = vte::glib::take_free_ptr(vte_properties_registry_get_properties(registry, nullptr));
+        for (auto prop = props.get(); *prop; ++prop) {
+                if (auto value = vte::take_freeable
+                    (vte_properties_ref_property_variant(properties, *prop))) {
+                        auto vstr = vte::glib::take_string
+                                (g_variant_print(value.get(), true));
+                        verbose_println("  {} = {}", *prop, vstr.get());
+                }
+        }
+        verbose_println("");
+}
+
+static void
 vteapp_terminal_realize(GtkWidget* widget)
 {
         GTK_WIDGET_CLASS(vteapp_terminal_parent_class)->realize(widget);
@@ -2447,6 +2477,9 @@ vteapp_terminal_init(VteappTerminal *terminal)
                          G_CALLBACK(vteapp_terminal_icon_color_changed_cb), nullptr);
         g_signal_connect(terminal, "termprop-changed::" VTE_TERMPROP_ICON_IMAGE,
                          G_CALLBACK(vteapp_terminal_icon_image_changed_cb), nullptr);
+
+        g_signal_connect(terminal, "systemd-context",
+                         G_CALLBACK(vteapp_terminal_systemd_context_cb), nullptr);
 
         terminal->background_pattern = nullptr;
         terminal->has_backdrop = false;

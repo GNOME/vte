@@ -11108,6 +11108,15 @@ Terminal::emit_pending_signals()
                 }
         }
 
+	if (m_pending_changes & vte::to_integral(PendingChanges::SYSTEMD_CONTEXT)) {
+                for (auto&& context : m_systemd_contexts_pending) {
+                        widget()->notify_systemd_context(context->op(),
+                                                         context->properties());
+                }
+
+                m_systemd_contexts_pending.clear();
+        }
+
         if (!m_no_legacy_signals) {
                 // Emit deprecated signals and notify:: for deprecated properties,
 

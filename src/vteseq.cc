@@ -2237,6 +2237,100 @@ catch (...)
         // nothing to do here
 }
 
+// systemd_extension:
+//
+// Parse a systemd OSC 3008 sequence.
+void
+Terminal::systemd_extension(vte::parser::Sequence const& seq,
+                            vte::parser::StringTokeniser::const_iterator& token,
+                            vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
+try
+{
+        // This is a new feature, so reject BEL-terminated OSC.
+        if (seq.is_st_bel())
+                return;
+
+        if (token == endtoken)
+                return;
+
+        // Parse start/end and ID
+        auto const initstr = *token;
+        auto const initeq = initstr.find('='); // possibly npos
+        if (initeq == initstr.npos)
+                return;
+
+        auto const cmd = vte::systemd::parse_context_operation(initstr.substr(0, initeq));
+        if (!cmd)
+                return;
+
+        auto const id = vte::property::parse_systemd_context_id(initstr.substr(initeq + 1));
+        if (!id)
+                return;
+
+        m_pending_changes |= vte::to_integral(PendingChanges::SYSTEMD_CONTEXT);
+
+#if 0
+        // See if there's already a context with this ID pending
+        if (auto it = std::find_if(std::rbegin(m_systemd_contexts_pending),
+                                   std::rend(m_systemd_contexts_pending),
+                                   [&](auto&& ctx) constexpr noexcept -> bool {
+                                           return ctx->id() == *id;
+                                   });
+            it != std::rend(m_systemd_contexts_pending)) {
+                // Could coalesce ending an open context and removing
+                // all open contexts above it, but the embedder may
+                // want to observe the contexts above.
+                // FIXME: think about this API some more
+        }
+#endif
+
+        // Too many contexts pending, cannot add more
+        if (m_systemd_contexts_pending.size() >= 16)
+                return;
+
+        m_systemd_contexts_pending.push_back(std::make_unique<vte::systemd::Context>(*cmd, *id));
+        auto& ctx = m_systemd_contexts_pending.back();
+
+        auto const prop_flag = (*cmd == VTE_SYSTEMD_CONTEXT_OPERATION_START)
+                ? vte::property::Flags::SYSTEMD_START
+                : vte::property::Flags::SYSTEMD_END;
+
+        // Parse properties
+        while (++token != endtoken) {
+                auto const str = *token;
+                auto const eq = str.find("="); // possibly str.npos
+
+                auto const info = ctx->properties().registry().lookup(str.substr(0, eq));
+                if (!info)
+                        continue; // ignore unknown properties
+
+                // Only set the properties allowed for the operation
+                if ((info->flags() & vte::property::Flags::SYSTEMD) != prop_flag)
+                        continue;
+
+                // No-OSC properties cannot be set here
+                if ((info->flags() & vte::property::Flags::NO_OSC) == vte::property::Flags::NO_OSC)
+                        continue;
+
+                if (eq == str.npos) {
+                        // Reset
+                        *ctx->properties().value(*info) = {};
+                } else {
+                        // Assignment
+                        if (auto value = info->parse(str.substr(eq + 1))) {
+                                *ctx->properties().value(*info) = std::move(*value);
+                        } else {
+                                // Reset
+                                *ctx->properties().value(*info) = {};
+                        }
+                }
+        }
+}
+catch (...)
+{
+        // nothing to do here?
+}
+
 // collect_rect:
 // @seq:
 // @idx:
@@ -7761,6 +7855,10 @@ try
 
         case VTE_OSC_CONEMU_EXTENSION:
                 conemu_extension(seq, it, cend);
+                break;
+
+        case VTE_OSC_VTE_SYSTEMD:
+                systemd_extension(seq, it, cend);
                 break;
 
         case VTE_OSC_XTERM_SET_ICON_TITLE:

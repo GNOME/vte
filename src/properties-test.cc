@@ -392,6 +392,124 @@ test_termprops_uri(void)
         assert_termprop_parse_nothing(Type::URI, "data:text/plain%3BQbase64,Qo=");
 }
 
+static void
+assert_systemdprop_parse_nothing(vte::property::Type type,
+                                 std::string_view const& str,
+                                 int line = __builtin_LINE()) noexcept
+{
+        auto value = parse_systemd_property_value(type, str);
+        assert(!value);
+}
+
+template<typename T>
+static void
+assert_systemdprop_parse_value(vte::property::Type type,
+                                std::string_view const& str,
+                                T const& expected_value = {},
+                                int line = __builtin_LINE()) noexcept
+{
+        auto const value = parse_systemd_property_value(type, str);
+        assert_property_value(value, expected_value);
+
+        auto tstr = unparse_systemd_prop_value(type, *value);
+        assert(tstr);
+        auto const tvalue = parse_systemd_property_value(type, *tstr);
+        assert_property_value(tvalue, expected_value);
+        assert(value == tvalue);
+        assert(*value == *tvalue);
+}
+
+static void
+test_systemdprops_string(void)
+{
+        assert_systemdprop_parse_value<std::string>(Type::STRING, ""sv, ""s);
+        assert_systemdprop_parse_value<std::string>(Type::STRING, "abc"sv, "abc"s);
+
+        auto const max_len = vte::property::impl::k_max_systemd_string_len;
+
+        auto str = std::string(max_len, 'a');
+        assert_systemdprop_parse_value<std::string>(Type::STRING, str, str);
+
+        str.push_back('a');
+        assert_systemdprop_parse_nothing(Type::STRING, str);
+
+        // Test string value containing the assignment character
+        assert_systemdprop_parse_value<std::string>(Type::STRING, "a=b"sv, "a=b"s);
+
+        // Test escapes
+        assert_systemdprop_parse_value<std::string>(Type::STRING, "a\\x3bb\\x5cc\\x3b\\x5c"sv, "a;b\\c;\\"s);
+
+        // Missing or invalid escapes
+        assert_systemdprop_parse_nothing(Type::STRING, "a\\"sv);
+        assert_systemdprop_parse_nothing(Type::STRING, "a\\x"sv);
+        assert_systemdprop_parse_nothing(Type::STRING, "a\\x3"sv);
+
+        for (auto i = 0x20; i < 0x100; ++i) {
+                if (i == 0x3b || i == 0x5c)
+                        continue;
+
+                char buf[32];
+                g_snprintf(buf, sizeof(buf), "p\\x%dq", i);
+                assert_systemdprop_parse_nothing(Type::STRING, {buf});
+        }
+
+        for (auto i = 0x20; i < 0x7f; ++i) {
+                if (i == 'x')
+                        continue;
+
+                char buf[32];
+                g_snprintf(buf, sizeof(buf), "0\\%c123456789abcdef", i);
+                assert_systemdprop_parse_nothing(Type::STRING, {buf});
+        }
+}
+
+static void
+test_systemdprops_uuid(void)
+{
+        auto const uuid = VTE_DEFINE_UUID(49ec5248, 2d9a, 493f, 99fa, 9e1cfb95b430);
+        assert_systemdprop_parse_value<vte::uuid>(Type::UUID, "49ec5248-2d9a-493f-99fa-9e1cfb95b430"sv, uuid);
+        assert_systemdprop_parse_value<vte::uuid>(Type::UUID, "{49ec5248-2d9a-493f-99fa-9e1cfb95b430}"sv, uuid);
+        assert_systemdprop_parse_value<vte::uuid>(Type::UUID, "urn:uuid:49ec5248-2d9a-493f-99fa-9e1cfb95b430"sv, uuid);
+        assert_systemdprop_parse_value<vte::uuid>(Type::UUID, "49ec52482d9a493f99fa9e1cfb95b430"sv, uuid); // ID128 form
+
+        assert_systemdprop_parse_nothing(Type::UUID, "49ec5248-2d9a-493f-99fa-9e1cfb95b43"sv);
+        assert_systemdprop_parse_nothing(Type::UUID, "{49ec5248-2d9a-493f-99fa-9e1cfb95b430"sv);
+        assert_systemdprop_parse_nothing(Type::UUID, "urn:49ec5248-2d9a-493f-99fa-9e1cfb95b430"sv);
+        assert_systemdprop_parse_nothing(Type::UUID, "{urn:uuid:49ec5248-2d9a-493f-99fa-9e1cfb95b430}"sv);
+        assert_systemdprop_parse_nothing(Type::UUID, "49ec52482d9a493f99fa9e1cfb95b43"sv);
+        assert_systemdprop_parse_nothing(Type::UUID, "49ec52482d9a493f99fa9e1cfb95b4300"sv);
+}
+
+static void
+test_systemdprops_contextid(void)
+{
+        auto assert_something = [](std::string_view str) -> void {
+                auto const value = parse_systemd_context_id(str);
+                assert(bool(value));
+        };
+        auto assert_nothing = [](std::string_view str) -> void {
+                auto const value = parse_systemd_context_id(str);
+                assert(!bool(value));
+        };
+
+        // UUID
+        assert_something("49ec5248-2d9a-493f-99fa-9e1cfb95b430"sv);
+        assert_something("{49ec5248-2d9a-493f-99fa-9e1cfb95b430}"sv);
+        assert_something("urn:uuid:49ec5248-2d9a-493f-99fa-9e1cfb95b430"sv);
+        // ID128
+        assert_something("49ec52482d9a493f99fa9e1cfb95b430"sv);
+
+        // Empty string
+        assert_nothing(""sv);
+
+        // Any string <= 64 characters in length
+        for (auto len = size_t{1}; len <= 64; ++len)
+                assert_something(std::string(len, 'z'));
+
+        // Overlength strings
+        assert_nothing(std::string(65, 'z'));
+}
+
 int
 main(int argc,
      char* argv[])
@@ -411,7 +529,9 @@ main(int argc,
         g_test_add_func("/vte/property/termprops/type/data", test_termprops_data);
         g_test_add_func("/vte/property/termprops/type/uuid", test_termprops_uuid);
         g_test_add_func("/vte/property/termprops/type/uri", test_termprops_uri);
-;
+        g_test_add_func("/vte/property/systemdprops/type/string", test_systemdprops_string);
+        g_test_add_func("/vte/property/systemdprops/type/uuid", test_systemdprops_uuid);
+        g_test_add_func("/vte/property/systemdprops/contextid", test_systemdprops_contextid);
 
         return g_test_run();
 }
