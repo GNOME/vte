@@ -495,20 +495,29 @@ vte_accessible_text_get_contents_at (GtkAccessibleText            *accessible,
         case GTK_ACCESSIBLE_TEXT_GRANULARITY_WORD: {
                 gunichar ch = vte_accessible_text_contents_get_char_at (contents, offset);
 
-                if (ch == 0 || !impl->is_word_char (ch))
+                if (ch == 0)
                         break;
-
+                if (!impl->is_word_char (ch)) {
+                        /* Find the end of the previous word, updating the offset to this positio n*/
+                        while (offset >= 0 &&
+                               (ch = vte_accessible_text_contents_get_char_at (contents, offset)) &&
+                               !impl->is_word_char (ch)) {
+                                offset--;
+                        }
+                }
                 *start = offset;
                 *end = offset;
 
-                while (*start > 0 &&
-                       (ch = vte_accessible_text_contents_get_char_at (contents, *start - 1)) &&
+                while (*start >= 0 &&
+                       (ch = vte_accessible_text_contents_get_char_at (contents, *start)) &&
                        impl->is_word_char (ch)) {
                         (*start)--;
                 }
+                /* Now, *start points one char before the real word start offset, so adjust it */
+                (*start)++;
 
                 while (*end < contents->n_chars &&
-                       (ch = vte_accessible_text_contents_get_char_at (contents, *end + 1)) &&
+                       (ch = vte_accessible_text_contents_get_char_at (contents, *end)) &&
                        impl->is_word_char (ch)) {
                         (*end)++;
                 }
