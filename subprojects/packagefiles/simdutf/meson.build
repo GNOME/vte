@@ -72,6 +72,7 @@ simdutf_lib = static_library(
   gnu_symbol_visibility: 'hidden',
   include_directories: simdutf_inc,
   install: false,
+  pic: true,
   sources: simdutf_sources,
 )
 
