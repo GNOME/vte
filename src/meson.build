@@ -981,11 +981,18 @@ test_vtetypes_sources = config_sources + libc_glue_sources + files(
    'vtetypes.hh',
 )
 
+test_vtetypes_deps = [
+  fmt_dep,
+  glib_dep,
+  gtk3_dep,
+  pango_dep,
+]
+
 if get_option('gtk3')
   test_vtetypes = executable(
     'test-vtetypes',
     sources: test_vtetypes_sources,
-    dependencies: [glib_dep, pango_dep, gtk3_dep,],
+    dependencies: test_vtetypes_deps,
     cpp_args: ['-DMAIN'],
     include_directories: top_inc,
     install: false,
