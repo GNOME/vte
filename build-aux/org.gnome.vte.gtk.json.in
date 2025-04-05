@@ -1,9 +1,9 @@
 {
-  "app-id": "org.gnome.Vte.App.Gtk3",
+  "app-id": "org.gnome.Vte.App.Gtk@gtk@",
   "runtime": "org.gnome.Platform",
   "runtime-version": "master",
   "sdk": "org.gnome.Sdk",
-  "command": "vte-2.91",
+  "command": "vte-2.91@exesuffix@",
   "finish-args": [
     "--device=dri",
     "--socket=fallback-x11",
@@ -16,8 +16,8 @@
       "buildsystem": "meson",
       "config-opts": [
         "-Dglade=false",
-        "-Dgtk3=true",
-        "-Dgtk4=false",
+        "-Dgtk3=@gtk3@",
+        "-Dgtk4=@gtk4@",
         "-Dvapi=false"
       ],
       "sources": [
