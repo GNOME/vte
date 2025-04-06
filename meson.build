@@ -648,7 +648,6 @@ endforeach
 
 cairo_dep         = dependency('cairo', version: '>=' + cairo_req_version)
 cairo_gobject_dep = dependency('cairo-gobject', version: '>=' + cairo_gobject_req_version)
-fmt_dep           = dependency('fmt',           version: '>=' + fmt_req_version,)
 gio_dep           = dependency('gio-2.0',    version: '>=' + gio_req_version)
 glib_dep          = dependency('glib-2.0',   version: '>=' + glib_req_version)
 gobject_dep       = dependency('gobject-2.0')
@@ -657,6 +656,36 @@ pcre2_dep         = dependency('libpcre2-8', version: '>=' + pcre2_req_version)
 pthreads_dep      = dependency('threads')
 liblz4_dep        = dependency('liblz4', version: '>=' + liblz4_req_version)
 simdutf_dep       = dependency('simdutf', version: '>=' + simdutf_req_version, required: true)
+
+# fmt dep needs a bit more massaging since we don't know
+# if the system fmt is a shared or static library, and in
+# the latter case if it's compiled with PIC. Since vte
+# doesn't need the library anyway and only uses the headers,
+# let's only use the include directory from the system.
+# See https://gitlab.gnome.org/GNOME/vte/-/issues/2875 .
+fmt_sysdep = dependency(
+  'fmt',
+  version: '>=' + fmt_req_version,
+  allow_fallback: false,
+  required: false
+)
+if fmt_sysdep.found()
+  fmt_dep = declare_dependency(
+    compile_args: [
+      '-DFMT_HEADER_ONLY',
+      '-UFMT_SHARED',
+    ],
+    dependencies:
+      [fmt_sysdep.partial_dependency(
+         includes: true,
+       ),
+      ],
+   )
+else
+  # Override fmt with the subproject
+  subproject('fmt')
+  fmt_dep = dependency('fmt', version: '>=' + fmt_req_version)
+endif
 
 if get_option('fribidi')
   fribidi_dep = dependency('fribidi', version: '>=' + fribidi_req_version)
