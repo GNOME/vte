@@ -753,7 +753,10 @@ Terminal::invalidate_cursor_once(bool periodic)
 		}
 	}
 
-	if (m_modes_private.DEC_TEXT_CURSOR()) {
+        // Note that even with invisible cursor, still need
+        // to invalidate if preedit is active.
+        // See https://gitlab.gnome.org/GNOME/vte/-/issues/2873 .
+        if (m_modes_private.DEC_TEXT_CURSOR() || m_im_preedit_active) {
                 auto row = m_screen->cursor.row;
 
 		_vte_debug_print(vte::debug::category::UPDATES,
