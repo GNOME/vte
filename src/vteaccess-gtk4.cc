@@ -448,6 +448,8 @@ vte_accessible_text_get_contents_at (GtkAccessibleText            *accessible,
         contents = &state->contents[state->contents_flip];
 
         if (contents->string == nullptr) {
+                *start = 0;
+                *end = 0;
                 return nullptr;
         }
 
@@ -529,6 +531,8 @@ vte_accessible_text_get_contents_at (GtkAccessibleText            *accessible,
                 break;
         }
 
+        *start = 0;
+        *end = 0;
         return nullptr;
 }
 
