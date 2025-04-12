@@ -7663,7 +7663,7 @@ Terminal::OSC(vte::parser::Sequence const& seq)
                 break;
 
         case VTE_OSC_XTERM_RESET_COLOR_TEXT_BG:
-                reset_color(ColorPaletteIndex::cursor_fg(), ColorSource::Escape);
+                reset_color(ColorPaletteIndex::default_fg(), ColorSource::Escape);
                 break;
 
         case VTE_OSC_XTERM_RESET_COLOR_CURSOR_BG:
