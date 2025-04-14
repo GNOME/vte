@@ -473,7 +473,7 @@ vte_accessible_text_get_contents_at (GtkAccessibleText            *accessible,
                      line++) {
                         guint line_offset = *char_positions_index (&contents->linebreaks, line);
 
-                        if (line_offset > char_offset) {
+                        if (line_offset > offset) {
                                 line--;
                                 break;
                         }
