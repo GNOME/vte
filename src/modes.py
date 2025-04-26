@@ -992,6 +992,15 @@ modes = [
 
     mode_WHAT('CONTOUR_BATCHED_RENDERING', 2026, default=False),
 
+    # "Unicode Core"
+    # https://github.com/contour-terminal/terminal-unicode-core
+    mode_WHAT('CONTOUR_UNICODE_CORE', 2027, default=False),
+
+    mode_WHAT('CONTOUR_TEXT_REFLOW', 2028, default=False),
+    mode_WHAT('CONTOUR_MOUSE_PASSIVE_TRACKING', 2029, default=False),
+    mode_WHAT('CONTOUR_GRID_CELL_SELECTION', 2030, default=False),
+    mode_WHAT('CONTOUR_COLOUR_PALETTE_REPORTS', 2031, default=False),
+
     # DRCSTerm:
 
     # DRCSMM_V1
