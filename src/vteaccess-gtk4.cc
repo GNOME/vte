@@ -685,12 +685,14 @@ vte_accessible_text_get_attributes (GtkAccessibleText        *accessible,
 
         *attribute_names = g_new0 (char *, n_attrs + 1);
         *attribute_values = g_new0 (char *, n_attrs + 1);
-        *n_ranges = 1;
-        *ranges = (GtkAccessibleTextRange *)g_memdup2 (&range, sizeof range);
+        *n_ranges = n_attrs;
+        *ranges = g_new (GtkAccessibleTextRange, n_attrs);
 
         for (i = 0; i < n_attrs; i++) {
                 (*attribute_names)[i] = g_strdup (attrs[i].name);
                 (*attribute_values)[i] = g_strdup (attrs[i].value);
+                (*ranges)[i].start = range.start;
+                (*ranges)[i].length = range.length;
         }
 
         return TRUE;
