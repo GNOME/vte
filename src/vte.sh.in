@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Not bash or zsh?
-[ -n "${BASH_VERSION:-}" -o -n "${ZSH_VERSION:-}" ] || return 0
+[ -n "${BASH_VERSION:-}" ] || [ -n "${ZSH_VERSION:-}" ] || return 0
 
 # Not an interactive shell?
 [[ $- == *i* ]] || return 0
