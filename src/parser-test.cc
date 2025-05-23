@@ -1441,7 +1441,7 @@ test_seq_glue_string_tokeniser(void)
         auto end = tokeniser.cend();
 
         auto pit = start;
-        for (auto it : {L("a"), L("1b:17:test::b:"), L("3"), L("5"), L("def"), L("17 a"), L("ghi"), L("65535"), L("65536"), L("-1"), L("")}) {
+        for (auto&& it : {L("a"), L("1b:17:test::b:"), L("3"), L("5"), L("def"), L("17 a"), L("ghi"), L("65535"), L("65536"), L("-1"), L("")}) {
                 g_assert_true(it == *pit);
 
                 /* Use std::find to see if the InputIterator implementation
@@ -1496,7 +1496,7 @@ test_seq_glue_string_tokeniser(void)
         auto subtokeniser = tokeniser_type{substr, ':'};
 
         auto subpit = subtokeniser.cbegin();
-        for (auto it : {L("1b"), L("17"), L("test"), L(""), L("b"), L("")}) {
+        for (auto&& it : {L("1b"), L("17"), L("test"), L(""), L("b"), L("")}) {
                 g_assert_true(it == *subpit);
 
                 ++subpit;
