@@ -152,7 +152,7 @@ read_ints(int fd,
 
         auto bytes = size_t{0};
         while (true) {
-                if (bytes >= sizeof(int)*2)
+                if (bytes >= sizeof(int) * n_ints_in_buf)
                         break; /* give up, who knows what happened, should not be
                                 * possible.
                                 */
