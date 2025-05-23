@@ -153,9 +153,9 @@ private:
         MinifontGsk m_minifont{};
 
         vte::glib::FreePtr<r8g8b8a8> m_background_data;
-        size_t m_background_len;
-        size_t m_background_cols;
-        size_t m_background_rows;
+        size_t m_background_len{0};
+        size_t m_background_cols{0};
+        size_t m_background_rows{0};
         bool m_background_set{false};
 
         void flush_glyph_string(PangoFont* font,
