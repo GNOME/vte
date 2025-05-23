@@ -233,7 +233,7 @@ public:
                 return fds;
         }
 
-        auto map_fds()
+        auto const& map_fds()
         {
                 return m_map_fds;
         }
@@ -3211,7 +3211,7 @@ vteapp_window_launch_argv(VteappWindow* window,
                                              (options.systemd_scope ? 0 : VTE_SPAWN_NO_SYSTEMD_SCOPE) |
                                              (options.require_systemd_scope ? VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE : 0));
         auto fds = options.fds();
-        auto map_fds = options.map_fds();
+        auto const& map_fds = options.map_fds();
         vte_terminal_spawn_with_fds_async(window->terminal,
                                           VTE_PTY_DEFAULT,
                                           options.working_directory,
