@@ -23,6 +23,22 @@
 
 #include "unicode-width.hh"
 
+#if 0
+static inline constexpr int uniwidth(char32_t c) noexcept
+{
+        if ((c & 0xfffff800u) == 0xd800u)
+                return 1; // surrogate, really invalid
+        if (g_unichar_iszerowidth(c))
+                return 0;
+        if (g_unichar_iswide(c))
+                return 2;
+        if (g_unichar_iswide_cjk(c))
+                return 3;
+
+        return 1;
+}
+#endif
+
 static void
 test_widths(void)
 {
@@ -80,6 +96,23 @@ test_widths(void)
         g_assert_cmpint(_vte_unichar_width(0x231D, 1), ==, 1);
         g_assert_cmpint(_vte_unichar_width(0x231E, 1), ==, 1);
         g_assert_cmpint(_vte_unichar_width(0x231F, 1), ==, 1);
+
+#if 0
+        for (auto cc = 0u; cc < 0x110000u; ++cc) {
+                if ((cc & 0xfffff800u) == 0xd800u)
+                        continue; // skip surrogates
+
+                // This can fail for some characters if the current glib
+                // version has newer unicode version than the unicode-width.hh
+                // file was generated against
+
+                // g_assert_cmpint(_vte_unichar_width(cc, 3), ==, uniwidth(cc));
+                auto const vw = _vte_unichar_width(cc, 3);
+                auto const uw = uniwidth(cc);
+                if (vw != uw)
+                        g_printerr("U+%04X vte %d uni %d\n", cc, vw, uw);
+        }
+#endif
 }
 
 int
