@@ -194,7 +194,7 @@ public:
 
         inline void set_string(string_type&& str) noexcept
         {
-                m_arg_str = str;
+                m_arg_str = std::move(str);
         }
 
         enum class Introducer {
