@@ -142,7 +142,7 @@ from_bits(uint64_t value,
         [[assume((bits <= 16) && (bits % 4) == 0)]];
 #endif
 
-        auto const mask = uint64_t{(1u << bits) - 1u};
+        auto const mask = (uint64_t{1} << bits) - 1;
         auto a = ((alpha ? value : mask) & mask) << (16 - bits);
         if (alpha)
                 value >>= bits;
