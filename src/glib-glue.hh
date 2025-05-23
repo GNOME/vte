@@ -132,7 +132,7 @@ public:
 
         Timer(callback_type callback,
               char const* name)
-                : m_callback(callback)
+                : m_callback(std::move(callback))
 #if VTE_DEBUG
                 , m_name(name)
 #endif
