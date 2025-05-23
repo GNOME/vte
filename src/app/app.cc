@@ -4888,7 +4888,7 @@ main(int argc,
        auto rv = g_application_run(app.get(), 0, nullptr);
 
        if (reset_termios)
-               tcsetattr(STDIN_FILENO, TCSANOW, &saved_tcattr);
+               (void)tcsetattr(STDIN_FILENO, TCSANOW, &saved_tcattr);
 
        return rv;
 }
