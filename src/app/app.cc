@@ -1533,8 +1533,8 @@ public:
                         }
 
                         if (load_config_path && !load_config(config_ini.get(), load_config_path, error)) {
-                                    g_free(load_config_path);
-                                    g_free(save_config_path);
+                                    g_clear_pointer(&load_config_path, g_free);
+                                    g_clear_pointer(&save_config_path, g_free);
                                     break; // don't bail out
                         }
                 } while (false);
@@ -1562,7 +1562,7 @@ public:
                                 return false;
                 }
 
-                g_free(dummy_string);
+                g_clear_pointer(&dummy_string, g_free);
 
                 // Now save the combined config, if requested
                 if (save_config_path &&
