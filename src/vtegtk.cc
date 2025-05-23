@@ -6621,6 +6621,7 @@ vte_terminal_get_geometry_hints(VteTerminal *terminal,
                                 GdkGeometry *hints,
                                 int min_rows,
                                 int min_columns) noexcept
+try
 {
         GtkWidget *widget;
         GtkBorder padding;
@@ -6653,6 +6654,13 @@ vte_terminal_get_geometry_hints(VteTerminal *terminal,
                          hints->base_width, hints->base_height,
                          hints->width_inc, hints->height_inc,
                          hints->min_width, hints->min_height);
+}
+catch (...)
+{
+        vte::log_exception();
+        // bogus but won't lead to any div-by-zero
+        hints->base_width = hints->base_height = hints->width_inc =
+                hints->height_inc = hints->min_width = hints->min_height = 1;
 }
 
 /**
