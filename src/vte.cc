@@ -4050,7 +4050,7 @@ Terminal::process_incoming()
                         //FIXMEchpe: this is atrocious
                         auto selection = g_string_new(nullptr);
                         get_selected_text(selection);
-                        if ((selection == nullptr) ||
+                        if ((selection->str == nullptr) ||
                             (m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] == nullptr) ||
                             (strcmp(selection->str, m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)]->str) != 0)) {
                                 deselect_all();
@@ -7143,7 +7143,7 @@ Terminal::widget_copy(vte::platform::ClipboardType type,
                 m_selection[sel] = nullptr;
         }
 
-        if (selection == nullptr) {
+        if (selection->str == nullptr) {
                 vte_char_attr_list_clear(&attributes);
                 m_selection_owned[sel] = false;
                 return;
