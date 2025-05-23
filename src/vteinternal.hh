@@ -27,6 +27,9 @@
 #error You MUST NOT use -fno-rtti to build vte! Fix your build system; and DO NOT file a bug upstream!
 #endif
 
+#include <climits>
+static_assert(CHAR_BIT == 8, "Weird");
+
 /* END sanity checks */
 
 #include <glib.h>
