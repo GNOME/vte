@@ -78,6 +78,7 @@
 #include "vtegtk.hh"
 #include "cxx-utils.hh"
 #include "gobject-glue.hh"
+#include "color-lightness.hh"
 #include "termpropsregistry.hh"
 
 #if WITH_A11Y
@@ -2291,6 +2292,11 @@ Terminal::set_color(int entry,
         palette_color->sources[source].is_set = TRUE;
         palette_color->sources[source].color = proposed;
 
+        if (source_ == ColorSource::API &&
+            (entry == VTE_DEFAULT_FG || entry == VTE_DEFAULT_BG)) {
+                queue_color_palette_report();
+        }
+
 	/* If we're not realized yet, there's nothing else to do. */
 	if (!widget_realized())
 		return;
@@ -2328,6 +2334,11 @@ Terminal::reset_color(int entry,
                 return;
         }
         palette_color->sources[source].is_set = FALSE;
+
+        if (source_ == ColorSource::API &&
+            (entry == VTE_DEFAULT_FG || entry == VTE_DEFAULT_BG)) {
+                queue_color_palette_report();
+        }
 
 	/* If we're not realized yet, there's nothing else to do. */
 	if (!widget_realized())
@@ -2634,6 +2645,39 @@ Terminal::reset_color_highlight_foreground()
         _vte_debug_print(vte::debug::category::MISC,
                          "Reset {} color", "highlight foreground");
         reset_color(ColorPaletteIndex::highlight_fg(), ColorSource::API);
+}
+
+auto Terminal::queue_color_palette_report() -> void
+{
+        m_color_palette_report_pending = true;
+        add_process_timeout(this);
+}
+
+auto Terminal::maybe_send_color_palette_report() -> void
+{
+        if (m_color_palette_report_pending &&
+            m_modes_private.CONTOUR_COLOUR_PALETTE_REPORTS()) {
+                send_color_palette_report();
+        }
+
+        m_color_palette_report_pending = false;
+}
+
+auto Terminal::is_color_palette_dark() -> bool
+{
+        auto const bg = get_color(ColorPaletteIndex::default_bg());
+        auto const fg = get_color(ColorPaletteIndex::default_fg());
+        return color::perceived_lightness(*bg) <= color::perceived_lightness(*fg);
+}
+
+/* Sends a DSR indicating the current theme mode.
+ * @see https://contour-terminal.org/vt-extensions/color-palette-update-notifications/
+ */
+auto Terminal::send_color_palette_report() -> void
+{
+        send(vte::parser::reply::DECDSR().
+             append_param(997).
+             append_param(is_color_palette_dark() ? 1 : 2));
 }
 
 /*
@@ -11121,6 +11165,8 @@ Terminal::emit_pending_signals()
 
                 m_bell_pending = false;
         }
+
+        maybe_send_color_palette_report();
 
         if (m_eos_pending) {
                 queue_eof();

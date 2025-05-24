@@ -999,7 +999,7 @@ modes = [
     mode_WHAT('CONTOUR_TEXT_REFLOW', 2028, default=False),
     mode_WHAT('CONTOUR_MOUSE_PASSIVE_TRACKING', 2029, default=False),
     mode_WHAT('CONTOUR_GRID_CELL_SELECTION', 2030, default=False),
-    mode_WHAT('CONTOUR_COLOUR_PALETTE_REPORTS', 2031, default=False),
+    mode_WHAT('CONTOUR_COLOUR_PALETTE_REPORTS', 2031, default=False, flags=Flags.WRITABLE),
 
     # DRCSTerm:
 

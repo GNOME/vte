@@ -6570,6 +6570,20 @@ Terminal::DSR_DEC(vte::parser::Sequence const& seq)
                       append_param(83));
                 break;
 
+        case 996:
+                /* Request the current color preference (dark mode or light mode)
+                 * Reply: DECDSR
+                 *   @arg[0]: 997
+                 *   @arg[0]: status
+                 *     1 = dark mode
+                 *     2 = light mode
+                 */
+                reply(seq,
+                      vte::parser::reply::DECDSR().
+                      append_param(997).
+                      append_param(is_color_palette_dark() ? 1 : 2));
+                break;
+
         default:
                 break;
         }

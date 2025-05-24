@@ -41,6 +41,11 @@ cairo_glue_sources = files(
   'cairo-glue.hh',
 )
 
+color_lightness_sources = files(
+  'color-lightness.hh',
+  'color-lightness.cc',
+)
+
 color_sources = files(
   'color.hh',
   'color-names.hh',
@@ -229,7 +234,7 @@ vte_glue_sources = files(
   'vte-glue.hh',
 )
 
-libvte_common_sources = base16_sources + cairo_glue_sources + color_sources + config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + properties_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + uuid_sources + vte_uuid_sources + vte_glue_sources + files(
+libvte_common_sources = base16_sources + color_lightness_sources + cairo_glue_sources + color_sources + config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + properties_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + uuid_sources + vte_uuid_sources + vte_glue_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
@@ -724,6 +729,33 @@ test_colors = executable(
 )
 
 test_units += [test_colors,]
+
+test_color_lightness_sources = config_sources + color_lightness_sources + files(
+  'vtetypes.cc',
+  'vtetypes.hh',
+  'color-lightness-tests.cc',
+)
+
+test_color_lightness_deps = [
+  glib_dep,
+  pango_dep,
+]
+
+if get_option('gtk3')
+  test_color_lightness_deps += [gtk3_dep,]
+elif get_option('gtk4')
+  test_color_lightness_deps += [gtk4_dep,]
+endif
+
+test_color_lightness = executable(
+  'test-color-lightness',
+  dependencies: test_color_lightness_deps,
+  include_directories: top_inc,
+  install: false,
+  sources: test_color_lightness_sources,
+)
+
+test_units += [test_color_lightness,]
 
 test_minifont_common_sources = config_sources + files(
   'minifont-test.cc'

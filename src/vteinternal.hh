@@ -751,6 +751,7 @@ public:
         bool m_clear_background{true};
 
         VtePaletteColor m_palette[VTE_PALETTE_SIZE];
+        bool m_color_palette_report_pending;
 
 	/* Mouse cursors. */
         gboolean m_mouse_cursor_over_widget; /* as per enter and leave events */
@@ -1641,6 +1642,10 @@ public:
                         vte::color::rgb const *palette,
                         gsize palette_size);
         void set_colors_default();
+        void queue_color_palette_report();
+        void maybe_send_color_palette_report();
+        void send_color_palette_report();
+        bool is_color_palette_dark();
         bool set_cursor_blink_mode(CursorBlinkMode mode);
         auto cursor_blink_mode() const noexcept { return m_cursor_blink_mode; }
         bool set_cursor_shape(CursorShape shape);
