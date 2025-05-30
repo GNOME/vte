@@ -926,7 +926,7 @@ sequences = [
             comment='SIXEL graphics'),
     seq_DCS('DECRQSS', 'q', intermediates=(Intermediate.CASH,),
             comment='request selection or setting'),
-    seq_DCS('XTERM_RQTCAP', 'q', intermediates=(Intermediate.PLUS,),
+    seq_DCS('XTERM_RQTCAP', 'q', intermediates=(Intermediate.PLUS,), flags=Flags.NOP,
             comment='xterm request termcap/terminfo'),
     seq_DCS('DECLBAN', 'r', flags=Flags.NOP,
             comment='load banner message'),

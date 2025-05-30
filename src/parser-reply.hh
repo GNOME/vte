@@ -56,7 +56,6 @@ _VTE_REPLY(DECFNK,                                    CSI, '~', NONE, NONE,  ) /
 
 _VTE_REPLY(DECTABSR,    DCS, '@', NONE, CASH,  ) /* tabulation stop report */
 _VTE_REPLY(DECRPSS,     DCS, 'r', NONE, CASH,  ) /* report state or setting */
-_VTE_REPLY(XTERM_TCAPR, DCS, 'r', NONE, PLUS,  ) /* xterm termcap report */
 _VTE_REPLY(DECTSR,      DCS, 's', NONE, CASH,  ) /* terminal state report */
 _VTE_REPLY(DECCTR,      DCS, 's', NONE, CASH,  _VTE_REPLY_PARAMS({2})) /* color table report */
 _VTE_REPLY(DECAUPSS,    DCS, 'u', NONE, BANG,  ) /* assign user preferred supplemental set */
