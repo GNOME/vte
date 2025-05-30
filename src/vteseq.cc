@@ -34,7 +34,10 @@
 #include "vtegtk.hh"
 #include "caps.hh"
 #include "debug.hh"
+#include "keymap.h"
 #include "sgr.hh"
+#include "base16.hh"
+#include "xtermcap.hh"
 
 #define BEL_C0 "\007"
 #define ST_C0 _VTE_CAP_ST
@@ -3097,7 +3100,7 @@ Terminal::DA3(vte::parser::Sequence const& seq)
          * The tertiary DA is used to query the terminal-ID.
          *
          * Reply: DECRPTUI
-         *   DATA: four pairs of are hexadecimal number, encoded 4 bytes.
+         *   DATA: four pairs of hexadecimal digits, encoded 4 bytes.
          *   The first byte denotes the manufacturing site, the remaining
          *   three is the terminal's ID.
          *
@@ -9825,12 +9828,129 @@ Terminal::XTERM_RPM(vte::parser::Sequence const& seq)
 
 void
 Terminal::XTERM_RQTCAP(vte::parser::Sequence const& seq)
+try
 {
         /*
-         * XTERM_TQTCAP - xterm request termcap/terminfo
+         * XTERM_RQTCAP - xterm request termcap/terminfo
          *
-         * Probably not worth implementing.
+         * Gets the terminfo/termcap string. The constrol string
+         * constist of semicolon (';') separated parameters, which
+         * are hex-encoded terminfo/termcap capability names.
+         *
+         * The response is a XTERM_TCAPR report, which consists
+         * of semicolon (';') separated parameters, each of which
+         * is the hex-encoded capability name, followed by an equal
+         * sign ('='), followed by the hex-encoded capability.
+         *
+         * In xterm, an unknown capability in the control string
+         * terminates processing of the control string; in vte
+         * we continue past an unknown capability to process the
+         * remaining capability requests.
+         *
+         * References: XTERM
          */
+
+        auto const u32str = seq.string();
+
+        auto str = std::string{};
+        str.resize_and_overwrite
+                (simdutf::utf8_length_from_utf32(u32str),
+                 [&](char* data,
+                     size_t data_size) constexpr noexcept -> size_t {
+                         return simdutf::convert_utf32_to_utf8
+                                 (u32str, std::span<char>(data, data_size));
+                 });
+
+        auto tokeniser = vte::parser::StringTokeniser{str, ';'};
+        auto it = tokeniser.cbegin();
+        auto const cend = tokeniser.cend();
+
+        auto n_caps = 0;
+        auto replystr = std::string{};
+        while (it != cend) {
+                if (auto const capability = vte::base16_decode(*it, false)) {
+                        if (auto [keycode, state] = xtermcap_get_keycode(*capability);
+                            keycode != -1) {
+
+                                auto cap = std::string{};
+
+                                switch (keycode) {
+                                case XTERM_KEY_F63 ... XTERM_KEY_F36:
+                                        break;
+                                case XTERM_KEY_COLORS:
+                                        cap = "256";
+                                        break;
+                                case XTERM_KEY_RGB:
+                                        cap = "8";
+                                        break;
+                                case XTERM_KEY_TCAPNAME:
+                                        cap = "xterm-256color";
+                                        break;
+                                case GDK_KEY_Delete:
+                                case GDK_KEY_BackSpace: {
+                                        char* normal = nullptr;
+                                        auto len = 0uz;
+                                        auto suppress = false, add_modifiers = false;
+                                        map_erase_binding(m_delete_binding,
+                                                          keycode == GDK_KEY_Delete ? EraseMode::eDELETE_SEQUENCE : EraseMode::eTTY,
+                                                          state,
+                                                          normal,
+                                                          len,
+                                                          suppress,
+                                                          add_modifiers);
+                                        if (add_modifiers) {
+                                                _vte_keymap_key_add_key_modifiers(keycode,
+                                                                                  state,
+                                                                                  m_modes_private.DEC_APPLICATION_CURSOR_KEYS(),
+                                                                                  &normal,
+                                                                                  &len);
+                                        }
+
+                                        if (normal && len)
+                                                cap = normal;
+                                        g_free(normal);
+                                        break;
+                                }
+                                default:
+                                        if (keycode >= 0) {
+                                                // Use the keymap to get the string
+                                                char* normal = nullptr;
+                                                auto len = 0uz;
+                                                _vte_keymap_map(keycode, state,
+                                                                m_modes_private.DEC_APPLICATION_CURSOR_KEYS(),
+                                                                m_modes_private.DEC_APPLICATION_KEYPAD(),
+                                                                &normal,
+                                                                &len);
+                                                if (normal && len)
+                                                        cap = normal;
+                                                g_free(normal);
+                                        }
+                                        break;
+                                }
+
+                                if (cap.size()) {
+                                        if (n_caps++)
+                                                replystr.push_back(';');
+
+                                        fmt::format_to(std::back_inserter(replystr),
+                                                       "{}={}",
+                                                       *it,
+                                                       vte::base16_encode(cap));
+                                }
+                        } else {
+                                // unknown capability
+                        }
+                } else {
+                        // failed to hexdecode
+                }
+
+                ++it;
+        }
+
+        reply(seq, VTE_REPLY_XTERM_TCAPR, {replystr.size() ? 1 : 0}, "%s", replystr.c_str());
+}
+catch (...)
+{
 }
 
 void
@@ -10045,7 +10165,7 @@ Terminal::XTERM_STCAP(vte::parser::Sequence const& seq)
         /*
          * XTERM_STCAP - xterm set termcap/terminfo
          *
-         * Probably not worth implementing.
+         * Won't implement.
          */
 }
 
