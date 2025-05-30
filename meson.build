@@ -30,7 +30,7 @@ project(
 # Compiler requirements
 
 c_req_std                 = 'gnu11'
-cxx_req_std               = 'gnu++20'
+cxx_req_std               = 'gnu++23'
 gxx_req_version           = '10.0'
 clangxx_req_version       = '11.0'
 py_req_version            = '3.7'
