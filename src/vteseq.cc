@@ -3097,7 +3097,7 @@ Terminal::DA3(vte::parser::Sequence const& seq)
          * The tertiary DA is used to query the terminal-ID.
          *
          * Reply: DECRPTUI
-         *   DATA: four pairs of are hexadecimal number, encoded 4 bytes.
+         *   DATA: four pairs of hexadecimal digits, encoded 4 bytes.
          *   The first byte denotes the manufacturing site, the remaining
          *   three is the terminal's ID.
          *
@@ -9825,12 +9825,63 @@ Terminal::XTERM_RPM(vte::parser::Sequence const& seq)
 
 void
 Terminal::XTERM_RQTCAP(vte::parser::Sequence const& seq)
+try
 {
         /*
-         * XTERM_TQTCAP - xterm request termcap/terminfo
+         * XTERM_RQTCAP - xterm request termcap/terminfo
          *
-         * Probably not worth implementing.
+         * Gets the terminfo/termcap string. The constrol string
+         * consists of semicolon (';') separated parameters, which
+         * are hex-encoded terminfo/termcap capability names.
+         *
+         * The response is a XTERM_TCAPR report, which consists
+         * of semicolon (';') separated parameters, each of which
+         * is the hex-encoded capability name, followed by an equal
+         * sign ('='), followed by the hex-encoded capability.
+         *
+         * In xterm, an unknown capability in the control string
+         * terminates processing of the control string; in vte
+         * we continue past an unknown capability to process the
+         * remaining capability requests.
+         *
+         * For now, only reply to "TN" and "name" queries, because
+         * systemd requires them. See
+         * https://gitlab.gnome.org/GNOME/vte/-/issues/2884 and the
+         * linked systemd issue for more information.
+         *
+         * References: XTERM
          */
+
+        auto str = seq.string_utf8();
+        auto tokeniser = vte::parser::StringTokeniser{str, ';'};
+        auto it = tokeniser.cbegin();
+        auto const cend = tokeniser.cend();
+
+        auto replystr = std::string{};
+        while (it != cend) {
+                auto cap = *it;
+                for (auto& c : cap)
+                        c = g_ascii_toupper(c);
+
+                if (cap == "6E616D65" /* terminfo "name" */ ||
+                    cap == "544E" /* termcap "TN" */) {
+                        if (replystr.size())
+                                replystr.push_back(';');
+
+                        // Reply with "[cap]=xterm-256color"
+                        replystr.append(cap);
+                        replystr.append("=787465726D2D323536636F6C6F72");
+                } else {
+                        // other capability
+                }
+
+                ++it;
+        }
+
+        reply(seq, VTE_REPLY_XTERM_TCAPR, {replystr.size() ? 1 : 0}, "%s", replystr.c_str());
+}
+catch (...)
+{
 }
 
 void
@@ -10045,7 +10096,7 @@ Terminal::XTERM_STCAP(vte::parser::Sequence const& seq)
         /*
          * XTERM_STCAP - xterm set termcap/terminfo
          *
-         * Probably not worth implementing.
+         * Won't implement.
          */
 }
 
