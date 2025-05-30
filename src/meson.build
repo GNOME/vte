@@ -29,6 +29,10 @@ a11y_gtk4_sources = files(
   'vteaccess-gtk4.h',
 )
 
+base16_sources = files(
+  'base16.hh',
+)
+
 boxed_sources = files(
   'boxed.hh',
 )
@@ -225,7 +229,7 @@ vte_glue_sources = files(
   'vte-glue.hh',
 )
 
-libvte_common_sources = cairo_glue_sources + color_sources + config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + properties_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + uuid_sources + vte_uuid_sources + vte_glue_sources + files(
+libvte_common_sources = base16_sources + cairo_glue_sources + color_sources + config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + properties_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + uuid_sources + vte_uuid_sources + vte_glue_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
@@ -682,6 +686,18 @@ xticker = executable(
 
 # Unit tests
 
+test_base16_sources = config_sources + base16_sources + files(
+  'base16-test.cc',
+)
+
+test_base16 = executable(
+  'test-base16',
+  sources: test_base16_sources,
+  dependencies: [glib_dep],
+  include_directories: top_inc,
+  install: false,
+)
+
 test_colors_sources = config_sources + debug_sources + glib_glue_sources + color_sources + files(
   'color-test.cc',
 )
@@ -1005,6 +1021,7 @@ test_env = [
 
 # apparently there is no way to get a name back from an executable(), so it this ugly way
 test_units = [
+  ['base16', test_base16],
   ['colors', test_colors],
   ['modes', test_modes],
   ['parser', test_parser],
