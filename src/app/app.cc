@@ -2391,6 +2391,10 @@ vteapp_terminal_class_init(VteappTerminalClass *klass)
 
         // Test termprops
         if (options.test_mode) {
+#if !VTE_DEBUG
+                verbose_printerrln("Test mode requested but no debug build of vte\n");
+#endif
+
                 vte_install_termprop("vte.ext.vteapp.test.valueless",
                                      VTE_PROPERTY_VALUELESS,
                                      VTE_PROPERTY_FLAG_NONE);
