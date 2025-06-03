@@ -109,41 +109,48 @@ public:
 
         inline constexpr unsigned int type() const noexcept { return m_seq.type; }
 
-        inline void set_type(unsigned int type) noexcept
+        auto& set_type(unsigned int type) noexcept
         {
                 m_seq.type = type;
+                return *this;
         }
 
-        inline void set_final(uint32_t t) noexcept
+        auto& set_final(uint32_t t) noexcept
         {
                 m_seq.terminator = t;
+                return *this;
         }
 
-        inline void append_intermediate(unsigned char i) noexcept
+        auto& append_intermediate(unsigned char i) noexcept
         {
                 assert(unsigned(m_n_intermediates + 1) <= (sizeof(m_intermediates)/sizeof(m_intermediates[0])));
 
                 m_intermediates[m_n_intermediates++] = i;
+                return *this;
         }
 
-        inline void append_intermediates(std::initializer_list<unsigned char> l) noexcept
+        auto& append_intermediates(std::initializer_list<unsigned char> l) noexcept
         {
                 assert(m_n_intermediates + l.size() <= (sizeof(m_intermediates)/sizeof(m_intermediates[0])));
 
                 for (uint32_t i : l) {
                         m_intermediates[m_n_intermediates++] = i;
                 }
+
+                return *this;
         }
 
-        inline void set_param_intro(unsigned char p) noexcept
+        auto& set_param_intro(unsigned char p) noexcept
         {
                 m_param_intro = p;
+                return *this;
         }
 
-        inline void append_param(int p) noexcept
+        auto& append_param(int p) noexcept
         {
                 assert(m_seq.n_args + 1 <= (sizeof(m_seq.args) / sizeof(m_seq.args[0])));
                 m_seq.args[m_seq.n_args++] = vte_seq_arg_init(std::min(p, 0xffff));
+                return *this;
         }
 
         /*
@@ -154,7 +161,7 @@ public:
          * in the range -1..MAXUSHORT; use -2 to skip a parameter
          *
          */
-        inline void append_params(std::initializer_list<int> params) noexcept
+        auto& append_params(std::initializer_list<int> params) noexcept
         {
                 assert(m_seq.n_args + params.size() <= (sizeof(m_seq.args) / sizeof(m_seq.args[0])));
                 for (auto p : params) {
@@ -163,6 +170,8 @@ public:
 
                         m_seq.args[m_seq.n_args++] = vte_seq_arg_init(std::min(p, 0xffff));
                 }
+
+                return *this;
         }
 
         /*
@@ -173,7 +182,7 @@ public:
          * in the range -1..MAXUSHORT; use -2 to skip a subparameter
          *
          */
-        inline void append_subparams(std::initializer_list<int> subparams) noexcept
+        auto& append_subparams(std::initializer_list<int> subparams) noexcept
         {
                 assert(m_seq.n_args + subparams.size() <= (sizeof(m_seq.args) / sizeof(m_seq.args[0])));
                 for (auto p : subparams) {
@@ -185,16 +194,28 @@ public:
                         vte_seq_arg_finish(arg, true);
                 }
                 vte_seq_arg_refinish(&m_seq.args[m_seq.n_args - 1], false);
+
+                return *this;
         }
 
-        inline void set_string(string_type const& str) noexcept
+        auto& set_string(string_type const& str) noexcept
         {
                 m_arg_str = str;
+                return *this;
         }
 
-        inline void set_string(string_type&& str) noexcept
+        auto& set_string(string_type&& str) noexcept
         {
                 m_arg_str = std::move(str);
+                return *this;
+        }
+
+        template<typename... T>
+        auto&
+        format(fmt::format_string<T...> fmt,
+               T&&... args)
+        {
+                m_arg_str = fmt::vformat(fmt, fmt::make_format_args(args...));
         }
 
         enum class Introducer {
