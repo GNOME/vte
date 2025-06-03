@@ -361,7 +361,6 @@ enum State {
         DCS_PARAM,        /* DCS parameters */
         DCS_INT,          /* intermediate DCS characters */
         DCS_PASS,         /* DCS data passthrough */
-        DCS_IGNORE,       /* DCS error; ignore this DCS sequence */
         OSC_STRING,       /* parsing OSC sequence */
         ST_IGNORE,        /* unimplemented seq; ignore until ST */
         SCI,              /* single character introducer sequence was started */
@@ -475,16 +474,14 @@ public:
          * * SUB aborts the DCS in our parser, but e.g. a DECSIXEL
          *   parser will handle it as if 3/15 was received.
          *
-         * * the ST terminating the DCS will be dispatched as an ST
-         *   sequence, instead of producing an IGNORE sequence
-         *   (this is easily fixable but would slightly complicate
-         *   the parser for no actual gain).
+         * * the sequence will be dispatched as an IGNORE sequence
+         *   instead of as a DCS sequence
          */
         inline void ignore_until_st() noexcept
         {
                 switch (m_state) {
                 case DCS_PASS:
-                        VTE_TRANSITION_NO_ACTION(0, DCS_IGNORE);
+                        VTE_TRANSITION(0, ST_IGNORE, action_st_ignore_start);
                         break;
                 default:
                         g_assert_not_reached();
@@ -703,7 +700,7 @@ protected:
                         case 0x3b:                 /* ';' */
                                 return action_finish_param(raw);
                         case 0x3c ... 0x3f:        /* ['<' - '?'] */
-                                return VTE_TRANSITION_NO_ACTION(raw, DCS_IGNORE);
+                                return VTE_TRANSITION(raw, ST_IGNORE, action_st_ignore_start);
                         case 0x40 ... 0x7e:        /* ['@' - '~'] */
                                 return VTE_TRANSITION(raw, DCS_PASS, action_dcs_consume);
                         case 0x9c:                /* ST */
@@ -721,7 +718,7 @@ protected:
                         case 0x20 ... 0x2f:        /* [' ' - '\'] */
                                 return action_collect_csi(raw);
                         case 0x30 ... 0x3f:        /* ['0' - '?'] */
-                                return VTE_TRANSITION_NO_ACTION(raw, DCS_IGNORE);
+                                return VTE_TRANSITION(raw, ST_IGNORE, action_st_ignore_start);
                         case 0x40 ... 0x7e:        /* ['@' - '~'] */
                                 return VTE_TRANSITION(raw, DCS_PASS, action_dcs_consume);
                         case 0x9c:                /* ST */
@@ -741,18 +738,6 @@ protected:
                         }
 
                         return action_dcs_collect(raw);
-                case DCS_IGNORE:
-                        switch (raw) {
-                        case 0x00 ... 0x1a:        /* ASCII \ { ESC } */
-                        case 0x1c ... 0x7f:
-                                return action_nop(raw);
-                        case 0x1b:                /* ESC */
-                                return VTE_TRANSITION(raw, ESC, action_clear_int);
-                        case 0x9c:                /* ST */
-                                return VTE_TRANSITION(raw, GROUND, action_ignore);
-                        }
-
-                        return action_nop(raw);
                 case OSC_STRING:
                         switch (raw) {
                         case 0x00 ... 0x06:        /* C0 \ { BEL, ESC } */
@@ -833,7 +818,10 @@ protected:
                  * Transition to {CSI,DCS}_IGNORE to ignore the
                  * whole sequence.
                  */
-                VTE_TRANSITION_NO_ACTION(raw, m_state == CSI_PARAM ?  CSI_IGNORE : DCS_IGNORE);
+                if (m_state == CSI_PARAM)
+                        VTE_TRANSITION_NO_ACTION(raw, CSI_IGNORE);
+                else if (m_state == DCS_PARAM)
+                        VTE_TRANSITION(raw, ST_IGNORE, action_st_ignore_start);
         }
 
         uint32_t parse_host_sci(vte_seq_t const* seq) noexcept;
