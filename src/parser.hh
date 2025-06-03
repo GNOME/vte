@@ -597,10 +597,10 @@ protected:
                         case 0x40 ... 0x7e:        /* ['@' - '~'] */
                                 return VTE_TRANSITION(raw, GROUND, action_csi_dispatch);
                         case 0x9c:                /* ST */
-                                return VTE_TRANSITION(raw, GROUND, action_ignore);
+                                return VTE_TRANSITION(raw, GROUND, action_execute);
                         }
 
-                        return VTE_TRANSITION_NO_ACTION(raw, CSI_IGNORE);
+                        return VTE_TRANSITION(raw, GROUND, action_ignore);
                 case CSI_PARAM:
                         switch (raw) {
                         case 0x00 ... 0x1a:        /* C0 \ { ESC } */
@@ -621,10 +621,10 @@ protected:
                         case 0x40 ... 0x7e:        /* ['@' - '~'] */
                                 return VTE_TRANSITION(raw, GROUND, action_csi_dispatch);
                         case 0x9c:                /* ST */
-                                return VTE_TRANSITION(raw, GROUND, action_ignore);
+                                return VTE_TRANSITION(raw, GROUND, action_execute);
                         }
 
-                        return VTE_TRANSITION_NO_ACTION(raw, CSI_IGNORE);
+                        return VTE_TRANSITION(raw, GROUND, action_ignore);
                 case CSI_INT:
                         switch (raw) {
                         case 0x00 ... 0x1a:        /* C0 \ { ESC } */
@@ -639,10 +639,10 @@ protected:
                         case 0x40 ... 0x7e:        /* ['@' - '~'] */
                                 return VTE_TRANSITION(raw, GROUND, action_csi_dispatch);
                         case 0x9c:                /* ST */
-                                return VTE_TRANSITION(raw, GROUND, action_ignore);
+                                return VTE_TRANSITION(raw, GROUND, action_execute);
                         }
 
-                        return VTE_TRANSITION_NO_ACTION(raw, CSI_IGNORE);
+                        return VTE_TRANSITION(raw, GROUND, action_ignore);
                 case CSI_IGNORE:
                         switch (raw) {
                         case 0x00 ... 0x1a:        /* C0 \ { ESC } */
@@ -655,10 +655,10 @@ protected:
                         case 0x40 ... 0x7e:        /* ['@' - '~'] */
                                 return VTE_TRANSITION_NO_ACTION(raw, GROUND);
                         case 0x9c:                /* ST */
-                                return VTE_TRANSITION(raw, GROUND, action_ignore);
+                                return VTE_TRANSITION(raw, GROUND, action_execute);
                         }
 
-                        return action_nop(raw);
+                        return VTE_TRANSITION(raw, GROUND, action_ignore);
                 case DCS_ENTRY:
                         switch (raw) {
                         case 0x00 ... 0x1a:        /* C0 \ ESC */

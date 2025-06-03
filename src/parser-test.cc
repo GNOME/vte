@@ -1030,6 +1030,59 @@ test_seq_csi_max(void)
 }
 
 static void
+test_seq_csi_misc(void)
+{
+        // Misc CSI checks
+
+        auto test = [](std::u32string str,
+                       std::initializer_list<int> expected_rvs) -> void {
+                auto rvit = expected_rvs.begin();
+                for (auto it : str) {
+                        auto const rv = parser.feed((uint32_t)(char32_t)it);
+                        if (rv < 0)
+                                break;
+
+                        g_assert_cmpint(rv, ==, *rvit);
+                        g_assert_true(rvit != expected_rvs.end());
+                        ++rvit;
+                }
+        };
+
+        // Check that a non-7-bit character acts as an invalid
+        // final character and aborts the sequence
+
+        test(U"\e[\u0100a"s, {0, 0, VTE_SEQ_IGNORE, VTE_SEQ_GRAPHIC});
+        test(U"\u009B\u0100a"s, {0, VTE_SEQ_IGNORE, VTE_SEQ_GRAPHIC});
+
+        // with params
+        test(U"\e[1\u0100a"s, {0, 0, 0, VTE_SEQ_IGNORE, VTE_SEQ_GRAPHIC});
+        test(U"\u009B1\u0100a"s, {0, 0, VTE_SEQ_IGNORE, VTE_SEQ_GRAPHIC});
+
+        // with intermediate
+        test(U"\e[1 \u0100a"s, {0, 0, 0, 0, VTE_SEQ_IGNORE, VTE_SEQ_GRAPHIC});
+        test(U"\u009B1 \u0100a"s, {0, 0, 0, VTE_SEQ_IGNORE, VTE_SEQ_GRAPHIC});
+
+        // with pintro
+        test(U"\e[?1 \u0100a"s, {0, 0, 0, 0, 0, VTE_SEQ_IGNORE, VTE_SEQ_GRAPHIC});
+        test(U"\u009B?1 \u0100a"s, {0, 0, 0, 0, VTE_SEQ_IGNORE, VTE_SEQ_GRAPHIC});
+
+        // Check that C1 ST is dispatched while in CSI state
+        auto test_st = [](std::u32string str) ->void {
+                auto const rv = feed_parser(str);
+                g_assert_cmpuint(rv, ==, VTE_SEQ_CONTROL);
+                g_assert_cmpuint(seq.terminator(), ==, 0x9c);
+        };
+        test_st(U"\e[\u009C"s);
+        test_st(U"\u009B\u009C"s);
+        test_st(U"\e[1\u009C"s);
+        test_st(U"\u009B[1\u009C"s);
+        test_st(U"\e[1 \u009C"s);
+        test_st(U"\u009B[1 \u009C"s);
+        test_st(U"\e[?1 \u009C"s);
+        test_st(U"\u009B[?1 \u009C"s);
+}
+
+static void
 test_seq_glue_arg(char const* str,
                   unsigned int n_args,
                   unsigned int n_final_args)
@@ -1629,6 +1682,7 @@ main(int argc,
         g_test_add_func("/vte/parser/sequences/csi/parameters", test_seq_csi_param);
         g_test_add_func("/vte/parser/sequences/csi/clear", test_seq_csi_clear);
         g_test_add_func("/vte/parser/sequences/csi/max", test_seq_csi_max);
+        g_test_add_func("/vte/parser/sequences/csi/misc", test_seq_csi_misc);
         g_test_add_func("/vte/parser/sequences/sci", test_seq_sci);
         g_test_add_func("/vte/parser/sequences/sci/known", test_seq_sci_known);
         g_test_add_func("/vte/parser/sequences/dcs", test_seq_dcs);
