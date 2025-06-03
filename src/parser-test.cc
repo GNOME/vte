@@ -617,25 +617,25 @@ test_seq_csi(void)
 
 static void
 test_seq_sci(uint32_t f,
-             bool valid)
+             unsigned type)
 {
         vte_seq_builder b{VTE_SEQ_SCI, f};
 
         /* First with C0 SCI */
         auto rv = feed_parser(b, false);
-        if (valid) {
+        g_assert_cmpint(rv, ==, type);
+        if (type == VTE_SEQ_SCI) {
                 g_assert_cmpint(rv, ==, VTE_SEQ_SCI);
-                b.assert_equal_full(seq);
-        } else
-                g_assert_cmpint(rv, !=, VTE_SEQ_SCI);
+                g_assert_cmpuint(seq.terminator(), ==, f);
+        }
 
         /* Now with C1 SCI */
         rv = feed_parser(b, true);
-        if (valid) {
-                g_assert_cmpint(rv, ==, VTE_SEQ_SCI);
+        g_assert_cmpint(rv, ==, type);
+        if (type == VTE_SEQ_SCI) {
                 b.assert_equal_full(seq);
-        } else
-                g_assert_cmpint(rv, !=, VTE_SEQ_SCI);
+                g_assert_cmpuint(seq.terminator(), ==, f);
+        }
 }
 
 static void
@@ -647,12 +647,43 @@ test_seq_sci(void)
          */
         parser.reset();
 
+        for (uint32_t f = 0x0; f <= 0x7; ++f)
+                test_seq_sci(f, VTE_SEQ_IGNORE);
         for (uint32_t f = 0x8; f <= 0xd; ++f)
-                test_seq_sci(f, true);
+                test_seq_sci(f, VTE_SEQ_SCI);
+        for (uint32_t f = 0xe; f <= 0x19; ++f)
+                test_seq_sci(f, VTE_SEQ_IGNORE);
+        for (uint32_t f = 0x1c; f <= 0x1f; ++f)
+                test_seq_sci(f, VTE_SEQ_IGNORE);
         for (uint32_t f = 0x20; f <= 0x7e; ++f)
-                test_seq_sci(f, true);
-        for (uint32_t f = 0x7f; f <= 0xff; ++f)
-                test_seq_sci(f, false);
+                test_seq_sci(f, VTE_SEQ_SCI);
+
+        // C1 controls omitted, since they abort the SCI and
+        // start their resp. sequence.
+
+        for (uint32_t f = 0xa0; f <= 0xff; ++f)
+                test_seq_sci(f, VTE_SEQ_IGNORE);
+
+        // SUB is special: it aborts the SCI and substitutes
+        test_seq_sci(0x1a, VTE_SEQ_CONTROL);
+
+        // ESC is special: it aborts the SCI and starts an escape sequence
+        test_seq_sci(0x1b, VTE_SEQ_NONE);
+
+        // DEL is special: it doesn't do anything
+        test_seq_sci(0x7f, VTE_SEQ_NONE);
+        parser.reset();
+        auto rv = feed_parser(U"\eZ\u007Fa"s);
+        g_assert_cmpint(rv, ==, VTE_SEQ_SCI);
+        g_assert_cmpuint(seq.terminator(), ==, U'a');
+        rv = feed_parser(U"\u009A\u007Fa"s);
+        g_assert_cmpint(rv, ==, VTE_SEQ_SCI);
+        g_assert_cmpuint(seq.terminator(), ==, U'a');
+
+        // Test some sporadic non-8-bit final characters just for completeness
+        test_seq_sci(0x100, VTE_SEQ_IGNORE);
+        test_seq_sci(0xFFFF, VTE_SEQ_IGNORE);
+        test_seq_sci(0x10FFFF, VTE_SEQ_IGNORE);
 }
 
 G_GNUC_UNUSED

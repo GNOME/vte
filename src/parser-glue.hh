@@ -331,8 +331,7 @@ private:
                                 s.push_back(m_intermediates[n]);
                         [[fallthrough]];
                 case VTE_SEQ_SCI:
-                        if (m_seq.terminator != 0)
-                                s.push_back(m_seq.terminator);
+                        s.push_back(m_seq.terminator);
                         break;
                 default:
                         break;
