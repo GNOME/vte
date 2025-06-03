@@ -350,8 +350,7 @@ namespace parser {
  */
 enum State {
         GROUND,           /* initial state and ground */
-        DCS_PASS_ESC,     /* ESC after DCS which may be ESC \ aka C0 ST */
-        OSC_STRING_ESC,   /* ESC after OSC which may be ESC \ aka C0 ST */
+        ST_ESC,           /* ESC after control string introducer which may be ESC \ aka C0 ST */
         ESC,              /* ESC sequence was started */
         ESC_INT,          /* intermediate escape characters */
         CSI_ENTRY,        /* starting CSI sequence */
@@ -415,7 +414,7 @@ public:
                 case 0x98:                /* SOS */
                 case 0x9e:                /* PM */
                 case 0x9f:                /* APC */
-                        return VTE_TRANSITION_NO_ACTION(raw, ST_IGNORE);
+                        return VTE_TRANSITION(raw, ST_IGNORE, action_st_ignore_start);
                         // FIXMEchpe shouldn't this use action_clear?
                 case 0x90:                /* DCS */
                         return VTE_TRANSITION(raw, DCS_ENTRY, action_dcs_start);
@@ -513,14 +512,18 @@ protected:
                                 return action_print(raw);
                         }
 
-                case DCS_PASS_ESC:
-                case OSC_STRING_ESC:
+                case ST_ESC:
                         if (raw == 0x5c /* '\' */) {
-                                switch (m_state) {
-                                case DCS_PASS_ESC:
+                                switch (m_seq.introducer) {
+                                case 0x50: // ESC P
+                                case 0x90: // DCS
                                         return VTE_TRANSITION(raw, GROUND, action_dcs_dispatch);
-                                case OSC_STRING_ESC:
+
+                                case 0x5d: // ESC ]
+                                case 0x9d: // OSC
                                         return VTE_TRANSITION(raw, GROUND, action_osc_dispatch);
+                                case 0: // ignore
+                                        return VTE_TRANSITION(raw, GROUND, action_ignore);
                                 }
                         }
 
@@ -537,7 +540,8 @@ protected:
                                 return VTE_TRANSITION(raw, ESC, action_clear_int);
                         case 0x20 ... 0x2f:        /* [' ' - '\'] */
                                 return VTE_TRANSITION(raw, ESC_INT, action_collect_esc);
-                        case 0x30 ... 0x4f:        /* ['0' - '~'] \ */
+                        case 0x30 ... 0x3f:        /* ['0' - '?'] */
+                        case 0x40 ... 0x4f:        /* ['@' - '~'] \ */
                         case 0x51 ... 0x57:        /* { 'P', 'X', 'Z' '[', ']', '^', '_' } */
                         case 0x59:
                         case 0x5c:
@@ -555,9 +559,9 @@ protected:
                         case 0x58:                /* 'X' */
                         case 0x5e:                /* '^' */
                         case 0x5f:                /* '_' */
-                                return VTE_TRANSITION_NO_ACTION(raw, ST_IGNORE);
+                                return VTE_TRANSITION(raw, ST_IGNORE, action_st_ignore_start);
                         case 0x9c:                /* ST */
-                                return VTE_TRANSITION(raw, GROUND, action_ignore);
+                                return VTE_TRANSITION(raw, GROUND, action_execute);
                         }
 
                         return VTE_TRANSITION(raw, GROUND, action_ignore);
@@ -682,7 +686,7 @@ protected:
                                 return VTE_TRANSITION(raw, GROUND, action_ignore);
                         }
 
-                        return VTE_TRANSITION(raw, DCS_PASS, action_dcs_consume);
+                        return VTE_TRANSITION(raw, ST_IGNORE, action_st_ignore_start);
                 case DCS_PARAM:
                         switch (raw) {
                         case 0x00 ... 0x1a:        /* C0 \ { ESC } */
@@ -706,7 +710,7 @@ protected:
                                 return VTE_TRANSITION(raw, GROUND, action_ignore);
                         }
 
-                        return VTE_TRANSITION(raw, DCS_PASS, action_dcs_consume);
+                        return VTE_TRANSITION(raw, ST_IGNORE, action_st_ignore_start);
                 case DCS_INT:
                         switch (raw) {
                         case 0x00 ... 0x1a:        /* C0 \ { ESC } */
@@ -724,14 +728,14 @@ protected:
                                 return VTE_TRANSITION(raw, GROUND, action_ignore);
                         }
 
-                        return VTE_TRANSITION(raw, DCS_PASS, action_dcs_consume);
+                        return VTE_TRANSITION(raw, ST_IGNORE, action_st_ignore_start);
                 case DCS_PASS:
                         switch (raw) {
                         case 0x00 ... 0x1a:        /* ASCII \ { ESC } */
                         case 0x1c ... 0x7f:
                                 return action_dcs_collect(raw);
                         case 0x1b:                /* ESC */
-                                return VTE_TRANSITION_NO_ACTION(raw, DCS_PASS_ESC);
+                                return VTE_TRANSITION_NO_ACTION(raw, ST_ESC);
                         case 0x9c:                /* ST */
                                 return VTE_TRANSITION(raw, GROUND, action_dcs_dispatch);
                         }
@@ -745,7 +749,7 @@ protected:
                         case 0x1b:                /* ESC */
                                 return VTE_TRANSITION(raw, ESC, action_clear_int);
                         case 0x9c:                /* ST */
-                                return VTE_TRANSITION_NO_ACTION(raw, GROUND);
+                                return VTE_TRANSITION(raw, GROUND, action_ignore);
                         }
 
                         return action_nop(raw);
@@ -756,7 +760,7 @@ protected:
                         case 0x1c ... 0x1f:
                                 return action_nop(raw);
                         case 0x1b:                /* ESC */
-                                return VTE_TRANSITION_NO_ACTION(raw, OSC_STRING_ESC);
+                                return VTE_TRANSITION_NO_ACTION(raw, ST_ESC);
                         case 0x20 ... 0x7f:        /* [' ' - DEL] */
                                 return action_osc_collect(raw);
                         case 0x07:                /* BEL */
@@ -771,7 +775,7 @@ protected:
                         case 0x1c ... 0x7f:
                                 return action_nop(raw);
                         case 0x1b:                /* ESC */
-                                return VTE_TRANSITION(raw, ESC, action_clear_int);
+                                return VTE_TRANSITION_NO_ACTION(raw, ST_ESC);
                         case 0x9c:                /* ST */
                                 return VTE_TRANSITION(raw, GROUND, action_ignore);
                         }
@@ -975,8 +979,8 @@ protected:
 
         inline int action_dcs_collect(uint32_t raw) noexcept
         {
-                if G_UNLIKELY (!vte_seq_string_push(&m_seq.arg_str, raw))
-                        m_state = DCS_IGNORE;
+                if (!vte_seq_string_push(&m_seq.arg_str, raw)) [[unlikely]]
+                        return VTE_TRANSITION(raw, ST_IGNORE, action_st_ignore_start);
 
                 return VTE_SEQ_NONE;
         }
@@ -1035,6 +1039,12 @@ protected:
                 return VTE_SEQ_NONE;
         }
 
+        inline int action_st_ignore_start(uint32_t raw) noexcept
+        {
+                m_seq.introducer = 0;
+                return VTE_SEQ_NONE;
+        }
+
         /* The next two functions are only called when encountering a ';' or ':',
          * so if there's already MAX-1 parameters, the ';' or ':' would finish
          * the MAXth parameter and there would be a default or non-default
@@ -1086,8 +1096,8 @@ protected:
                  * Only characters from 0x20..0x7e and >= 0xa0 are allowed here.
                  * Our state-machine already verifies those restrictions.
                  */
-                if G_UNLIKELY (!vte_seq_string_push(&m_seq.arg_str, raw))
-                        m_state = ST_IGNORE;
+                if (!vte_seq_string_push(&m_seq.arg_str, raw)) [[unlikely]]
+                        return VTE_TRANSITION(raw, ST_IGNORE, action_st_ignore_start);
 
                 return VTE_SEQ_NONE;
         }
