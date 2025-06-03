@@ -51,14 +51,17 @@ class vte_seq_builder : public u32SequenceBuilder {
 public:
         vte_seq_builder(unsigned int type,
                         uint32_t f)
-                : u32SequenceBuilder(type, f)
+                : u32SequenceBuilder{}
         {
+                set_type(type);
+                set_final(f);
         }
 
         vte_seq_builder(unsigned int type,
                         u32SequenceBuilder::string_type const& str)
-                : u32SequenceBuilder(type)
+                : u32SequenceBuilder{}
         {
+                set_type(type);
                 set_string(str);
         }
 
@@ -1562,14 +1565,6 @@ test_seq_glue_sequence_builder(void)
 
 }
 
-static void
-test_seq_glue_reply_builder(void)
-{
-        /* Nothing to test here; ReplyBuilder is just a constructor for
-         * SequenceBuilder.
-         */
-}
-
 int
 main(int argc,
      char* argv[])
@@ -1587,7 +1582,6 @@ main(int argc,
         // g_test_add_func("/vte/parser/sequences/glue/string-tokeniser/char8_t", test_seq_glue_string_tokeniser<char8_t>);
         g_test_add_func("/vte/parser/sequences/glue/string-tokeniser/char32_t", test_seq_glue_string_tokeniser<char32_t>);
         g_test_add_func("/vte/parser/sequences/glue/sequence-builder", test_seq_glue_sequence_builder);
-        g_test_add_func("/vte/parser/sequences/glue/reply-builder", test_seq_glue_reply_builder);
         g_test_add_func("/vte/parser/sequences/control", test_seq_control);
         g_test_add_func("/vte/parser/sequences/escape/invalid", test_seq_esc_invalid);
         g_test_add_func("/vte/parser/sequences/escape/charset/94", test_seq_esc_charset_94);

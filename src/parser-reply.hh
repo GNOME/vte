@@ -58,10 +58,10 @@ _VTE_REPLY(DECTABSR,    DCS, '@', NONE, CASH,  ) /* tabulation stop report */
 _VTE_REPLY(DECRPSS,     DCS, 'r', NONE, CASH,  ) /* report state or setting */
 _VTE_REPLY(XTERM_TCAPR, DCS, 'r', NONE, PLUS,  ) /* xterm termcap report */
 _VTE_REPLY(DECTSR,      DCS, 's', NONE, CASH,  ) /* terminal state report */
-_VTE_REPLY(DECCTR,      DCS, 's', NONE, CASH,  _VTE_REPLY_PARAMS({2})) /* color table report */
+_VTE_REPLY(DECCTR,      DCS, 's', NONE, CASH,  ) /* color table report */
 _VTE_REPLY(DECAUPSS,    DCS, 'u', NONE, BANG,  ) /* assign user preferred supplemental set */
 _VTE_REPLY(DECPSR,      DCS, 'u', NONE, CASH,  ) /* presentation state report */
-_VTE_REPLY(DECRPTUI,    DCS, '|', NONE, BANG,  _VTE_REPLY_STRING("7E565445") /* "~VTE" */) /* report terminal unit ID */
+_VTE_REPLY(DECRPTUI,    DCS, '|', NONE, BANG,  ) /* terminal unit ID */
 _VTE_REPLY(XTERM_DSR,   DCS, '|', GT,   NONE,  ) /* xterm terminal version report */
 _VTE_REPLY(DECRPFK,     DCS, '}', NONE, DQUOTE,) /* report function key */
 _VTE_REPLY(DECCKSR,     DCS, '~', NONE, BANG,  ) /* memory checksum report */

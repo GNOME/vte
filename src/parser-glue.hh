@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017, 2018 Christian Persch
+ * Copyright © 2017, 2018, 2025 Christian Persch
  *
  * This library is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -73,31 +73,21 @@ private:
         encoder_type m_encoder;
 
 public:
-        SequenceBuilder(unsigned int type = VTE_SEQ_NONE)
+        constexpr SequenceBuilder()
         {
                 memset(&m_seq, 0, sizeof(m_seq));
+        }
+
+        constexpr SequenceBuilder(unsigned type,
+                                  uint32_t f,
+                                  unsigned char intermediate,
+                                  unsigned char pintro)
+                : SequenceBuilder{}
+        {
                 set_type(type);
-        }
-
-        SequenceBuilder(unsigned int type,
-                        uint32_t f)
-                : SequenceBuilder(type)
-        {
                 set_final(f);
-        }
-
-        SequenceBuilder(unsigned int type,
-                        string_type const& str)
-                : SequenceBuilder(type)
-        {
-                set_string(str);
-        }
-
-        SequenceBuilder(unsigned int type,
-                        string_type&& str)
-                : SequenceBuilder(type)
-        {
-                set_string(str);
+                append_intermediate(intermediate);
+                set_param_intro(pintro);
         }
 
         SequenceBuilder(SequenceBuilder const&) = delete;
@@ -107,29 +97,32 @@ public:
         SequenceBuilder& operator= (SequenceBuilder const&) = delete;
         SequenceBuilder& operator= (SequenceBuilder&&) = delete;
 
-        inline constexpr unsigned int type() const noexcept { return m_seq.type; }
+        constexpr unsigned int type() const noexcept { return m_seq.type; }
 
-        auto& set_type(unsigned int type) noexcept
+        constexpr auto& set_type(unsigned int type) noexcept
         {
                 m_seq.type = type;
                 return *this;
         }
 
-        auto& set_final(uint32_t t) noexcept
+        constexpr auto& set_final(uint32_t t) noexcept
         {
                 m_seq.terminator = t;
                 return *this;
         }
 
-        auto& append_intermediate(unsigned char i) noexcept
+        constexpr auto& append_intermediate(unsigned char i) noexcept
         {
+                if (i == VTE_SEQ_INTERMEDIATE_CHAR_NONE) [[unlikely]]
+                        return *this;
+
                 assert(unsigned(m_n_intermediates + 1) <= (sizeof(m_intermediates)/sizeof(m_intermediates[0])));
 
                 m_intermediates[m_n_intermediates++] = i;
                 return *this;
         }
 
-        auto& append_intermediates(std::initializer_list<unsigned char> l) noexcept
+        constexpr auto& append_intermediates(std::initializer_list<unsigned char> l) noexcept
         {
                 assert(m_n_intermediates + l.size() <= (sizeof(m_intermediates)/sizeof(m_intermediates[0])));
 
@@ -140,13 +133,13 @@ public:
                 return *this;
         }
 
-        auto& set_param_intro(unsigned char p) noexcept
+        constexpr auto& set_param_intro(unsigned char p) noexcept
         {
                 m_param_intro = p;
                 return *this;
         }
 
-        auto& append_param(int p) noexcept
+        constexpr auto& append_param(int p) noexcept
         {
                 assert(m_seq.n_args + 1 <= (sizeof(m_seq.args) / sizeof(m_seq.args[0])));
                 m_seq.args[m_seq.n_args++] = vte_seq_arg_init(std::min(p, 0xffff));
@@ -161,7 +154,7 @@ public:
          * in the range -1..MAXUSHORT; use -2 to skip a parameter
          *
          */
-        auto& append_params(std::initializer_list<int> params) noexcept
+        constexpr auto& append_params(std::initializer_list<int> params) noexcept
         {
                 assert(m_seq.n_args + params.size() <= (sizeof(m_seq.args) / sizeof(m_seq.args[0])));
                 for (auto p : params) {
@@ -182,7 +175,7 @@ public:
          * in the range -1..MAXUSHORT; use -2 to skip a subparameter
          *
          */
-        auto& append_subparams(std::initializer_list<int> subparams) noexcept
+        constexpr auto& append_subparams(std::initializer_list<int> subparams) noexcept
         {
                 assert(m_seq.n_args + subparams.size() <= (sizeof(m_seq.args) / sizeof(m_seq.args[0])));
                 for (auto p : subparams) {
@@ -198,24 +191,32 @@ public:
                 return *this;
         }
 
-        auto& set_string(string_type const& str) noexcept
+        constexpr auto& set_string(string_type const& str) noexcept
         {
                 m_arg_str = str;
                 return *this;
         }
 
-        auto& set_string(string_type&& str) noexcept
+        constexpr auto& set_string(string_type&& str) noexcept
         {
                 m_arg_str = std::move(str);
                 return *this;
         }
 
+        constexpr auto&
+        vformat(fmt::string_view fmt,
+                fmt::format_args args)
+        {
+                m_arg_str = fmt::vformat(fmt, args);
+                return *this;
+        }
+
         template<typename... T>
-        auto&
+        inline constexpr auto&
         format(fmt::format_string<T...> fmt,
                T&&... args)
         {
-                m_arg_str = fmt::vformat(fmt, fmt::make_format_args(args...));
+                return vformat(fmt, fmt::make_format_args(args...));
         }
 
         enum class Introducer {
@@ -233,6 +234,13 @@ public:
                 BEL
         };
 
+        constexpr auto&
+        set_builder(SequenceBuilder const& builder)
+        {
+                m_arg_str.clear();
+                builder.to_string(m_arg_str, false, -1, Introducer::NONE, ST::NONE);
+                return *this;
+        }
 
 private:
         void append_introducer_(string_type& s,
@@ -340,6 +348,9 @@ private:
                 switch (m_seq.type) {
                 case VTE_SEQ_DCS:
                 case VTE_SEQ_OSC:
+                case VTE_SEQ_APC:
+                case VTE_SEQ_PM:
+                case VTE_SEQ_SOS:
 
                         if (max_arg_str_len < 0)
                                 s.append(m_arg_str, 0, max_arg_str_len);
@@ -377,9 +388,9 @@ private:
 public:
         void to_string(string_type& s,
                        bool c1 = false,
-                       ssize_t max_arg_str_len = -1,
+                       ssize_t max_arg_str_len = -1z,
                        Introducer introducer = Introducer::DEFAULT,
-                       ST st = ST::DEFAULT) const noexcept
+                       ST st = ST::DEFAULT) const
         {
                 append_introducer(s, c1, introducer);
                 append_params(s);
@@ -420,35 +431,21 @@ public:
 using u8SequenceBuilder = SequenceBuilder<std::string, UTF8Encoder>;
 using u32SequenceBuilder = SequenceBuilder<std::u32string>;
 
-class ReplyBuilder : public u8SequenceBuilder {
-public:
-        ReplyBuilder(unsigned int reply,
-                     std::initializer_list<int> params)
-        {
-                switch (reply) {
-#define _VTE_REPLY_PARAMS(params) append_params(params);
-#define _VTE_REPLY_STRING(str) set_string(str);
-#define _VTE_REPLY(cmd,type,final,pintro,intermediate,code) \
-                case VTE_REPLY_##cmd: \
-                        set_type(VTE_SEQ_##type); \
-                        set_final(final); \
-                        set_param_intro(VTE_SEQ_PARAMETER_CHAR_##pintro); \
-                        if (VTE_SEQ_INTERMEDIATE_CHAR_##intermediate != VTE_SEQ_INTERMEDIATE_CHAR_NONE) \
-                                append_intermediate(VTE_SEQ_INTERMEDIATE_CHAR_##intermediate); \
-                        code \
-                        break;
-#include "parser-reply.hh"
-#undef _VTE_REPLY
-#undef _VTE_REPLY_PARAMS
-#undef _VTE_REPLY_STRING
-                default:
-                        assert(false);
-                        break;
-                }
-                append_params(params);
-        }
+namespace reply {
 
-}; // class ReplyBuilder
+#define _VTE_REPLY(cmd,type,final_char,pintro,intermediate,code) \
+inline constexpr auto cmd() noexcept {     \
+        return u8SequenceBuilder{VTE_SEQ_##type, \
+                                 final_char, \
+                                 VTE_SEQ_INTERMEDIATE_CHAR_##intermediate, \
+                                 VTE_SEQ_PARAMETER_CHAR_##pintro}; \
+}
+
+#include "parser-reply.hh"
+
+#undef _VTE_REPLY
+
+} // namespace reply
 
 template<typename CharT>
 class StringTokeniserBase {

@@ -4895,9 +4895,9 @@ Terminal::feed_child_binary(std::string_view const& data)
 
 void
 Terminal::send(vte::parser::u8SequenceBuilder const& builder,
-                         bool c1,
-                         vte::parser::u8SequenceBuilder::Introducer introducer,
-                         vte::parser::u8SequenceBuilder::ST st) noexcept
+               bool c1,
+               vte::parser::u8SequenceBuilder::Introducer introducer,
+               vte::parser::u8SequenceBuilder::ST st) noexcept
 {
         std::string str;
         builder.to_string(str, c1, -1, introducer, st);
@@ -4905,8 +4905,8 @@ Terminal::send(vte::parser::u8SequenceBuilder const& builder,
 }
 
 void
-Terminal::send(vte::parser::Sequence const& seq,
-               vte::parser::u8SequenceBuilder const& builder) noexcept
+Terminal::reply(vte::parser::Sequence const& seq,
+                vte::parser::u8SequenceBuilder const& builder) noexcept
 {
         // FIXMEchpe always take c1 & ST from @seq?
         if (seq.type() == VTE_SEQ_OSC &&
@@ -4922,72 +4922,6 @@ Terminal::send(vte::parser::Sequence const& seq,
         } else {
                 send(builder, false);
         }
-}
-
-void
-Terminal::send(unsigned int type,
-                         std::initializer_list<int> params) noexcept
-{
-        // FIXMEchpe take c1 & ST from @seq
-        send(vte::parser::ReplyBuilder{type, params}, false);
-}
-
-void
-Terminal::reply(vte::parser::Sequence const& seq,
-                          unsigned int type,
-                          std::initializer_list<int> params) noexcept
-{
-        send(seq, vte::parser::ReplyBuilder{type, params});
-}
-
-#if 0
-void
-Terminal::reply(vte::parser::Sequence const& seq,
-                          unsigned int type,
-                          std::initializer_list<int> params,
-                          std::string const& str) noexcept
-{
-        vte::parser::ReplyBuilder reply_builder{type, params};
-        reply_builder.set_string(str);
-        send(seq, reply_builder);
-}
-#endif
-
-void
-Terminal::reply(vte::parser::Sequence const& seq,
-                          unsigned int type,
-                          std::initializer_list<int> params,
-                          vte::parser::ReplyBuilder const& builder) noexcept
-{
-        std::string str;
-        builder.to_string(str, true, -1,
-                          vte::parser::ReplyBuilder::Introducer::NONE,
-                          vte::parser::ReplyBuilder::ST::NONE);
-
-        vte::parser::ReplyBuilder reply_builder{type, params};
-        reply_builder.set_string(std::move(str));
-        send(seq, reply_builder);
-}
-
-void
-Terminal::reply(vte::parser::Sequence const& seq,
-                          unsigned int type,
-                          std::initializer_list<int> params,
-                          char const* format,
-                          ...) noexcept
-{
-        char buf[8192];
-        va_list vargs;
-
-        va_start(vargs, format);
-        G_GNUC_UNUSED auto len = g_vsnprintf(buf, sizeof(buf), format, vargs);
-        va_end(vargs);
-        vte_assert_cmpint(len, <, sizeof(buf));
-
-        vte::parser::ReplyBuilder builder{type, params};
-        builder.set_string(std::string{buf});
-
-        send(seq, builder);
 }
 
 void
@@ -6216,9 +6150,12 @@ Terminal::feed_mouse_event(vte::grid::coords const& rowcol /* confined */,
 	/* Check the extensions in decreasing order of preference. Encoding the release event above assumes that 1006 comes first. */
 	if (m_modes_private.XTERM_MOUSE_EXT_SGR()) {
 		/* xterm's extended mode (1006) */
-                send(is_release ? VTE_REPLY_XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_RELEASE
-                                : VTE_REPLY_XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_PRESS,
-                     {cb, (int)cx, (int)cy});
+                if (is_release)
+                        send(vte::parser::reply::XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_RELEASE().
+                             append_params({cb, (int)cx, (int)cy}));
+                else
+                        send(vte::parser::reply::XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_PRESS().
+                             append_params({cb, (int)cx, (int)cy}));
         } else if (cb <= 223 && cx <= 223 && cy <= 223) {
 		/* legacy mode */
                 char buf[8];
@@ -6234,7 +6171,10 @@ Terminal::feed_mouse_event(vte::grid::coords const& rowcol /* confined */,
 void
 Terminal::feed_focus_event(bool in)
 {
-        send(in ? VTE_REPLY_XTERM_FOCUS_IN : VTE_REPLY_XTERM_FOCUS_OUT, {});
+        if (in)
+                send(vte::parser::reply::XTERM_FOCUS_IN());
+        else
+                send(vte::parser::reply::XTERM_FOCUS_OUT());
 }
 
 void

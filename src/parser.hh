@@ -136,14 +136,6 @@ enum {
 };
 
 enum {
-#define _VTE_REPLY(cmd,type,final,pintro,intermediate,code) VTE_REPLY_##cmd,
-#include "parser-reply.hh"
-#undef _VTE_REPLY
-
-        VTE_REPLY_N
-};
-
-enum {
         VTE_CHARSET_TYPE_GRAPHIC_94 = 0,
         VTE_CHARSET_TYPE_GRAPHIC_96 = 1,
         VTE_CHARSET_TYPE_CONTROL = 2,
