@@ -203,7 +203,6 @@ Regex::substitute(std::string_view const& subject,
 {
         assert (!(flags & PCRE2_SUBSTITUTE_OVERFLOW_LENGTH));
 
-#if defined(__cpp_lib_string_resize_and_overwrite) && __cpp_lib_string_resize_and_overwrite >= 202110l
         std::string outbuf;
         auto r = 0;
         PCRE2_SIZE outlen = 2048;
@@ -251,47 +250,6 @@ Regex::substitute(std::string_view const& subject,
                 if (r >= 0)
                         return outbuf;
         }
-
-#else // not C++23
-
-        char outbuf[2048];
-        PCRE2_SIZE outlen = sizeof(outbuf) - 1;
-        auto r = pcre2_substitute_8(code(),
-                                    (PCRE2_SPTR8)subject.data(), subject.size(),
-                                    0 /* start offset */,
-                                    flags | PCRE2_SUBSTITUTE_OVERFLOW_LENGTH,
-                                    nullptr /* match data */,
-                                    nullptr /* match context */,
-                                    (PCRE2_SPTR8)replacement.data(), replacement.size(),
-                                    (PCRE2_UCHAR8*)outbuf, &outlen);
-        /* Note that on success, outlen excludes the trailing NUL. */
-        if (r >= 0)
-                return std::string{outbuf, outlen};
-
-        if (r == PCRE2_ERROR_NOMEMORY) {
-                /* The buffer was not large enough; allocated a buffer of the
-                 * required size and try again. Note that as opposed to the successful
-                 * call to pcre2_substitute_8() above, in the error case outlen *includes*
-                 * the trailing NUL.
-                 */
-                std::string outbuf2;
-                outbuf2.resize(outlen);
-
-                r = pcre2_substitute_8(code(),
-                                       (PCRE2_SPTR8)subject.data(), subject.size(),
-                                       0 /* start offset */,
-                                       flags,
-                                       nullptr /* match data */,
-                                       nullptr /* match context */,
-                                       (PCRE2_SPTR8)replacement.data(), replacement.size(),
-                                       (PCRE2_UCHAR8*)outbuf2.data(), &outlen);
-                if (r >= 0) {
-                        /* Note that on success, outlen excludes the trailing NUL. */
-                        outbuf2.resize(outlen);
-                        return outbuf2;
-                }
-       }
-#endif // C++23
 
         set_gerror_from_pcre_error(r, error);
         return std::nullopt;

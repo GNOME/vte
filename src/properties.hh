@@ -367,7 +367,6 @@ parse_termprop_base64(std::string_view const& str) noexcept
 {
         auto const max_size = (str.size() / 4) * 3 + 3;
         auto buf = std::string{};
-#if defined(__cpp_lib_string_resize_and_overwrite) && __cpp_lib_string_resize_and_overwrite >= 202110l
         auto state = 0;
         buf.resize_and_overwrite
                 (max_size,
@@ -383,23 +382,6 @@ parse_termprop_base64(std::string_view const& str) noexcept
 
         if (state != 0 || buf.size() > Registry::k_max_data_len)
                 return std::nullopt;
-
-#else
-        buf.resize(max_size);
-
-        auto state = 0;
-        auto save = 0u;
-        auto len = g_base64_decode_step(str.data(),
-                                        str.size(),
-                                        reinterpret_cast<unsigned char*>(buf.data()),
-                                        &state,
-                                        &save);
-
-        if (state != 0 || len > Registry::k_max_data_len)
-                return std::nullopt;
-
-        buf.resize(len);
-#endif // C++23
 
         return buf;
 }

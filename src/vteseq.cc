@@ -7712,7 +7712,6 @@ try
         auto const u32str = seq.string();
 
         auto str = std::string{};
-#if defined(__cpp_lib_string_resize_and_overwrite) && __cpp_lib_string_resize_and_overwrite >= 202110l
         str.resize_and_overwrite
                 (simdutf::utf8_length_from_utf32(u32str),
                  [&](char* data,
@@ -7720,10 +7719,6 @@ try
                          return simdutf::convert_utf32_to_utf8
                                  (u32str, std::span<char>(data, data_size));
                  });
-#else
-        str.resize(simdutf::utf8_length_from_utf32(u32str) + 1);
-        str.resize(simdutf::convert_utf32_to_utf8(u32str, std::span<char>(str.data(), str.size())));
-#endif // C++23
 
         vte::parser::StringTokeniser tokeniser{str, ';'};
         auto it = tokeniser.cbegin();
