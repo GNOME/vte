@@ -103,9 +103,6 @@ using Value = std::variant<std::monostate,
 
 namespace impl {
 
-        // This requires GCC 11. Remove the #else once we depend on that.
-#if defined(__cpp_lib_generic_unordered_lookup) &&__cpp_lib_generic_unordered_lookup >= 201811
-
         template<class CharT,
                  class Traits = std::char_traits<CharT>>
         class BasicStringHash {
@@ -128,14 +125,6 @@ namespace impl {
                                             int,
                                             StringHash,
                                             std::equal_to<>>;
-
-#else
-
-        using map_type = std::unordered_map<std::string,
-                                            int,
-                                            std::hash<std::string>>;
-
-#endif // __cpp_lib_generic_unordered_lookup >= 201811
 
 } // namespace impl
 
@@ -305,22 +294,14 @@ public:
         inline Property const*
         lookup(std::string_view const& str) const noexcept
         {
-#if defined(__cpp_lib_generic_unordered_lookup) &&__cpp_lib_generic_unordered_lookup >= 201811
                 auto const prop = m_registered_properties_by_name.find(str);
-#else
-                auto const prop = m_registered_properties_by_name.find(std::string{str});
-#endif
                 return prop == std::end(m_registered_properties_by_name) ? nullptr : lookup(prop->second);
         }
 
         inline int
         lookup_id(std::string_view const& str) const noexcept
         {
-#if defined(__cpp_lib_generic_unordered_lookup) &&__cpp_lib_generic_unordered_lookup >= 201811
                 auto const prop = m_registered_properties_by_name.find(str);
-#else
-                auto const prop = m_registered_properties_by_name.find(std::string{str});
-#endif
                 return prop == std::end(m_registered_properties_by_name) ? -1 : prop->second;
         }
 
