@@ -58,6 +58,7 @@ gboolean vte_properties_registry_query_by_id(VtePropertiesRegistry const* regist
                                              VtePropertyType* type,
                                              VtePropertyFlags* flags) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
+_VTE_PUBLIC
 VtePropertiesRegistry const* vte_get_termprops_registry(void) _VTE_CXX_NOEXCEPT;
 
 typedef struct _VteProperties VteProperties;
