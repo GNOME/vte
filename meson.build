@@ -104,11 +104,6 @@ vte_localedir = get_option('localedir')
 vte_prefix = get_option('prefix')
 vte_sysconfdir = get_option('sysconfdir')
 
-vte_pkgdatadir = vte_datadir / vte_api_name
-
-# tinfo.pc doesn't have a define for this, so just hardcode it
-vte_terminfodir = vte_pkgdatadir / 'terminfo'
-
 # It is correct for this to be in ${prefix}/lib, even on systems where that
 # does not match ${libdir}. This is what systemd uses on such platforms.
 vte_systemduserunitdir = vte_prefix / 'lib' / 'systemd' / 'user'
