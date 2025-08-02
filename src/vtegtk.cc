@@ -2422,11 +2422,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          */
         pspecs[PROP_ENABLE_SIXEL] =
                 g_param_spec_boolean ("enable-sixel", nullptr, nullptr,
-#if WITH_SIXEL
-                                      VTE_SIXEL_ENABLED_DEFAULT,
-#else
                                       false,
-#endif
                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
 
@@ -3211,12 +3207,6 @@ vte_get_features (void) noexcept
 #else
                 "-ICU"
 #endif
-                " "
-#if WITH_SIXEL
-                "+SIXEL"
-#else
-                "-SIXEL"
-#endif
 #ifdef __linux__
                 " "
 #if WITH_SYSTEMD
@@ -3246,9 +3236,6 @@ vte_get_feature_flags(void) noexcept
 #endif
 #if WITH_ICU
                                VTE_FEATURE_FLAG_ICU |
-#endif
-#if WITH_SIXEL
-                               VTE_FEATURE_FLAG_SIXEL |
 #endif
 #ifdef __linux__
 #if WITH_SYSTEMD
@@ -7527,12 +7514,7 @@ vte_terminal_set_enable_sixel(VteTerminal *terminal,
                               gboolean enabled) noexcept
 try
 {
-#if WITH_SIXEL
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        if (WIDGET(terminal)->set_sixel_enabled(enabled != FALSE))
-                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_ENABLE_SIXEL]);
-#endif
 }
 catch (...)
 {
@@ -7543,7 +7525,7 @@ catch (...)
  * vte_terminal_get_enable_sixel:
  * @terminal: a #VteTerminal
  *
- * Returns: %TRUE if SIXEL image support is enabled, %FALSE otherwise
+ * Returns: %FALSE
  *
  * Since: 0.62
  */
@@ -7551,13 +7533,7 @@ gboolean
 vte_terminal_get_enable_sixel(VteTerminal *terminal) noexcept
 try
 {
-#if WITH_SIXEL
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-
-        return WIDGET(terminal)->sixel_enabled();
-#else
         return false;
-#endif
 }
 catch (...)
 {
