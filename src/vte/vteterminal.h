@@ -31,7 +31,6 @@
 
 #include "vtemacros.h"
 #include "vteenums.h"
-#include "vteproperties.h"
 #include "vtepty.h"
 #include "vteregex.h"
 #include "vteuuid.h"
@@ -856,9 +855,6 @@ gboolean vte_terminal_get_termprop_flags_by_id(VteTerminal* terminal,
                                                GType gtype,
                                                gboolean ignore_unknown_flags,
                                                uint64_t* valuep) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
-
-_VTE_PUBLIC
-VteProperties const* vte_terminal_get_termprops(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VteTerminal, g_object_unref)
 
