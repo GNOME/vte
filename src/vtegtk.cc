@@ -8944,7 +8944,7 @@ vte_terminal_get_termprop_flags(VteTerminal* terminal,
  *
  * Returns: (transfer none): a #VtePropertiesRegistry
  *
- * Since: 0.82
+ * Since: 0.84
  */
 VtePropertiesRegistry const*
 vte_get_termprops_registry(void) noexcept
@@ -8987,7 +8987,7 @@ catch (...)
  *
  * Returns: (transfer none): a #VteProperties
  *
- * Since: 0.82
+ * Since: 0.84
  */
 VteProperties const*
 vte_terminal_get_termprops(VteTerminal* terminal) noexcept

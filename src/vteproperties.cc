@@ -17,7 +17,7 @@
  * SECTION: vte-properties
  * @short_description: A property registry and property bag
  *
- * Since: 0.82
+ * Since: 0.84
  */
 
 #include "config.h"
@@ -81,7 +81,7 @@ constexpr bool check_enum_value<VtePropertyType>(VtePropertyType value) noexcept
  *
  * A property registry.
  *
- * Since: 0.82
+ * Since: 0.84
  */
 
 #define VTE_IS_PROPERTIES_REGISTRY(r) (r != nullptr)
@@ -137,7 +137,7 @@ catch (...)
  * Returns: (transfer container) (array length=length) (nullable): the names of the
  *   installed properties, or %NULL if there are no properties
  *
- * Since: 0.82
+ * Since: 0.84
  */
 char const**
 vte_properties_registry_get_properties(VtePropertiesRegistry const* registry,
@@ -194,7 +194,7 @@ catch (...)
  * Returns: %TRUE iff the property exists, and then @prop, @type and
  *   @flags will be filled in
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_registry_query(VtePropertiesRegistry const* registry,
@@ -246,7 +246,7 @@ catch (...)
  * Returns: %TRUE iff the property exists, and then @name, @type and
  *   @flags will be filled in
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_registry_query_by_id(VtePropertiesRegistry const* registry,
@@ -317,7 +317,7 @@ G_DEFINE_POINTER_TYPE(VtePropertiues, vte_properties);
  *
  * A property bag.
  *
- * Since: 0.82
+ * Since: 0.84
  */
 
 static int
@@ -346,7 +346,7 @@ catch (...)
  * Returns: (transfer none): the #VtePropertiesRegistry associated
  *   with @properties
  *
- * Since: 0.82
+ * Since: 0.84
  */
 VtePropertiesRegistry const*
 vte_properties_get_registry(VteProperties const* properties) noexcept
@@ -373,7 +373,7 @@ catch (...)
  *
  * Returns: %TRUE iff the property is set
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_bool_by_id(VteProperties const* properties,
@@ -424,7 +424,7 @@ catch (...)
  *
  * Returns: %TRUE iff the property is set
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_bool(VteProperties const* properties,
@@ -449,7 +449,7 @@ vte_properties_get_property_bool(VteProperties const* properties,
  *
  * Returns: %TRUE iff the property is set
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_int_by_id(VteProperties const* properties,
@@ -505,7 +505,7 @@ catch (...)
  *
  * Returns: %TRUE iff the property is set
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_int(VteProperties const* properties,
@@ -530,7 +530,7 @@ vte_properties_get_property_int(VteProperties const* properties,
  *
  * Returns: %TRUE iff the property is set
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_uint_by_id(VteProperties const* properties,
@@ -586,7 +586,7 @@ catch (...)
  *
  * Returns: %TRUE iff the property is set
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_uint(VteProperties const* properties,
@@ -611,7 +611,7 @@ vte_properties_get_property_uint(VteProperties const* properties,
  *
  * Returns: %TRUE iff the property is set
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_double_by_id(VteProperties const* properties,
@@ -663,7 +663,7 @@ catch (...)
  *
  * Returns: %TRUE iff the property is set
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_double(VteProperties const* properties,
@@ -688,7 +688,7 @@ vte_properties_get_property_double(VteProperties const* properties,
  *
  * Returns: %TRUE iff the property is set
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_rgba_by_id(VteProperties const* properties,
@@ -741,7 +741,7 @@ catch (...)
  *
  * Returns: %TRUE iff the property is set
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_rgba(VteProperties const* properties,
@@ -766,7 +766,7 @@ vte_properties_get_property_rgba(VteProperties const* properties,
  *
  * Returns: (transfer none) (nullable): the property's value, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 char const*
 vte_properties_get_property_string_by_id(VteProperties const* properties,
@@ -817,7 +817,7 @@ catch (...)
  *
  * Returns: (transfer none) (nullable): the property's value, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 char const*
 vte_properties_get_property_string(VteProperties const* properties,
@@ -842,7 +842,7 @@ vte_properties_get_property_string(VteProperties const* properties,
  *
  * Returns: (transfer full) (nullable): the property's value, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 char*
 vte_properties_dup_property_string_by_id(VteProperties const* properties,
@@ -890,7 +890,7 @@ catch (...)
  *
  * Returns: (transfer full) (nullable): the property's value, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 char*
 vte_properties_dup_property_string(VteProperties const* properties,
@@ -916,7 +916,7 @@ vte_properties_dup_property_string(VteProperties const* properties,
  * Returns: (transfer none) (element-type guint8) (array length=size) (nullable): the
  *   property's value, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 uint8_t const*
 vte_properties_get_property_data_by_id(VteProperties const* properties,
@@ -966,7 +966,7 @@ catch (...)
  * Returns: (transfer none) (element-type guint8) (array length=size) (nullable): the
  *   property's value, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 uint8_t const*
 vte_properties_get_property_data(VteProperties const* properties,
@@ -990,7 +990,7 @@ vte_properties_get_property_data(VteProperties const* properties,
  *
  * Returns: (transfer full) (nullable): the property's value as a #GBytes, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 GBytes*
 vte_properties_ref_property_data_bytes_by_id(VteProperties const* properties,
@@ -1032,7 +1032,7 @@ catch (...)
  *
  * Returns: (transfer full) (nullable): the property's value as a #GBytes, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 GBytes*
 vte_properties_ref_property_data_bytes(VteProperties const* properties,
@@ -1054,7 +1054,7 @@ vte_properties_ref_property_data_bytes(VteProperties const* properties,
  *
  * Returns: (transfer full) (nullable): the property's value as a #VteUuid, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 VteUuid*
 vte_properties_dup_property_uuid_by_id(VteProperties const* properties,
@@ -1095,7 +1095,7 @@ catch (...)
  *
  * Returns: (transfer full) (nullable): the property's value as a #VteUuid, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 VteUuid*
 vte_properties_dup_property_uuid(VteProperties const* properties,
@@ -1117,7 +1117,7 @@ vte_properties_dup_property_uuid(VteProperties const* properties,
  *
  * Returns: (transfer full) (nullable): the property's value as a #GUri, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 GUri*
 vte_properties_ref_property_uri_by_id(VteProperties const* properties,
@@ -1158,7 +1158,7 @@ catch (...)
  *
  * Returns: (transfer full) (nullable): the property's value as a #GUri, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 GUri*
 vte_properties_ref_property_uri(VteProperties const* properties,
@@ -1219,7 +1219,7 @@ catch (...)
  *
  * Returns: (transfer full) (nullable): the property's value as a #cairo_surface_t, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 cairo_surface_t*
 vte_properties_ref_property_image_surface_by_id(VteProperties const* properties,
@@ -1267,7 +1267,7 @@ catch (...)
  * Returns: (transfer full) (nullable): the property's value as
  *   a #cairo_surface_t, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 cairo_surface_t*
 vte_properties_ref_property_image_surface(VteProperties const* properties,
@@ -1292,7 +1292,7 @@ vte_properties_ref_property_image_surface(VteProperties const* properties,
  * Returns: (transfer full) (nullable): the property's value as a #GdkPixbuf,
  *   or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 GdkPixbuf*
 vte_properties_ref_property_image_pixbuf_by_id(VteProperties const* properties,
@@ -1339,7 +1339,7 @@ catch (...)
  *
  * Returns: (transfer full) (nullable): the property's value as a #GdkPixbuf, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 GdkPixbuf*
 vte_properties_ref_property_image_pixbuf(VteProperties const* properties,
@@ -1404,7 +1404,7 @@ texture_from_surface(cairo_surface_t* surface)
  * Returns: (transfer full) (nullable): the property's value as a #GdkTexture,
  *   or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 GdkTexture*
 vte_properties_ref_property_image_texture_by_id(VteProperties const* properties,
@@ -1447,7 +1447,7 @@ catch (...)
  * Returns: (transfer full) (nullable): the property's value as a #GdkTexture,
  *   or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 GdkTexture*
 vte_properties_ref_property_image_texture(VteProperties const* properties,
@@ -1473,7 +1473,7 @@ vte_properties_ref_property_image_texture(VteProperties const* properties,
  * Returns: %TRUE iff the property has a value, with @gvalue containig
  *   the property's value.
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_value_by_id(VteProperties const* properties,
@@ -1658,7 +1658,7 @@ catch (...)
  * Returns: %TRUE iff the property has a value, with @gvalue containig
  *   the property's value.
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_value(VteProperties const* properties,
@@ -1682,7 +1682,7 @@ vte_properties_get_property_value(VteProperties const* properties,
  *
  * Returns: (transfer full) (nullable): a floating #GVariant, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 GVariant*
 vte_properties_ref_property_variant_by_id(VteProperties const* properties,
@@ -1812,7 +1812,7 @@ catch (...)
  *
  * Returns: (transfer full) (nullable): a floating #GVariant, or %NULL
  *
- * Since: 0.82
+ * Since: 0.84
  */
 GVariant*
 vte_properties_ref_property_variant(VteProperties const* properties,
@@ -1837,7 +1837,7 @@ vte_properties_ref_property_variant(VteProperties const* properties,
  * Returns: %TRUE iff the property was set and could be parsed a
  *   a value of enumeration type @type
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_enum_by_id(VteProperties const* properties,
@@ -1892,7 +1892,7 @@ catch (...)
  * Returns: %TRUE iff the property was set and could be parsed a
  *   a value of the enumeration type
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_enum(VteProperties const* properties,
@@ -1923,7 +1923,7 @@ vte_properties_get_property_enum(VteProperties const* properties,
  * Returns: %TRUE iff the property was set and could be parsed a
  *   a value of flags type @type
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_flags_by_id(VteProperties const* properties,
@@ -1984,7 +1984,7 @@ catch (...)
  * Returns: %TRUE iff the property was set and could be parsed a
  *   a value of the flags type
  *
- * Since: 0.82
+ * Since: 0.84
  */
 gboolean
 vte_properties_get_property_flags(VteProperties const* properties,
