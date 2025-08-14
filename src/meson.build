@@ -709,6 +709,7 @@ test_color_lightness_sources = config_sources + color_lightness_sources + files(
 )
 
 test_color_lightness_deps = [
+  fmt_dep,
   glib_dep,
   pango_dep,
 ]
