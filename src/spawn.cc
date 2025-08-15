@@ -265,6 +265,7 @@ merge_environ(char** envp /* consumed */,
                 g_strfreev(envp);
         }
 
+#if WITH_TERMINFO
         // Make our terminfo available
         if (auto const tidirs = (char const*)g_hash_table_lookup(table, "TERMINFO_DIRS");
             tidirs && tidirs[0])
@@ -273,6 +274,7 @@ merge_environ(char** envp /* consumed */,
         else
                 g_hash_table_replace(table, g_strdup("TERMINFO_DIRS"),
                                      g_strdup(TERMINFODIR));
+#endif // WITH_TERMINFO
 
         /* Always set this ourself, not allowing replacing from envp */
         g_hash_table_replace(table, g_strdup("VTE_VERSION"), g_strdup_printf("%u", VTE_VERSION_NUMERIC));

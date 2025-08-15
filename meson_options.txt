@@ -107,6 +107,13 @@ option(
 )
 
 option(
+  'terminfo',
+  type: 'boolean',
+  value: false,
+  description: 'Enable vte terminfo (experimental)',
+)
+
+option(
   'vapi', # would use 'vala' but that name is reserved
   type: 'boolean',
   value: true,
