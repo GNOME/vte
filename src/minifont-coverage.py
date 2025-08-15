@@ -103,7 +103,7 @@ def write_output(output_filename):
 static inline /* C++23 constexpr */ bool
 unistr_is_local_graphic(char32_t c) noexcept
 {
-#if VTE_DEBUG && (VERSION_MINOR % 2) == 1 && !defined(MINIFONT_TEST)
+#if 0 // VTE_DEBUG && (VERSION_MINOR % 2) == 1 && !defined(MINIFONT_TEST)
   // Cover the whole blocks in debug mode on development versions
   switch (c >> 8) { // block
 """
