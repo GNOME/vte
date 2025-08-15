@@ -112,7 +112,7 @@ private:
 
                 for (auto i = 0u; i < size; i++) {
                         if (!seq.param_default(i))
-                                it = format_to(it, "{}", seq.param(i));
+                                it = fmt::format_to(it, "{}", seq.param(i));
                         if (i + 1 < size) {
                                 *it = seq.param_nonfinal(i) ? ':' : ';';
                                 ++it;
@@ -180,10 +180,10 @@ private:
 
                 *it = '{'; ++it;
                 if (seq.command() != VTE_CMD_NONE) {
-                        it = format_to(it, "{}", vte::parser::cmd_t(seq.command()));
+                        it = fmt::format_to(it, "{}", vte::parser::cmd_t(seq.command()));
                         it = format_params(seq, ctx);
                 } else {
-                        it = format_to(it, "{}", vte::parser::seq_t(seq.type()));
+                        it = fmt::format_to(it, "{}", vte::parser::seq_t(seq.type()));
                         it = format_pintro(seq, ctx);
                         it = format_params(seq, ctx);
                         it = format_intermediates(seq, ctx);
@@ -219,11 +219,11 @@ public:
         {
                 switch (seq.type()) {
                 case VTE_SEQ_NONE: {
-                        return format_to(ctx.out(), "{{NONE}}");
+                        return fmt::format_to(ctx.out(), "{{NONE}}");
                 }
 
                 case VTE_SEQ_IGNORE: {
-                        return format_to(ctx.out(), "{{IGNORE}}");
+                        return fmt::format_to(ctx.out(), "{{IGNORE}}");
                 }
 
                 case VTE_SEQ_GRAPHIC: [[likely]] {
@@ -234,51 +234,51 @@ public:
                                 char ubuf[7];
                                 auto const len = g_unichar_to_utf8(terminator, ubuf);
                                 if (m_codepoints) {
-                                        return format_to(ctx.out(), "<U+{:04X} {}>",
-                                                         terminator,
-                                                         std::string_view(ubuf, len));
+                                        return fmt::format_to(ctx.out(), "<U+{:04X} {}>",
+                                                              terminator,
+                                                              std::string_view(ubuf, len));
                                 } else {
-                                        return format_to(ctx.out(), "{}",
-                                                         std::string_view(ubuf, len));
+                                        return fmt::format_to(ctx.out(), "{}",
+                                                              std::string_view(ubuf, len));
                                 }
                         } else {
-                                return format_to(ctx.out(), "<U+{:04X}>", terminator);
+                                return fmt::format_to(ctx.out(), "<U+{:04X}>", terminator);
                         }
                         break;
                 }
 
                 case VTE_SEQ_CONTROL:
-                        return format_to(ctx.out(),
-                                         "{{{}}}",
-                                         vte::parser::cmd_t(seq.command()));
+                        return fmt::format_to(ctx.out(),
+                                              "{{{}}}",
+                                              vte::parser::cmd_t(seq.command()));
 
                 case VTE_SEQ_ESCAPE: {
                         switch (seq.command()) {
                         case VTE_CMD_GnDm:
-                                return format_to(ctx.out(),
-                                                 "{{G{}D{} {}}}",
-                                                 seq.slot(),
-                                                 seq.charset_type() == VTE_CHARSET_TYPE_GRAPHIC_94 ? 4 : 6,
-                                                 vte::parser::charset_t(seq.charset()));
+                                return fmt::format_to(ctx.out(),
+                                                      "{{G{}D{} {}}}",
+                                                      seq.slot(),
+                                                      seq.charset_type() == VTE_CHARSET_TYPE_GRAPHIC_94 ? 4 : 6,
+                                                      vte::parser::charset_t(seq.charset()));
                         case VTE_CMD_GnDMm:
-                                return format_to(ctx.out(),
-                                                 "{{G{}DM{} {}}}",
-                                                 seq.slot(),
-                                                 seq.charset_type() == VTE_CHARSET_TYPE_GRAPHIC_94 ? 4 : 6,
-                                                 vte::parser::charset_t(seq.charset()));
+                                return fmt::format_to(ctx.out(),
+                                                      "{{G{}DM{} {}}}",
+                                                      seq.slot(),
+                                                      seq.charset_type() == VTE_CHARSET_TYPE_GRAPHIC_94 ? 4 : 6,
+                                                      vte::parser::charset_t(seq.charset()));
                         case VTE_CMD_CnD:
-                                return format_to(ctx.out(),
-                                                 "{{C{}D {}}}",
-                                                 seq.slot(),
-                                                 vte::parser::charset_t(seq.charset()));
+                                return fmt::format_to(ctx.out(),
+                                                      "{{C{}D {}}}",
+                                                      seq.slot(),
+                                                      vte::parser::charset_t(seq.charset()));
                         case VTE_CMD_DOCS:
-                                return format_to(ctx.out(),
-                                                 "{{DOCS {}}}",
-                                                 vte::parser::charset_t(seq.charset()));
+                                return fmt::format_to(ctx.out(),
+                                                      "{{DOCS {}}}",
+                                                      vte::parser::charset_t(seq.charset()));
                         default: [[likely]]
-                                return format_to(ctx.out(),
-                                                 "{{{}}}",
-                                                 vte::parser::cmd_t(seq.command()));
+                                return fmt::format_to(ctx.out(),
+                                                      "{{{}}}",
+                                                      vte::parser::cmd_t(seq.command()));
                         }
                 }
 
@@ -290,28 +290,28 @@ public:
                 case VTE_SEQ_OSC:
                 case VTE_SEQ_PM:
                 case VTE_SEQ_SOS:
-                        return format_to(ctx.out(),
-                                         "{{{} {}}}",
-                                         vte::parser::seq_t(seq.type()),
-                                         vte::boxed<std::u32string_view>(seq.string()));
+                        return fmt::format_to(ctx.out(),
+                                              "{{{} {}}}",
+                                              vte::parser::seq_t(seq.type()),
+                                              vte::boxed<std::u32string_view>(seq.string()));
 
                 case VTE_SEQ_SCI: {
                         auto const terminator = seq.terminator();
                         if (terminator <= 0x20) {
                                 if (m_codepoints) {
-                                        return format_to(ctx.out(),
-                                                         "{{SCI {:02}/{:02}}}",
-                                                         terminator / 16,
-                                                         terminator % 16);
+                                        return fmt::format_to(ctx.out(),
+                                                              "{{SCI {:02}/{:02}}}",
+                                                              terminator / 16,
+                                                              terminator % 16);
                                 } else {
-                                        return format_to(ctx.out(),
-                                                         "{{SCI {}}}",
-                                                         vte::parser::control_t(terminator));
+                                        return fmt::format_to(ctx.out(),
+                                                              "{{SCI {}}}",
+                                                              vte::parser::control_t(terminator));
                                 }
                         } else if (terminator < 0x7f) { // Note: terminator *is* < 0x7F
-                                return format_to(ctx.out(),
-                                                 "{{SCI {:c}}}",
-                                                 char(terminator));
+                                return fmt::format_to(ctx.out(),
+                                                      "{{SCI {:c}}}",
+                                                      char(terminator));
                         } else {
                                 __builtin_unreachable();
                                 return ctx.out();
