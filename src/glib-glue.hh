@@ -40,7 +40,6 @@ take_free_ptr(T* ptr)
 }
 
 using StringPtr = FreePtr<char>;
-using StringGetter = vte::ValueGetter<StringPtr, char*, nullptr>;
 
 inline StringPtr
 take_string(char* str)
@@ -55,7 +54,6 @@ dup_string(char const* str)
 }
 
 using StrvPtr = vte::FreeablePtr<char*, decltype(&g_strfreev), &g_strfreev>;
-using StrvGetter = vte::ValueGetter<StrvPtr, char**, nullptr>;
 
 inline StrvPtr
 take_strv(char** strv)

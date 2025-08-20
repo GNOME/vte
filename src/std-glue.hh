@@ -70,13 +70,4 @@ private:
         V m_value;
 };
 
-template<typename S, typename V, V default_v = 0>
-auto get_value(S& s) { return vte::ValueGetter<S, V, default_v>{s}; }
-
-template<typename T>
-using FreeableGetter = ValueGetter<Freeable<T>, T*, nullptr>;
-
-template<typename T>
-auto get_freeable(vte::Freeable<T>& freeable) { return vte::FreeableGetter<T>{freeable}; }
-
 } // namespace vte

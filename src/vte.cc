@@ -7953,8 +7953,9 @@ Terminal::update_font_desc()
         gtk_style_context_save(context);
         gtk_style_context_set_state (context, GTK_STATE_FLAG_NORMAL);
         gtk_style_context_get(context, GTK_STATE_FLAG_NORMAL, "font",
-                              &vte::get_freeable(desc),
+                              static_cast<PangoFontDescription**>(std::out_ptr(desc)),
                               nullptr);
+
         gtk_style_context_restore(context);
 #elif VTE_GTK == 4
         // FIXMEgtk4
