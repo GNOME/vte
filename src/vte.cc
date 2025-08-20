@@ -90,6 +90,7 @@
 #include "unicode-width.hh"
 
 #include <new> /* placement new */
+#include <utility>
 
 using namespace std::literals;
 
@@ -2284,7 +2285,7 @@ Terminal::set_color(int entry,
                          entry,
                          proposed);
 
-        auto const source = vte::to_integral(source_);
+        auto const source = std::to_underlying(source_);
         if (palette_color->sources[source].is_set &&
             palette_color->sources[source].color == proposed) {
                 return;
@@ -2329,7 +2330,7 @@ Terminal::reset_color(int entry,
                          source_ == color_palette::ColorSource::Escape ? "escape" : "API",
                          entry);
 
-        auto const source = vte::to_integral(source_);
+        auto const source = std::to_underlying(source_);
         if (!palette_color->sources[source].is_set) {
                 return;
         }
@@ -4095,8 +4096,8 @@ Terminal::process_incoming()
                         auto selection = g_string_new(nullptr);
                         get_selected_text(selection);
                         if ((selection->str == nullptr) ||
-                            (m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] == nullptr) ||
-                            (strcmp(selection->str, m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)]->str) != 0)) {
+                            (m_selection[std::to_underlying(vte::platform::ClipboardType::PRIMARY)] == nullptr) ||
+                            (strcmp(selection->str, m_selection[std::to_underlying(vte::platform::ClipboardType::PRIMARY)]->str) != 0)) {
                                 deselect_all();
                         }
                         g_string_free(selection, TRUE);
@@ -4498,7 +4499,7 @@ Terminal::process_incoming_decsixel(ProcessingContext& context,
                                         reset_termprop(*info);
                                 }
 
-                                m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                                m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS);
                         } else {
                                 insert_image(context, m_sixel_context->image_cairo());
                         }
@@ -4514,7 +4515,7 @@ Terminal::process_incoming_decsixel(ProcessingContext& context,
                         auto const info = m_termprops.registry().lookup(VTE_PROPERTY_ID_ICON_IMAGE);
                         assert(info);
                         reset_termprop(*info);
-                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                        m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS);
                 }
                 } catch (...) {
                 }
@@ -6579,7 +6580,7 @@ Terminal::widget_clipboard_data_clear(vte::platform::Clipboard const& clipboard)
 
         switch (clipboard.type()) {
         case vte::platform::ClipboardType::PRIMARY:
-		if (m_selection_owned[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] &&
+		if (m_selection_owned[std::to_underlying(vte::platform::ClipboardType::PRIMARY)] &&
                     !m_selection_resolved.empty()) {
 			_vte_debug_print(vte::debug::category::SELECTION,
                                          "Lost selection");
@@ -6588,7 +6589,7 @@ Terminal::widget_clipboard_data_clear(vte::platform::Clipboard const& clipboard)
 
                 [[fallthrough]];
         case vte::platform::ClipboardType::CLIPBOARD:
-                m_selection_owned[vte::to_integral(clipboard.type())] = false;
+                m_selection_owned[std::to_underlying(clipboard.type())] = false;
                 break;
         }
 }
@@ -6597,7 +6598,7 @@ std::optional<std::string_view>
 Terminal::widget_clipboard_data_get(vte::platform::Clipboard const& clipboard,
                                     vte::platform::ClipboardFormat format)
 {
-        auto const sel = vte::to_integral(clipboard.type());
+        auto const sel = std::to_underlying(clipboard.type());
 
         if (m_selection[sel] == nullptr)
                 return std::nullopt;
@@ -7114,7 +7115,7 @@ Terminal::widget_copy(vte::platform::ClipboardType type,
         GString *selection = g_string_new(nullptr);
         get_selected_text(selection, &attributes);
 
-        auto const sel = vte::to_integral(type);
+        auto const sel = std::to_underlying(type);
         if (m_selection[sel]) {
                 g_string_free(m_selection[sel], TRUE);
                 m_selection[sel] = nullptr;
@@ -8407,7 +8408,7 @@ Terminal::Terminal(vte::platform::Widget* w,
 	/* Set up the desired palette. */
 	set_colors_default();
 	for (auto i = 0; i < VTE_PALETTE_SIZE; i++)
-		m_palette[i].sources[vte::to_integral(color_palette::ColorSource::Escape)].is_set = false;
+		m_palette[i].sources[std::to_underlying(color_palette::ColorSource::Escape)].is_set = false;
 
         /* Dispatch unripe DCS (for now, just DECSIXEL) sequences,
          * so we can switch data syntax and parse the contents with
@@ -8660,7 +8661,7 @@ Terminal::widget_unrealize()
 	 * doesn't just disappear. */
         for (auto sel_type : {vte::platform::ClipboardType::CLIPBOARD,
                               vte::platform::ClipboardType::PRIMARY}) {
-                auto const sel = vte::to_integral(sel_type);
+                auto const sel = std::to_underlying(sel_type);
 		if (m_selection[sel] != nullptr) {
 			if (m_selection_owned[sel]) {
                                 // FIXMEchpe we should check m_selection_format[sel]
@@ -10838,7 +10839,7 @@ Terminal::reset(bool clear_tabstops,
 
 	/* Reset the color palette. Only the 256 indexed colors, not the special ones, as per xterm. */
 	for (int i = 0; i < 256; i++)
-		m_palette[i].sources[vte::to_integral(color_palette::ColorSource::Escape)].is_set = false;
+		m_palette[i].sources[std::to_underlying(color_palette::ColorSource::Escape)].is_set = false;
 	/* Reset the default attributes.  Reset the alternate attribute because
 	 * it's not a real attribute, but we need to treat it as one here. */
         m_defaults = m_color_defaults = basic_cell;
@@ -11054,7 +11055,7 @@ Terminal::emit_pending_signals()
 
 	emit_adjustment_changed();
 
-	if (m_pending_changes & vte::to_integral(PendingChanges::TERMPROPS)) {
+	if (m_pending_changes & std::to_underlying(PendingChanges::TERMPROPS)) {
                 auto const n_props = m_termprops.size();
                 auto changed_props = g_newa(int, n_props);
 
@@ -11092,21 +11093,21 @@ Terminal::emit_pending_signals()
         if (!m_no_legacy_signals) {
                 // Emit deprecated signals and notify:: for deprecated properties,
 
-                if (m_pending_changes & vte::to_integral(PendingChanges::TITLE)) {
+                if (m_pending_changes & std::to_underlying(PendingChanges::TITLE)) {
                         _vte_debug_print(vte::debug::category::SIGNALS,
                                          "Emitting `window-title-changed'");
                         g_signal_emit(freezer.get(), signals[SIGNAL_WINDOW_TITLE_CHANGED], 0);
                         g_object_notify_by_pspec(freezer.get(), pspecs[PROP_WINDOW_TITLE]);
                 }
 
-                if (m_pending_changes & vte::to_integral(PendingChanges::CWD)) {
+                if (m_pending_changes & std::to_underlying(PendingChanges::CWD)) {
                         _vte_debug_print(vte::debug::category::SIGNALS,
                                          "Emitting `current-directory-uri-changed'");
                         g_signal_emit(freezer.get(), signals[SIGNAL_CURRENT_DIRECTORY_URI_CHANGED], 0);
                         g_object_notify_by_pspec(freezer.get(), pspecs[PROP_CURRENT_DIRECTORY_URI]);
                 }
 
-                if (m_pending_changes & vte::to_integral(PendingChanges::CWF)) {
+                if (m_pending_changes & std::to_underlying(PendingChanges::CWF)) {
                         _vte_debug_print(vte::debug::category::SIGNALS,
                                          "Emitting `current-file-uri-changed'");
                         g_signal_emit(freezer.get(), signals[SIGNAL_CURRENT_FILE_URI_CHANGED], 0);

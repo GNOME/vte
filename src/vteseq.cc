@@ -45,6 +45,7 @@
 #include <algorithm>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <version>
 
 #include <simdutf.h>
@@ -1740,8 +1741,8 @@ Terminal::set_termprop_uri(vte::parser::Sequence const& seq,
         }
 
         if (set) {
-                m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS) |
-                        vte::to_integral(legacy_pending_change);
+                m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS) |
+                        std::to_underlying(legacy_pending_change);
         }
 }
 
@@ -2016,7 +2017,7 @@ try
                 // calling any API on VteTerminal except the termprop value
                 // retrieval functions, this should not be further limiting.
 
-                m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS);
         }
 
         if (query) {
@@ -2051,7 +2052,7 @@ try
                     info && info->type() == vte::property::Type::VALUELESS) {
                         m_termprops.dirty(info->id()) = set;
                         *m_termprops.value(info->id()) = {};
-                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                        m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS);
                 }
         };
 
@@ -2063,7 +2064,7 @@ try
                     propvalue != *m_termprops.value(info->id())) {
                         m_termprops.dirty(info->id()) = true;
                         *m_termprops.value(info->id()) = std::move(propvalue);
-                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                        m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS);
                 }
         };
 
@@ -2073,7 +2074,7 @@ try
                     !std::holds_alternative<std::monostate>(*m_termprops.value(info->id()))) {
                         m_termprops.dirty(info->id()) = true;
                         *m_termprops.value(info->id()) = {};
-                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                        m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS);
                 }
         };
 
@@ -2173,7 +2174,7 @@ try
                     propvalue != *m_termprops.value(info->id())) {
                         m_termprops.dirty(info->id()) = true;
                         *m_termprops.value(info->id()) = std::move(propvalue);
-                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                        m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS);
                 }
         };
 
@@ -2183,7 +2184,7 @@ try
                     !std::holds_alternative<std::monostate>(*m_termprops.value(info->id()))) {
                         m_termprops.dirty(info->id()) = true;
                         *m_termprops.value(info->id()) = {};
-                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                        m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS);
                 }
         };
 
@@ -7788,8 +7789,8 @@ try
                 }
 
                 if (set) {
-                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS) |
-                                vte::to_integral(PendingChanges::TITLE);
+                        m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS) |
+                                std::to_underlying(PendingChanges::TITLE);
                 }
                 break;
         }
@@ -10508,8 +10509,8 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                         *m_termprops.value(info->id()) = std::move(m_window_title_stack.back());
                         m_window_title_stack.pop_back();
 
-                        m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS) |
-                                vte::to_integral(PendingChanges::TITLE);
+                        m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS) |
+                                std::to_underlying(PendingChanges::TITLE);
                         break;
                 }
 

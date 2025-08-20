@@ -571,7 +571,7 @@ vte_accessible_text_get_selection (GtkAccessibleText       *accessible,
                 GtkAccessibleTextRange range;
 
                 if (impl->m_selection_resolved.empty() ||
-                    impl->m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] == nullptr)
+                    impl->m_selection[std::to_underlying(vte::platform::ClipboardType::PRIMARY)] == nullptr)
                         return FALSE;
 
                 auto start_column = impl->m_selection_resolved.start_column();

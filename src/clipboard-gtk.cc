@@ -162,8 +162,8 @@ private:
                          guint info,
                          void* user_data) noexcept
         {
-                if (int(info) != vte::to_integral(ClipboardFormat::TEXT) &&
-                    int(info) != vte::to_integral(ClipboardFormat::HTML))
+                if (int(info) != std::to_underlying(ClipboardFormat::TEXT) &&
+                    int(info) != std::to_underlying(ClipboardFormat::HTML))
                         return;
 
                 reinterpret_cast<Offer*>(user_data)->dispatch_get(ClipboardFormat(info), data);
@@ -189,7 +189,7 @@ private:
                         if (text_targets == nullptr) {
                                 auto list = vte::take_freeable(gtk_target_list_new(nullptr, 0));
                                 gtk_target_list_add_text_targets(list.get(),
-                                                                 vte::to_integral(ClipboardFormat::TEXT));
+                                                                 std::to_underlying(ClipboardFormat::TEXT));
 
                                 text_targets = gtk_target_table_new_from_list(list.get(), &n_text_targets);
                         }
@@ -204,15 +204,15 @@ private:
                         if (html_targets == nullptr) {
                                 auto list = vte::take_freeable(gtk_target_list_new(nullptr, 0));
                                 gtk_target_list_add_text_targets(list.get(),
-                                                                 vte::to_integral(ClipboardFormat::TEXT));
+                                                                 std::to_underlying(ClipboardFormat::TEXT));
                                 gtk_target_list_add(list.get(),
                                                     gdk_atom_intern_static_string(MIME_TYPE_TEXT_HTML_UTF8),
                                                     0,
-                                                    vte::to_integral(ClipboardFormat::HTML));
+                                                    std::to_underlying(ClipboardFormat::HTML));
                                 gtk_target_list_add(list.get(),
                                                     gdk_atom_intern_static_string(MIME_TYPE_TEXT_HTML_UTF16),
                                                     0,
-                                                    vte::to_integral(ClipboardFormat::HTML));
+                                                    std::to_underlying(ClipboardFormat::HTML));
 
                                 html_targets = gtk_target_table_new_from_list(list.get(), &n_html_targets);
                         }

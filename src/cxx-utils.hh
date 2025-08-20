@@ -21,6 +21,7 @@
 #include <exception>
 #include <type_traits>
 #include <memory>
+#include <utility>
 
 namespace vte {
 
@@ -33,17 +34,6 @@ clamp(T const& v,
       T const& max_v)
 {
         return std::max(std::min(v, max_v), min_v);
-}
-
-// Converts from E to the underlying integral type, where E is an enum
-// with integral underlying type.
-template<typename E>
-inline constexpr auto to_integral(E e) noexcept
-        -> std::enable_if_t<std::is_enum_v<E> &&
-                            std::is_integral_v<std::underlying_type_t<E>>,
-                            std::underlying_type_t<E>>
-{
-        return static_cast<std::underlying_type_t<E>>(e);
 }
 
 #if VTE_DEBUG
@@ -72,19 +62,19 @@ using FreeablePtr = std::unique_ptr<T, FreeablePtrDeleter<T, D, func>>;
 #define VTE_CXX_DEFINE_BITMASK(Type) \
   inline constexpr Type \
   operator&(Type lhs, Type rhs) noexcept \
-  { return (Type)(vte::to_integral(lhs) & vte::to_integral(rhs)); } \
+  { return (Type)(std::to_underlying(lhs) & std::to_underlying(rhs)); } \
   \
   inline constexpr Type \
   operator~(Type v) noexcept \
-  { return (Type)~vte::to_integral(v); }        \
+  { return (Type)~std::to_underlying(v); }        \
   \
   inline constexpr Type \
   operator|(Type lhs, Type rhs) noexcept \
-  { return (Type)(vte::to_integral(lhs) | vte::to_integral(rhs)); } \
+  { return (Type)(std::to_underlying(lhs) | std::to_underlying(rhs)); } \
   \
   inline constexpr Type \
   operator^(Type lhs, Type rhs) noexcept \
-  { return (Type)(vte::to_integral(lhs) ^ vte::to_integral(rhs)); } \
+  { return (Type)(std::to_underlying(lhs) ^ std::to_underlying(rhs)); } \
   \
   inline constexpr Type& \
   operator&=(Type& lhs, Type rhs) noexcept \

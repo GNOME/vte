@@ -73,6 +73,7 @@ static_assert(CHAR_BIT == 8, "Weird");
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -878,7 +879,7 @@ public:
                         reset_termprop(info);
                 }
 
-                m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+                m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS);
         }
 
         bool m_enable_legacy_osc777{false};

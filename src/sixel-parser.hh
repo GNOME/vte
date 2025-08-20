@@ -74,7 +74,7 @@ public:
 
         Sequence(Command cmd,
                  std::initializer_list<int> params = {}) noexcept
-                : m_command(vte::to_integral(cmd))
+                : m_command(std::to_underlying(cmd))
         {
                 assert(params.size() <= capacity());
                 for (auto p : params)

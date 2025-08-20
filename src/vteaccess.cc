@@ -31,6 +31,8 @@
 #endif
 #include <glib/gi18n-lib.h>
 
+#include <utility>
+
 #define TERMINAL_FROM_ACCESSIBLE(a) (VTE_TERMINAL(gtk_accessible_get_widget(GTK_ACCESSIBLE(a))))
 
 #define IMPL(t) (_vte_terminal_get_impl(t))
@@ -1522,13 +1524,13 @@ vte_terminal_accessible_get_selection(AtkText *text, gint selection_number,
 
         try {
                 auto impl = IMPL_FROM_WIDGET(widget);
-                if (impl->m_selection_resolved.empty() || impl->m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] == nullptr)
+                if (impl->m_selection_resolved.empty() || impl->m_selection[std::to_underlying(vte::platform::ClipboardType::PRIMARY)] == nullptr)
                         return nullptr;
 
                 *start_offset = offset_from_xy (priv, impl->m_selection_resolved.start_column(), impl->m_selection_resolved.start_row());
                 *end_offset = offset_from_xy (priv, impl->m_selection_resolved.end_column(), impl->m_selection_resolved.end_row());
 
-                return g_strdup(impl->m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)]->str);
+                return g_strdup(impl->m_selection[std::to_underlying(vte::platform::ClipboardType::PRIMARY)]->str);
         } catch (...) {
                 return nullptr;
         }
