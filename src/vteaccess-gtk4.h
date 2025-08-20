@@ -21,5 +21,6 @@ G_BEGIN_DECLS
 
 void _vte_accessible_text_iface_init (GtkAccessibleTextInterface *iface);
 void _vte_accessible_text_init       (GtkAccessibleText          *accessible);
+void _vte_accessible_text_scrolled   (GtkAccessibleText          *accessible, long delta);
 
 G_END_DECLS
