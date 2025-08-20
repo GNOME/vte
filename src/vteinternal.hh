@@ -84,7 +84,8 @@
 #if WITH_A11Y
 #if VTE_GTK == 3
 #include "vteaccess.h"
-#else
+#elif VTE_GTK == 4
+#include "vteaccess-gtk4.h"
 #endif
 #endif
 
@@ -1399,20 +1400,26 @@ public:
                         _vte_terminal_accessible_text_modified(m_accessible.get());
         }
 
-        void emit_text_scrolled(long delta)
-        {
-                if (m_accessible)
-                        _vte_terminal_accessible_text_scrolled(m_accessible.get(), delta);
-        }
-
 #else
 
         inline constexpr void emit_text_deleted() const noexcept { }
         inline constexpr void emit_text_inserted() const noexcept { }
         inline constexpr void emit_text_modified() const noexcept { }
-        inline constexpr void emit_text_scrolled(long delta) const noexcept { }
 
-#endif /* WITH_A11Y && VTE_GTK == 3*/
+#endif /* WITH_A11Y && VTE_GTK == 3 */
+
+        void emit_text_scrolled(long delta)
+        {
+#if WITH_A11Y
+#if VTE_GTK == 3
+                if (m_accessible)
+                        _vte_terminal_accessible_text_scrolled(m_accessible.get(), delta);
+#elif VTE_GTK == 4
+                if (m_widget)
+                        _vte_accessible_text_scrolled(GTK_ACCESSIBLE_TEXT(m_widget), delta);
+#endif // VTE_GTK
+#endif // WITH_A11Y
+        }
 
         bool m_no_legacy_signals{false};
 
