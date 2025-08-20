@@ -75,6 +75,7 @@ typedef struct _VteAccessibleText
         VteTerminal               *terminal;
         VteAccessibleTextContents  contents[2];
         guint                      contents_flip : 1;
+        guint                      text_scrolled : 1;
 } VteAccessibleText;
 
 static inline gboolean
@@ -816,6 +817,11 @@ vte_accessible_text_contents_changed (VteTerminal       *terminal,
         if (!vte_terminal_get_enable_a11y (terminal))
           return;
 
+        if (state->text_scrolled) {
+                state->text_scrolled = FALSE;
+                return;
+        }
+
         prev = &state->contents[state->contents_flip];
         next = &state->contents[!state->contents_flip];
 
@@ -839,12 +845,11 @@ vte_accessible_text_contents_changed (VteTerminal       *terminal,
         /* NOTE:
          *
          * The code below is based upon what vteaccess.cc did for GTK 3.
-         * It does not do any sort of appropriate diffing to try to handle
-         * scrolling correctly. That would be a good idea to implement in
-         * the longer term.
          *
          * It just looks for a long prefix match, and then a long suffix
          * match and attempts to diff what is between those to end points.
+         * 
+         * Scrolling based changes are handled separately.
          */
 
         const char *prevc = prevstr;
@@ -1016,4 +1021,81 @@ _vte_accessible_text_init (GtkAccessibleText *accessible)
                                         GTK_ACCESSIBLE_PROPERTY_LABEL, "Terminal",
                                         GTK_ACCESSIBLE_PROPERTY_MULTI_LINE, TRUE,
                                         GTK_ACCESSIBLE_VALUE_UNDEFINED);
+}
+
+void
+_vte_accessible_text_scrolled (GtkAccessibleText *accessible, long delta)
+{
+        VteTerminal *terminal = VTE_TERMINAL (accessible);
+        VteAccessibleText *state = vte_accessible_text_get (terminal);
+        VteAccessibleTextContents *prev = &state->contents[state->contents_flip];
+        VteAccessibleTextContents *next = &state->contents[!state->contents_flip];
+
+        g_assert (VTE_IS_TERMINAL (terminal));
+        g_assert (state != nullptr);
+        g_assert (state->terminal == terminal);
+
+        if (!vte_terminal_get_enable_a11y (terminal))
+                return;
+
+        _vte_debug_print (vte::debug::category::ALLY,
+                          "Text scrolled by {} lines", delta);
+
+        vte_accessible_text_contents_reset (next);
+        vte_accessible_text_contents_snapshot (next, state->terminal);
+
+        if (delta > 0) {
+                /* Scrolling down: lines at the top disappeared, new lines appeared at bottom */
+                gsize lines_to_remove = MIN(delta, char_positions_get_size(&prev->linebreaks));
+                if (lines_to_remove > 0 && char_positions_get_size(&prev->linebreaks) > 0) {
+                        /* Find how many characters were in the removed lines */
+                        gsize chars_removed = 0;
+                        if (lines_to_remove < char_positions_get_size(&prev->linebreaks)) {
+                                chars_removed = *char_positions_index(&prev->linebreaks, lines_to_remove);
+                        } else {
+                                chars_removed = prev->n_chars;
+                        }
+
+                        if (chars_removed > 0) {
+                                /* Notify that text was removed from the beginning */
+                                gtk_accessible_text_update_contents(accessible,
+                                                                    GTK_ACCESSIBLE_TEXT_CONTENT_CHANGE_REMOVE,
+                                                                    0, chars_removed);
+                                
+                                /* Notify that new text was added at the end */
+                                state->contents_flip = !state->contents_flip;
+                                gtk_accessible_text_update_contents(accessible,
+                                                                    GTK_ACCESSIBLE_TEXT_CONTENT_CHANGE_INSERT,
+                                                                    next->n_chars - chars_removed, next->n_chars);
+                        }
+                }
+        } else if (delta < 0) {
+                /* Scrolling up: lines at the bottom disappeared, new lines appeared at top */
+                gsize lines_to_remove = MIN(-delta, char_positions_get_size(&prev->linebreaks));
+                if (lines_to_remove > 0 && char_positions_get_size(&prev->linebreaks) > 0) {
+                        /* Find how many characters were in the removed lines from bottom */
+                        gsize start_remove = char_positions_get_size(&prev->linebreaks) - lines_to_remove;
+                        gsize chars_removed = 0;
+                        if (start_remove < char_positions_get_size(&prev->linebreaks)) {
+                                gsize remove_start_pos = *char_positions_index(&prev->linebreaks, start_remove);
+                                chars_removed = prev->n_chars - remove_start_pos;
+                        } else {
+                                chars_removed = prev->n_chars;
+                        }
+
+                        if (chars_removed > 0) {
+                                /* Notify that text was removed from the end */
+                                gtk_accessible_text_update_contents(accessible,
+                                                                    GTK_ACCESSIBLE_TEXT_CONTENT_CHANGE_REMOVE,
+                                                                    prev->n_chars - chars_removed, prev->n_chars);
+                                
+                                /* Notify that new text was added at the beginning */
+                                state->contents_flip = !state->contents_flip;
+                                gtk_accessible_text_update_contents(accessible,
+                                                                    GTK_ACCESSIBLE_TEXT_CONTENT_CHANGE_INSERT,
+                                                                    0, chars_removed);
+                        }
+                }
+        }
+        state->text_scrolled = TRUE;
 }
