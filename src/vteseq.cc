@@ -9817,7 +9817,7 @@ try
                                         char* normal = nullptr;
                                         auto len = 0uz;
                                         auto suppress = false, add_modifiers = false;
-                                        map_erase_binding(m_delete_binding,
+                                        map_erase_binding(keycode == GDK_KEY_Delete ? m_delete_binding : m_backspace_binding,
                                                           keycode == GDK_KEY_Delete ? EraseMode::eDELETE_SEQUENCE : EraseMode::eTTY,
                                                           state,
                                                           normal,
