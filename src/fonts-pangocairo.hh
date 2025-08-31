@@ -229,6 +229,13 @@ public:
         inline constexpr int height() const { return m_height; }
         inline constexpr int ascent() const { return m_ascent; }
 
+        inline constexpr auto* options() const
+        {
+                auto const ctx = pango_layout_get_context(m_layout.get());
+                // FIXMEchpe may not be a PangoCairoContext
+                return pango_cairo_context_get_font_options(ctx);
+        }
+
 private:
 
         static void unistr_info_destroy(UnistrInfo* uinfo)

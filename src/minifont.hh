@@ -52,7 +52,8 @@ public:
                           int font_width,
                           int columns,
                           int font_height,
-                          int scale_factor) const;
+                          int scale_factor,
+                          cairo_font_options_t const* font_options) const;
 
         void get_char_padding(vteunistr c,
                               int font_width,
@@ -79,7 +80,8 @@ public:
                           int font_width,
                           int columns,
                           int font_height,
-                          int scale_factor);
+                          int scale_factor,
+                          cairo_font_options_t const* font_options);
 
 private:
 
@@ -89,7 +91,8 @@ private:
                                            int height,
                                            int xpad,
                                            int ypad,
-                                           int scale_factor) const;
+                                           int scale_factor,
+                                           cairo_font_options_t const* font_options) const;
 
 #if VTE_GTK == 4
         GdkTexture *surface_to_texture(cairo_t*cr) const;
@@ -110,7 +113,8 @@ public:
                           int font_width,
                           int columns,
                           int font_height,
-                          int scale_factor);
+                          int scale_factor,
+                          cairo_font_options_t const* font_options);
 
 private:
 

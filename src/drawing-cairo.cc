@@ -171,7 +171,8 @@ DrawingCairo::draw_text(TextRequest* requests,
                                                 cell_height(),
                                                 requests[i].x, requests[i].y,
                                                 font->width(), requests[i].columns, font->height(),
-                                                scale_factor());
+                                                scale_factor(),
+                                                font->options());
                         continue;
                 }
 

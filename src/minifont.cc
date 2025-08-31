@@ -960,12 +960,15 @@ pattern(cairo_t* cr,
 inline vte::Freeable<cairo_pattern_t>
 create_quadrant_separation_pattern(int width,
                                    int height,
-                                   int line_thickness)
+                                   int line_thickness,
+                                   cairo_font_options_t const* font_options)
 {
         auto surface = vte::take_freeable(cairo_image_surface_create(CAIRO_FORMAT_A1, width, height));
         // or CAIRO_FORMAT_A8, whichever is better/faster?
 
         auto cr = vte::take_freeable(cairo_create(surface.get()));
+        if (font_options) [[likely]]
+                cairo_set_antialias(cr.get(), cairo_font_options_get_antialias(font_options));
 
         /* It's not quite clear how the separated quadrants should be drawn.
          *
@@ -1023,12 +1026,15 @@ create_quadrant_separation_pattern(int width,
 inline vte::Freeable<cairo_pattern_t>
 create_sextant_separation_pattern(int width,
                                   int height,
-                                  int line_thickness)
+                                  int line_thickness,
+                                  cairo_font_options_t const* font_options)
 {
         auto surface = vte::take_freeable(cairo_image_surface_create(CAIRO_FORMAT_A1, width, height));
         // or CAIRO_FORMAT_A8, whichever is better/faster?
 
         auto cr = vte::take_freeable(cairo_create(surface.get()));
+        if (font_options) [[likely]]
+                cairo_set_antialias(cr.get(), cairo_font_options_get_antialias(font_options));
 
         /* It's not quite clear how the separated mosaics should be drawn.
          *
@@ -1164,7 +1170,8 @@ Minifont::draw_graphic(cairo_t* cr,
                        int font_width,
                        int columns,
                        int font_height,
-                       int scale_factor) const
+                       int scale_factor,
+                       cairo_font_options_t const* font_options) const
 {
         cairo_save(cr);
 
@@ -2118,7 +2125,7 @@ Minifont::draw_graphic(cairo_t* cr,
                 cairo_push_group(cr);
                 quadrant(cr, c - 0x1cc10, x, y, width, height);
                 cairo_pop_group_to_source(cr);
-                cairo_mask(cr, create_quadrant_separation_pattern(width, height, light_line_width).get());
+                cairo_mask(cr, create_quadrant_separation_pattern(width, height, light_line_width, font_options).get());
                 break;
         }
 
@@ -2126,7 +2133,7 @@ Minifont::draw_graphic(cairo_t* cr,
                 cairo_push_group(cr);
                 sextant(cr, c - 0x1ce50, x, y, width, height);
                 cairo_pop_group_to_source(cr);
-                cairo_mask(cr, create_sextant_separation_pattern(width, height, light_line_width).get());
+                cairo_mask(cr, create_sextant_separation_pattern(width, height, light_line_width, font_options).get());
                 break;
         }
 #endif // ENABLE_SEPARATED_MOSAICS
@@ -2650,10 +2657,13 @@ MinifontCache::begin_cairo(int x,
                            int height,
                            int xpad,
                            int ypad,
-                           int scale_factor) const
+                           int scale_factor,
+                           cairo_font_options_t const* font_options) const
 {
         auto surface = vte::take_freeable(create_surface(width, height, xpad, ypad, scale_factor));
         auto cr = vte::take_freeable(cairo_create(surface.get()));
+        if (font_options) [[likely]]
+                cairo_set_antialias(cr.get(), cairo_font_options_get_antialias(font_options));
         cairo_set_source_rgba(cr.get(), 1, 1, 1, 1);
         cairo_translate(cr.get(), -x + xpad, -y + ypad);
         return cr;
@@ -2689,7 +2699,8 @@ MinifontCache::draw_graphic(DrawingContext const& context,
                             int font_width,
                             int columns,
                             int font_height,
-                            int scale_factor)
+                            int scale_factor,
+                            cairo_font_options_t const* font_options)
 {
         int width = context.cell_width() * columns;
         int height = context.cell_height();
@@ -2719,7 +2730,7 @@ MinifontCache::draw_graphic(DrawingContext const& context,
         auto xpad = 0, ypad = 0;
         get_char_padding(c, font_width, font_height, xpad, ypad);
 
-        auto const cr = begin_cairo(x, y, width, height, xpad, ypad, scale_factor);
+        auto const cr = begin_cairo(x, y, width, height, xpad, ypad, scale_factor, font_options);
         Minifont::draw_graphic(cr.get(),
                                c,
                                fg,
@@ -2730,7 +2741,8 @@ MinifontCache::draw_graphic(DrawingContext const& context,
                                font_width,
                                columns,
                                font_height,
-                               scale_factor);
+                               scale_factor,
+                               font_options);
 
         // ... and cache the result
         auto mf = g_new0 (CachedMinifont, 1);
@@ -2793,7 +2805,8 @@ MinifontGsk::draw_graphic(DrawingContext const& context,
                           int font_width,
                           int columns,
                           int font_height,
-                          int scale_factor)
+                          int scale_factor,
+                          cairo_font_options_t const* font_options)
 {
         int width = context.cell_width() * columns;
         int height = context.cell_height();
@@ -3039,7 +3052,7 @@ MinifontGsk::draw_graphic(DrawingContext const& context,
                 return;
 
         default:
-                return MinifontCache::draw_graphic(context, c, fg, x, y, font_width, columns, font_height, scale_factor);
+                return MinifontCache::draw_graphic(context, c, fg, x, y, font_width, columns, font_height, scale_factor, font_options);
         }
 }
 
