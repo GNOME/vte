@@ -6,6 +6,7 @@
 # Dmitry G. Mastrukov <dmitry@taurussoft.org>, 2003.
 # Leonid Kanter <leon@asplinux.ru>, 2007.
 # Stas Solovey <whats_up@tut.by>, 2016.
+# Vyacheslav Gurin <slavkapla6@gmail.com>, 2025
 #
 msgid ""
 msgstr ""
@@ -13,7 +14,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues/\n"
 "POT-Creation-Date: 2025-05-10 22:52+0000\n"
 "PO-Revision-Date: 2025-08-10 19:31+0800\n"
-"Last-Translator: Stas Solovey <whats_up@tut.by>\n"
+"Last-Translator: Vyacheslav Gurin <slavkaplay6@gmail.com>\n"
 "Language-Team: Русский <gnome-cyr@gnome.org>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
