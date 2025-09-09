@@ -1068,7 +1068,8 @@ _vte_accessible_text_scrolled (GtkAccessibleText *accessible, long delta)
                                 state->contents_flip = !state->contents_flip;
                                 gtk_accessible_text_update_contents(accessible,
                                                                     GTK_ACCESSIBLE_TEXT_CONTENT_CHANGE_INSERT,
-                                                                    next->n_chars - chars_removed, next->n_chars);
+                                                                    MAX(0L, (long)next->n_chars - (long)chars_removed),
+                                                                    next->n_chars);
                         }
                 }
         } else if (delta < 0) {
