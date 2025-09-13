@@ -23,7 +23,7 @@
 # the API to get it (replacing ${NAMESPACE} and ${PROJECT} accordingly):
 # curl --silent -H "Content-Type: application/json" "https://gitlab.gnome.org/api/v4/projects/${NAMESPACE}%2F${PROJECT}" | jq -r .id
 
-PROJECT_ID=19391
+PROJECT_ID=1893
 
 if [ $BASH_ARGC -ne 2 ]; then
     echo Usage: $0 TOKEN-FILE COMMIT-REF
