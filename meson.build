@@ -775,6 +775,10 @@ meson.add_dist_script(
   find_program('meson_changelog.sh'),
 )
 
+meson.add_dist_script(
+  find_program('meson_subprojects.sh'),
+)
+
 # Simple compat Makefile
 
 makefile_conf = configuration_data()
