@@ -19,6 +19,7 @@
 // but we need this for non-enum/integral/floating types.
 
 #include <type_traits>
+#include <utility>
 
 namespace vte {
 
