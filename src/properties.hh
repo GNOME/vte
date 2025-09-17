@@ -371,7 +371,7 @@ parse_termprop_base64(std::string_view const& str) noexcept
         buf.resize_and_overwrite
                 (max_size,
                  [&](char* data,
-                     size_t buf_size) constexpr noexcept -> size_t {
+                     size_t buf_size) noexcept -> size_t {
                          auto save = 0u;
                          return g_base64_decode_step(str.data(),
                                                      str.size(),
