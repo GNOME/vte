@@ -3328,9 +3328,17 @@ Terminal::insert_char(gunichar c,
                       bool invalidate_now)
 {
 	VteCellAttr attr;
-	VteRowData *row;
+
+	int base_columns = 0;  /* 0 if new char is placed, or the width of the old base char if combining */
+	int addl_columns = 0;  /* the additional width incurred by this new character */
+	int new_columns  = 0;  /* the sum of the previous two, i.e. the width of the resulting character */
+
+	VteCell base_cell;            /* copy of the base cell if base_columns > 0 */
+	long base_row_num, base_col;  /* where we'll place the left edge of the new (possibly combined) character */
+
+	VteRowData *row = NULL;
+	VteCell *pcell;
 	long col;
-	int columns, i;
         gunichar c_unmapped = c;
 
         /* DEC Special Character and Line Drawing Set.  VT100 and higher (per XTerm docs). */
@@ -3376,81 +3384,27 @@ Terminal::insert_char(gunichar c,
                         c = line_drawing_map[c - 95];
         }
 
-	/* Figure out how many columns this character should occupy. */
-        columns = _vte_unichar_width(c, m_utf8_ambiguous_width);
+	/* Figure out how many columns this character will occupy (or extend the preceding character's width with).
+	 * In some rare cases this is not the final value yet. */
+        addl_columns = _vte_unichar_width(c, m_utf8_ambiguous_width);
 
-	/* If we're autowrapping here, do it. */
-        col = m_screen->cursor.col;
-        if (G_UNLIKELY (columns && (
-                        /* no room at the terminal's right edge */
-                        (col + columns > m_column_count) ||
-                        /* cursor is just beyond the DECSLRM right margin, moved there by printing a letter */
-                        (col == m_scrolling_region.right() + 1 && m_screen->cursor_advanced_by_graphic_character) ||
-                        /* wide character is printed, cursor would cross the DECSLRM right margin */
-                        (col <= m_scrolling_region.right() && col + columns > m_scrolling_region.right() + 1)))) {
-		if (m_modes_private.DEC_AUTOWRAP()) {
-			_vte_debug_print(vte::debug::category::ADJ,
-					"Autowrapping before character");
-			/* Wrap. */
-			/* XXX clear to the end of line */
-                        col = m_screen->cursor.col = m_scrolling_region.left();
-			/* Mark this line as soft-wrapped. */
-			row = ensure_row();
-                        set_soft_wrapped(m_screen->cursor.row);
-                        /* Handle bce (background color erase) differently from xterm:
-                         * only fill the new row with the background color if scrolling happens due
-                         * to an explicit escape sequence, not due to autowrapping (i.e. not here).
-                         * See https://gitlab.gnome.org/GNOME/vte/-/issues/2219 for details. */
-                        cursor_down_with_scrolling(false);
-                        ensure_row();
-                        apply_bidi_attributes(m_screen->cursor.row, row->attr.bidi_flags, VTE_BIDI_FLAG_ALL);
-		} else {
-                        /* Don't wrap, stay at the rightmost column or at the right margin.
-                         * Note that we slighly differ from xterm. Xterm swallows wide characters
-                         * that do not fit, we retreat the cursor to fit them.
-                         */
-                        if (/* cursor is just beyond the DECSLRM right margin, moved there by printing a letter */
-                            (col == m_scrolling_region.right() + 1 && m_screen->cursor_advanced_by_graphic_character) ||
-                            /* wide character is printed, cursor would cross the DECSLRM right margin */
-                            (col <= m_scrolling_region.right() && col + columns > m_scrolling_region.right() + 1)) {
-                                col = m_screen->cursor.col = m_scrolling_region.right() + 1 - columns;
-                        } else {
-                                col = m_screen->cursor.col = m_column_count - columns;
-                        }
-		}
-	}
+        base_row_num = m_screen->cursor.row;
 
-	_vte_debug_print(vte::debug::category::PARSER,
-			"Inserting U+{:04X} (colors {:x}) ({}+{}, {}), delta = {}",
-                         c,
-                         m_color_defaults.attr.colors(),
-                         col, columns,
-                         m_screen->cursor.row,
-                         m_screen->insert_delta);
-
-        //FIXMEchpe
-        if (G_UNLIKELY(c == 0))
-                goto not_inserted;
-
-	if (G_UNLIKELY (columns == 0)) {
-
-		/* It's a combining mark */
-
-		long row_num;
-		VteCell *cell;
+        /* Locate the preceding character if needed. */
+	if (G_UNLIKELY (addl_columns == 0)) {
+                /* It is potentially a combining mark. (We can't tell for sure yet;
+                 * only every second regional indicator is treated as combining.) */
 
 		_vte_debug_print(vte::debug::category::PARSER, "  combining U+{:04X}",
                                  c);
 
-                row_num = m_screen->cursor.row;
-		row = NULL;
+                col = m_screen->cursor.col;
+
 		if (G_UNLIKELY (col == 0)) {
 			/* We are at first column.  See if the previous line softwrapped.
 			 * If it did, move there.  Otherwise skip inserting. */
-
-			if (G_LIKELY (row_num > 0)) {
-				row_num--;
-				row = find_row_data_writable(row_num);
+			if (G_LIKELY (base_row_num > 0)) {
+				row = find_row_data_writable(--base_row_num);
 
 				if (row) {
 					if (!row->attr.soft_wrapped)
@@ -3460,90 +3414,188 @@ Terminal::insert_char(gunichar c,
 				}
 			}
 		} else {
-			row = find_row_data_writable(row_num);
+			row = find_row_data_writable(base_row_num);
 		}
 
-		if (G_UNLIKELY (!row || !col))
-			goto not_inserted;
+                if (G_LIKELY (row && col)) {
+                        /* Find the preceding cell */
+                        VteCell *base_cell_p;
+                        do {
+                                base_cell_p = _vte_row_data_get_writable (row, --col);
+                        } while (base_cell_p && base_cell_p->attr.fragment() && col > 0);
 
-		/* Combine it on the previous cell */
+                        if (G_LIKELY (base_cell_p && base_cell_p->c != '\t')) {
+                                base_cell = *base_cell_p;
+                                base_columns = base_cell.attr.columns();
+                        }
+                }
+        }
 
-		col--;
-		cell = _vte_row_data_get_writable (row, col);
-
-		if (G_UNLIKELY (!cell))
-			goto not_inserted;
-
-		/* Find the previous cell */
-		while (cell && cell->attr.fragment() && col > 0)
-			cell = _vte_row_data_get_writable (row, --col);
-		if (G_UNLIKELY (!cell || cell->c == '\t'))
-			goto not_inserted;
-
-		/* Combine the new character on top of the cell string */
-		c = _vte_unistr_append_unichar (cell->c, c);
-
-		/* And set it */
-		columns = cell->attr.columns();
-		for (i = 0; i < columns; i++) {
-			cell = _vte_row_data_get_writable (row, col++);
-			cell->c = c;
-		}
-
-		goto done;
+        if (G_LIKELY (base_columns == 0)) {
+                /* Brand new character, not combining. */
+                base_col = m_screen->cursor.col;
+                base_row_num = m_screen->cursor.row;
         } else {
-                m_last_graphic_character = c_unmapped;
+                /* Combining to the previous character. */
+                base_col = col;
+                // base_row_num is correctly set
+        }
+
+        new_columns = base_columns + addl_columns;
+        if (G_UNLIKELY (new_columns == 0)) {
+                /* combining character, but nowhere to place */
+                goto not_inserted;
+        }
+
+        /* base_cell and col now point to the FIXME EEEEEEEEEEEEE preceding character if found */
+
+        /* In the most generic case we're replacing a preceding character of width `base_columns`,
+         * widening by `addl_columns`, thus creating a new character of width `new_columns`.
+         * Examples:
+         *                                                 base_columns   addl_columns   new_columns
+         *   placing a Latin letter                              0              1             1
+         *   placing a CJK letter                                0              2             2
+         *   combining accent onto a Latin letter                1              0             1
+         *   second regional indicator completes a flag          1              1             2
+         *   VS16 widens the base char                           1              1             2
+         */
+
+	/* If we're autowrapping here, do it. */
+	col = m_screen->cursor.col;
+        if (G_UNLIKELY (addl_columns && (
+                        /* no room at the terminal's right edge */
+                        (col + addl_columns > m_column_count) ||
+                        /* cursor is just beyond the DECSLRM right margin, moved there by printing a letter */
+                        (col == m_scrolling_region.right() + 1 && m_screen->cursor_advanced_by_graphic_character) ||
+                        /* wide character would cross the DECSLRM right margin */
+                        (base_col <= m_scrolling_region.right() && base_col + new_columns > m_scrolling_region.right() + 1)))) {
+		if (m_modes_private.DEC_AUTOWRAP()) {
+			_vte_debug_print(vte::debug::category::ADJ,
+					"Autowrapping before character");
+			/* Wrap. */
+                        col = m_screen->cursor.col = m_scrolling_region.left();
+			row = ensure_row();
+                        /* FIXME explain what we're doing */
+                        if (col + addl_columns > m_column_count) {
+                                /* at the terminal's right edge */
+                                _vte_row_data_shrink (row, base_col);
+                        } else if (base_col <= m_scrolling_region.right() && base_col + new_columns > m_scrolling_region.right() + 1) {
+                                /* at DECSLRM right margin */
+                                if (_vte_row_data_length(row) <= m_scrolling_region.right() + 1) {
+                                        _vte_row_data_shrink (row, base_col);
+                                } else {
+                                        cleanup_fragments(base_row_num, base_col, m_scrolling_region.right() + 1);
+                                        for (int i = base_col; i < m_scrolling_region.right() + 1; i++) {
+                                                pcell = _vte_row_data_get_writable(row, i);
+                                                *pcell = m_defaults;
+                                        }
+                                }
+                        }
+			/* Mark this line as soft-wrapped. */
+                        set_soft_wrapped(m_screen->cursor.row);
+                        /* Handle bce (background color erase) differently from xterm:
+                         * only fill the new row with the background color if scrolling happens due
+                         * to an explicit escape sequence, not due to autowrapping (i.e. not here).
+                         * See https://gitlab.gnome.org/GNOME/vte/-/issues/2219 for details. */
+                        cursor_down_with_scrolling(false);
+                        row = ensure_row();
+                        g_assert(row != NULL);
+                        base_row_num = m_screen->cursor.row;
+                        base_col = m_screen->cursor.col;
+                        apply_bidi_attributes(m_screen->cursor.row, row->attr.bidi_flags, VTE_BIDI_FLAG_ALL);
+		} else {
+                        /* Don't wrap, stay at the rightmost column or at the right margin.
+                         * Note that we slighly differ from xterm. Xterm swallows wide characters
+                         * that do not fit, we retreat the cursor to fit them.
+                         */
+                        if (/* cursor is just beyond the DECSLRM right margin, moved there by printing a letter */
+                            (col == m_scrolling_region.right() + 1 && m_screen->cursor_advanced_by_graphic_character) ||
+                            /* wide character is printed, cursor would cross the DECSLRM right margin */
+                            (col <= m_scrolling_region.right() && col + addl_columns > m_scrolling_region.right() + 1)) {
+                                base_col = m_scrolling_region.right() + 1 - new_columns;
+                        } else {
+                                base_col = m_column_count - new_columns;
+                        }
+		}
 	}
 
-	/* Make sure we have enough rows to hold this data. */
-	row = ensure_cursor();
+	/* Make sure we have enough rows to hold this data.
+	 * In some rare cases this is a slight overkill because a combining accent might modify the row above the cursor. */
+	ensure_row();  // XXX add some comment
+
+        /* We'll place the character at (base_row_num, base_col). */
+	row = find_row_data_writable(base_row_num);
 	g_assert(row != NULL);
+	col = base_col;
 
-        if (m_modes_ecma.IRM() &&
-            m_screen->cursor.col >= m_scrolling_region.left() &&
-            m_screen->cursor.col <= m_scrolling_region.right()) {
-                /* Like ICH's handler: Scroll right in a custom region: only the cursor's row, from the cursor to the DECSLRM right margin. */
+        /* Newly place or update the first cell */
+        cleanup_fragments(base_row_num, col, col + new_columns);
+        _vte_row_data_fill (row, &basic_cell, col);
+        _vte_row_data_expand (row, col + new_columns);
+        pcell = _vte_row_data_get_writable (row, col);
+
+        /* Handle IRM.
+         * In xterm, when a double wide character crosses the left margin, the contents don't scroll.
+         * Arguably it would make more sense to scroll by 1 cell, but in practice probably no one cares.
+         * To be consistent with this behavior, when a single cell character is extended to a double wide
+         * one, thus crossing the left margin, we similarly don't scroll to the right. Again, this is
+         * debatable, scrolling in this case could make more sense; again, probably no one cares. */
+        if (G_UNLIKELY (m_modes_ecma.IRM() &&
+                        new_columns > 0 &&
+                        base_col >= m_scrolling_region.left() &&
+                        base_col <= m_scrolling_region.right())) {
+                /* Like ICH's handler: Scroll right by new_columns cells in a custom region:
+                 * only the insertion point's row, from the insertion point to the DECSLRM right margin. */
                 auto scrolling_region = m_scrolling_region;
-                scrolling_region.set_vertical(get_xterm_cursor_row(), get_xterm_cursor_row());
-                scrolling_region.set_horizontal(m_screen->cursor.col, scrolling_region.right());
-                scroll_text_right(scrolling_region, columns, false /* no fill */);
-	} else {
-                cleanup_fragments(col, col + columns);
-		_vte_row_data_fill (row, &basic_cell, col);
-		_vte_row_data_expand (row, col + columns);
-	}
+                auto scrolling_region_row = base_row_num - m_screen->insert_delta;
+                scrolling_region.set_vertical(scrolling_region_row, scrolling_region_row);
+                scrolling_region.set_horizontal(base_col, scrolling_region.right());
+                scroll_text_right(scrolling_region, new_columns, false /* no fill */);
+        }
 
-        attr = m_defaults.attr;
-	attr.set_columns(columns);
+        if (G_LIKELY (base_columns == 0)) {
+                /* Brand new character placed, not combining */
+                attr = m_defaults.attr;
+                m_last_graphic_character = c_unmapped;
+        } else {
+		/* Combine the new character on top of the cell string */
+		c = _vte_unistr_append_unichar (base_cell.c, c);
+		attr = base_cell.attr;
+		/* Don't update m_last_graphic_character, it should contain (and REP should repeat)
+		 * only the base character for some mysterious reason. */
+        }
 
-	{
-		VteCell *pcell = _vte_row_data_get_writable (row, col);
-		pcell->c = c;
-		pcell->attr = attr;
-		col++;
-	}
+        attr.set_columns(new_columns);
+        pcell->c = c;
+        pcell->attr = attr;
+        col++;
 
-	/* insert wide-char fragments */
+	/* Insert wide-char fragments */
 	attr.set_fragment(true);
-	for (i = 1; i < columns; i++) {
-		VteCell *pcell = _vte_row_data_get_writable (row, col);
+	for (unsigned int i = 1; i < attr.columns(); i++) {
+		pcell = _vte_row_data_get_writable (row, col);
 		pcell->c = c;
 		pcell->attr = attr;
 		col++;
 	}
+
 	if (_vte_row_data_length (row) > m_column_count)
 		cleanup_fragments(m_column_count, _vte_row_data_length (row));
 	_vte_row_data_shrink (row, m_column_count);
 
-        m_screen->cursor.col = col;
+        /* There are two ways to place a combining accent on the last character of a row.
+         * The cursor can stand just beyond this character, or in the first cell of the next row.
+         * Whichever the case, keep the cursor there.
+         * Update the cursor if it in fact moved. Its row, if changed (wrapped to a new line) is already updated. */
+        if (addl_columns > 0) {
+                m_screen->cursor.col = col;
+                m_screen->cursor_advanced_by_graphic_character = true;
+        }
 
-done:
         /* Signal that this part of the window needs drawing. */
         if (G_UNLIKELY (invalidate_now)) {
                 invalidate_row_and_context(m_screen->cursor.row);
         }
-
-        m_screen->cursor_advanced_by_graphic_character = true;
 
 	/* We added text, so make a note of it. */
 	m_text_inserted_flag = TRUE;
@@ -3555,7 +3607,7 @@ not_inserted:
 }
 
 /* Inserts each character of the string.
- * The passed string MUST consist of single-width printable characters only.
+ * The passed string MUST consist of single-width non-combining printable characters only.
  * It performs the equivalent of calling insert_char(..., false) on each of them,
  * but is usually much faster.
  *
