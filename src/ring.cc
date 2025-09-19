@@ -953,10 +953,14 @@ Ring::ensure_writable_room()
 	row_t new_mask, old_mask, i, end;
 	VteRowData* old_array, *new_array;;
 
-        /* Keep at least m_visible_rows + 1 rows in the ring.
-         * The BiDi spec requires that the just scrolled out row
-         * is still alterable (can be switched to hard line ending).
-         * It's nice anyway to make that hard wrapped upon a clear. */
+        /* Keep at least m_visible_rows + 1 rows in the ring, that is, guarantee that the
+         * just-scrolled-out row is still writable. Reasons include:
+         * - When a combining accent arrives in column 0, and the previous row is soft wrapped,
+         *   we try to place it on the last character of that row (maybe even dragging that character
+         *   to the current row if it becomes wider).
+         * - The BiDi spec requires that the just scrolled out row
+         *   is still alterable (can be switched to hard line ending).
+         * - It's nice anyway to make that hard wrapped upon a clear. */
         if (G_LIKELY(m_mask >= m_visible_rows + 1 &&
                      m_writable + m_mask + 1 > m_end))
 		return;
