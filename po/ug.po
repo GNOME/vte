@@ -4,10 +4,9 @@
 # Abduxukur Abdurixit <abduxukur.abdurixit@t-systems.ch>, 2005
 #
 msgid ""
-msgstr ""
-"Project-Id-Version: vte\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&component=general\n"
-"POT-Creation-Date: 2010-12-23 18:42+0000\n"
+msgstr "Project-Id-Version: vte\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues/\n"
+"POT-Creation-Date: 2025-09-10 23:51+0000\n"
 "PO-Revision-Date: 2004-02-05 00:10+0100\n"
 "Last-Translator:  Abduxukur Abdurixit <abduxukur.abdurixit@t-systems.ch>\n"
 "Language-Team:  GNOME Uighur Translation Project <gnome-uighur@yahoogroups.com>\n"
@@ -16,70 +15,94 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../src/iso2022.c:779 ../src/iso2022.c:787 ../src/iso2022.c:818
-#: ../src/vte.c:2278
+#: src/vte.cc:8342
+msgid "WARNING"
+msgstr "ئاگاھلاندۇرۇش"
+
+#: src/vte.cc:8344
+msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
+msgstr "GnuTLS قوزغىتىلمىغان: سانلىق مەلۇماتنى دىسكىغا شىفىرلىماي يازىدۇ!"
+
+#: src/spawn.cc:133
 #, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "%s ھەرپىنى %s ھەرپىگە ئايلاندۇرالمىدى"
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "نور توسۇلمىغاننى تەڭشىيەلمىدى: %s"
 
-#: ../src/iso2022.c:1472
+#: src/spawn.cc:178
 #, c-format
-msgid "Attempt to set invalid NRC map '%c'."
-msgstr "ئىناۋەتسىز NRC خەرىتە '%c' تەڭشەشنى سىنىدى."
+msgid "poll error: %s"
+msgstr "سۈرۈشتۈرۈش خاتالىقى: %s"
 
-#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1502
-msgid "Unrecognized identified coding system."
-msgstr "تونۇيالمىغان كودلاشنى بەلگىلەش سىستېمىسى"
+#: src/spawn.cc:185
+msgid "Operation timed out"
+msgstr "مەشغۇلات ۋاقتى ئېشىپ كەتتى"
 
-#: ../src/iso2022.c:1561 ../src/iso2022.c:1588
+#: src/spawn.cc:195
+msgid "Operation was cancelled"
+msgstr "مەشغۇلات بىكار قىلىندى"
+
+#: src/spawn.cc:213
 #, c-format
-msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "ئىناۋەتسىز كەڭ NRC خەرىتە '%c' تەڭشەشنى سىنىدى."
+msgid "Failed to read from child pipe (%s)"
+msgstr "تارماق نوردىن ئوقۇيالمىدى (%s)"
 
-#: ../src/trie.c:409
+#: src/spawn.cc:653
 #, c-format
-msgid "Duplicate (%s/%s)!"
-msgstr "(%s/%s) نۇسخىلا!"
+msgid "Failed to change to directory “%s”: %s"
+msgstr "مۇندەرىجە «%s» غا ئۆزگەرتەلمىدى: %s"
 
-#. Bail back to normal mode.
-#: ../src/vteapp.c:981
-msgid "Could not open console.\n"
-msgstr "كونترول سۇپىسىنى ئاچالمىدى.\n"
-
-#: ../src/vteapp.c:1074
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr "--geometry غا يوللايدىغان گېئومېتىرىيىلىك پارامېتىرنى يېشەلمىدى"
-
-#: ../src/vte.c:1304
+#: src/spawn.cc:722
 #, c-format
-msgid "Error compiling regular expression \"%s\"."
-msgstr "مۇنتىزىم ئىپادە \"%s\" نى ھېسابلاشتا خاتالىق يۈز بەردى."
+msgid "Failed to execute child process “%s”: "
+msgstr "تارماق جەريان «%s» نى ئىجرا قىلالمىدى: "
 
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4387
 #, c-format
-msgid "Error reading from child: %s."
-msgstr "تارماق پروگراممىدىن سانلىق-مەلۇمات ئوقۇش خاتالىقى: %s ."
+#~ msgid "Unable to convert characters from %s to %s."
+#~ msgstr "%s ھەرپىنى %s ھەرپىگە ئايلاندۇرالمىدى"
 
-#: ../src/vte.c:4514
-msgid "Unable to send data to child, invalid charset convertor"
-msgstr "تارماق جەريانغا سانلىق-مەلۇمات يوللىيالمىدى، ھەرپ-بەلگە ئايلاندۇرغۇچ ئىناۋەتسىز"
-
-#: ../src/vte.c:4525 ../src/vte.c:5562
 #, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr "تارماق پروگرامما سانلىق-ئاساسىنى ئۆزگەرتىش جەريانىدا خاتالىق كۆرۈلگىنىنى ئۈچۈن تاشلىۋېتىلدى(%s) ."
+#~ msgid "Attempt to set invalid NRC map '%c'."
+#~ msgstr "ئىناۋەتسىز NRC خەرىتە '%c' تەڭشەشنى سىنىدى."
 
-#: ../src/vte.c:7756
+#~ msgid "Unrecognized identified coding system."
+#~ msgstr "تونۇيالمىغان كودلاشنى بەلگىلەش سىستېمىسى"
+
 #, c-format
-msgid "Error reading PTY size, using defaults: %s\n"
-msgstr "PTY چوڭلۇقىنى ئوقۇشتا خاتالىق كۆرۈلدى، كۆڭۈلدىكى چوڭلۇق ئىشلىتىلىدۇ: %s\n"
+#~ msgid "Attempt to set invalid wide NRC map '%c'."
+#~ msgstr "ئىناۋەتسىز كەڭ NRC خەرىتە '%c' تەڭشەشنى سىنىدى."
 
-#. Aaargh.  We're screwed.
-#: ../src/vte.c:13554
-msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_conv_open() سۆزدىكى ھەرپ تىزمىسىنى بەلگىلەش مەغلۇپ بولدى."
+#, c-format
+#~ msgid "Duplicate (%s/%s)!"
+#~ msgstr "(%s/%s) نۇسخىلا!"
+
+#~ msgid "Could not open console.\n"
+#~ msgstr "كونترول سۇپىسىنى ئاچالمىدى.\n"
+
+#~ msgid "Could not parse the geometry spec passed to --geometry"
+#~ msgstr "--geometry غا يوللايدىغان گېئومېتىرىيىلىك پارامېتىرنى يېشەلمىدى"
+
+#, c-format
+#~ msgid "Error compiling regular expression \"%s\"."
+#~ msgstr "مۇنتىزىم ئىپادە \"%s\" نى ھېسابلاشتا خاتالىق يۈز بەردى."
+
+#~ msgid "Unable to send data to child, invalid charset convertor"
+#~ msgstr ""
+#~ "تارماق جەريانغا سانلىق-مەلۇمات يوللىيالمىدى، ھەرپ-بەلگە ئايلاندۇرغۇچ "
+#~ "ئىناۋەتسىز"
+
+#, c-format
+#~ msgid "Error (%s) converting data for child, dropping."
+#~ msgstr ""
+#~ "تارماق پروگرامما سانلىق-ئاساسىنى ئۆزگەرتىش جەريانىدا خاتالىق كۆرۈلگىنىنى "
+#~ "ئۈچۈن تاشلىۋېتىلدى(%s) ."
+
+#, c-format
+#~ msgid "Error reading PTY size, using defaults: %s\n"
+#~ msgstr ""
+#~ "PTY چوڭلۇقىنى ئوقۇشتا خاتالىق كۆرۈلدى، كۆڭۈلدىكى چوڭلۇق ئىشلىتىلىدۇ: %s\n"
+
+#~ msgid "_vte_conv_open() failed setting word characters"
+#~ msgstr "_vte_conv_open() سۆزدىكى ھەرپ تىزمىسىنى بەلگىلەش مەغلۇپ بولدى."
 
 #~ msgid "can not run %s"
 #~ msgstr "%s نى ئىجرا قىلالمىدى"
