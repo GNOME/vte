@@ -126,7 +126,7 @@ _vte_unistr_append_unichar (vteunistr s, gunichar c)
 
 	if (G_UNLIKELY (!ret)) {
 		/* sanity check to avoid OOM */
-		if (G_UNLIKELY (_vte_unistr_strlen (s) > 10 || unistr_next - VTE_UNISTR_START > 100000))
+		if (G_UNLIKELY (_vte_unistr_strlen (s) >= VTE_UNISTR_MAX_LENGTH || unistr_next - VTE_UNISTR_START > 100000))
 			return s;
 
 		ret = unistr_next++;
@@ -219,4 +219,18 @@ int
 		len++;
 	}
 	return len;
+}
+
+// FIXME merge with _vte_unistr_append_to_gunichars -- why does that take something apparently related to bidi??
+int _vte_unistr_dump (vteunistr s, gunichar *chars)
+{
+        int len = 0;
+        if (s >= VTE_UNISTR_START) {
+                struct VteUnistrDecomp *decomp;
+                decomp = &DECOMP_FROM_UNISTR (s);
+                len = _vte_unistr_dump (decomp->prefix, chars);
+                s = decomp->suffix;
+        }
+        chars[len] = s;
+        return ++len;
 }

@@ -29,6 +29,9 @@ G_BEGIN_DECLS
 
 #define VTE_UNISTR_START 0x80000000
 
+/* The longest emoji sequence in Unicode 16.0 is 10 characters, add some safety room. */
+#define VTE_UNISTR_MAX_LENGTH 16
+
 /**
  * vteunistr:
  *
@@ -88,6 +91,11 @@ _vte_unistr_get_base (vteunistr s);
  */
 vteunistr
 _vte_unistr_replace_base (vteunistr s, gunichar c);
+
+/**
+ * FIXME
+ */
+int _vte_unistr_dump (vteunistr s, gunichar *chars);
 
 static inline int
 _vte_g_string_append_unichar (GString *s, gunichar c)

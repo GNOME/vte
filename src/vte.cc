@@ -87,6 +87,7 @@
 #endif /* VTE_GTK == 3 */
 #endif /* WITH_A11Y */
 
+#include "emoji.hh"
 #include "unicode-width.hh"
 
 #include <new> /* placement new */
@@ -3391,7 +3392,8 @@ Terminal::insert_char(gunichar c,
         base_row_num = m_screen->cursor.row;
 
         /* Locate the preceding character if needed. */
-	if (G_UNLIKELY (addl_columns == 0)) {
+	if (G_UNLIKELY (addl_columns == 0 ||
+	                (m_modes_private.CONTOUR_UNICODE_CORE() && is_emoji_combining(c)))) {
                 /* It is potentially a combining mark. (We can't tell for sure yet;
                  * only every second regional indicator is treated as combining.) */
 
@@ -3427,6 +3429,24 @@ Terminal::insert_char(gunichar c,
                         if (G_LIKELY (base_cell_p && base_cell_p->c != '\t')) {
                                 base_cell = *base_cell_p;
                                 base_columns = base_cell.attr.columns();
+                        }
+                }
+
+                /* In "?2027" mode we may ignore wcwidth() and alter the width of some codepoints,
+                 * and/or turn them into combining characters, often depending on their context. */
+                if (base_columns > 0 && m_modes_private.CONTOUR_UNICODE_CORE()) {
+                        if (is_emoji_prefix(base_cell.c, c)) {
+                                /* Combine, possibly increase the width. */
+                                addl_columns = 2 - base_columns;
+                                g_assert(addl_columns >= 0);
+                        } else {
+                                /* Doesn't combine to an emoji. */
+                                if (addl_columns > 0) {
+                                        /* Don't combine, don't use as base the preceding character that we looked up. */
+                                        base_columns = 0;
+                                } else {
+                                        /* It's a combining character though, just let it combine. Nothing to do. */
+                                }
                         }
                 }
         }
@@ -4294,13 +4314,16 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                                                 if (state == vte::base::UTF8Decoder::ACCEPT) [[likely]] {
                                                         gunichar c = decoder.codepoint();
                                                         if ((c >= 0x20 && c < 0x7F) ||
-                                                            (c >= 0xA0 && _vte_unichar_width(c, context.m_terminal->m_utf8_ambiguous_width) == 1)) [[likely]] {
+                                                            (c >= 0xA0 && _vte_unichar_width(c, context.m_terminal->m_utf8_ambiguous_width) == 1
+                                                                       && !(m_modes_private.CONTOUR_UNICODE_CORE() && is_single_width_emoji_combining(c)))) [[likely]] {
                                                                 /* Single width char, append to the array. */
                                                                 single_width_chars[single_width_chars_count++] = c;
                                                                 ip = ip_lookahead;
                                                                 continue;
                                                         } else if (c >= 0xA0) {
-                                                                /* Zero or double width char, flush the array of single width ones and then process this. */
+                                                                /* Zero or double width char, or single width char which is
+                                                                 * possibly an emoji combining (e.g. regional indicator).
+                                                                 * Flush the array of single width ones and then process this. */
                                                                 if (single_width_chars_count > 0) {
                                                                         insert_single_width_chars(single_width_chars, single_width_chars_count);
                                                                         single_width_chars_count = 0;
