@@ -1102,3 +1102,42 @@ _vte_accessible_text_scrolled (GtkAccessibleText *accessible, long delta)
         }
         state->text_scrolled = TRUE;
 }
+
+#if GTK_CHECK_VERSION(4, 21, 0)
+static guint
+vte_accessible_hypertext_get_n_links (GtkAccessibleHypertext *accessible)
+{
+        VteTerminal *terminal = VTE_TERMINAL (accessible);
+        VteAccessibleText *state = vte_accessible_text_get (terminal);
+
+        return 0;
+}
+
+static GtkAccessibleHyperlink *
+vte_accessible_hypertext_get_link (GtkAccessibleHypertext *accessible,
+                                   guint                   index)
+{
+        VteTerminal *terminal = VTE_TERMINAL (accessible);
+        VteAccessibleText *state = vte_accessible_text_get (terminal);
+
+        return nullptr;
+}
+
+static guint
+vte_accessible_hypertext_get_link_at (GtkAccessibleHypertext *accessible,
+                                      guint                   offset)
+{
+        VteTerminal *terminal = VTE_TERMINAL (accessible);
+        VteAccessibleText *state = vte_accessible_text_get (terminal);
+
+        return G_MAXUINT;
+}
+
+void
+_vte_accessible_hypertext_iface_init (GtkAccessibleHypertextInterface *iface)
+{
+        iface->get_n_links = vte_accessible_hypertext_get_n_links;
+        iface->get_link = vte_accessible_hypertext_get_link;
+        iface->get_link_at = vte_accessible_hypertext_get_link_at;
+}
+#endif

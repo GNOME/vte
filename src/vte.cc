@@ -6740,6 +6740,13 @@ Terminal::get_text(vte::grid::row_t start_row,
 					attr.underline = (pcell->attr.underline() == 1);
 					attr.strikethrough = pcell->attr.strikethrough();
                                         attr.columns = pcell->attr.columns();
+                                        attr.hyperlink_idx = 0;
+
+                                        /* We only have 26-bits to store hyperlink in attr */
+                                        if (pcell->attr.hyperlink_idx > 0 &&
+                                            pcell->attr.hyperlink_idx < (1<<26)) {
+                                                attr.hyperlink_idx = pcell->attr.hyperlink_idx;
+                                        }
 
 					/* Store the cell string */
 					if (pcell->c == 0) {

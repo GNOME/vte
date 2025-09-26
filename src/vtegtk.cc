@@ -198,22 +198,19 @@ private:
         std::shared_ptr<vte::platform::Widget> m_widget;
 };
 
-#if WITH_A11Y && VTE_GTK == 4
-# define VTE_IMPLEMENT_ACCESSIBLE \
-  G_IMPLEMENT_INTERFACE(GTK_TYPE_ACCESSIBLE_TEXT, \
-                        _vte_accessible_text_iface_init)
-#else
-# define VTE_IMPLEMENT_ACCESSIBLE
-#endif
-
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                         {
                                 VteTerminal_private_offset =
                                         g_type_add_instance_private(g_define_type_id, sizeof(VteTerminalPrivate));
                         }
                         g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
-                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, nullptr)
-                        VTE_IMPLEMENT_ACCESSIBLE)
+#if WITH_A11Y && VTE_GTK == 4
+                        G_IMPLEMENT_INTERFACE(GTK_TYPE_ACCESSIBLE_TEXT, _vte_accessible_text_iface_init)
+# if GTK_CHECK_VERSION(4, 21, 0)
+                        G_IMPLEMENT_INTERFACE(GTK_TYPE_ACCESSIBLE_HYPERTEXT, _vte_accessible_hypertext_iface_init)
+# endif
+#endif
+                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, nullptr))
 
 static inline auto
 get_private(VteTerminal* terminal)

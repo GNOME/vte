@@ -23,4 +23,8 @@ void _vte_accessible_text_iface_init (GtkAccessibleTextInterface *iface);
 void _vte_accessible_text_init       (GtkAccessibleText          *accessible);
 void _vte_accessible_text_scrolled   (GtkAccessibleText          *accessible, long delta);
 
+#if GTK_CHECK_VERSION(4, 21, 0)
+void _vte_accessible_hypertext_iface_init (GtkAccessibleHypertextInterface *iface);
+#endif
+
 G_END_DECLS

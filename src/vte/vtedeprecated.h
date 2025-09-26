@@ -208,8 +208,8 @@ typedef struct _VteCharAttributes VteCharAttributes _VTE_DEPRECATED;
 struct _VteCharAttributes {
         /*< private >*/
         long row, column;  /* logical column */
-	PangoColor fore, back;
-	guint underline:1, strikethrough:1, columns:4;
+        PangoColor fore, back;
+        guint underline:1, strikethrough:1, columns:4, hyperlink_idx:26;
 } _VTE_DEPRECATED;
 
 _VTE_DEPRECATED
