@@ -1051,7 +1051,7 @@ modes = [
 
     # "Unicode Core"
     # https://github.com/contour-terminal/terminal-unicode-core
-    mode_WHAT('CONTOUR_UNICODE_CORE', 2027, default=False),
+    mode_WHAT('CONTOUR_UNICODE_CORE', 2027, default=False, flags=Flags.WRITABLE),
 
     mode_WHAT('CONTOUR_TEXT_REFLOW', 2028, default=False),
     mode_WHAT('CONTOUR_MOUSE_PASSIVE_TRACKING', 2029, default=False),
