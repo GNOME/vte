@@ -5165,13 +5165,13 @@ Terminal::map_erase_binding(EraseMode mode,
         }
         case eAUTO:
                 assert(auto_mode != eAUTO);
-                map_erase_binding(auto_mode,
-                                  auto_mode,
-                                  modifiers,
-                                  normal, normal_length,
-                                  suppress_alt_esc,
-                                  add_modifiers);
-                break;
+                return map_erase_binding(auto_mode,
+                                         auto_mode,
+                                         modifiers,
+                                         normal, normal_length,
+                                         suppress_alt_esc,
+                                         add_modifiers);
+
         default:
                 __builtin_unreachable();
                 break;
