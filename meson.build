@@ -91,6 +91,10 @@ lt_current = vte_major_version + lt_age
 libvte_gtk3_soversion = '@0@.@1@.@2@'.format(libvte_soversion, lt_current, lt_revision)
 libvte_gtk4_soversion = libvte_soversion.to_string()
 
+# Backward compatibility
+lt_current_darwin = lt_current + 1
+libvte_gtk3_darwinversions = [lt_current_darwin, '@0@.@1@.0'.format(lt_current_darwin, lt_revision)]
+
 # i18n
 
 vte_gettext_domain = vte_api_name
