@@ -15,7 +15,7 @@
 
 include:
   - project: 'chpe/versuch-ci'
-    ref: 4a04e0c88965b04b2dc784f2ec341399d86b74e8
+    ref: 5d4fb973fa5e9aba49da0c590b92b2a3abb931ce
     file: '/versuch.yml'
     inputs:
       release-service: real
