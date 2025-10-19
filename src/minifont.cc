@@ -37,6 +37,8 @@
 
 #define MINIFONT_CACHE_MAX_SIZE 128
 
+#define ENABLE_POWERLINE_CHARACTERS
+
 typedef struct _CachedMinifont
 {
         gunichar c;                 // the actual unichar to draw
@@ -874,6 +876,65 @@ scanline(cairo_t* cr,
         cairo_fill(cr);
 }
 
+#define KREISRUND 1
+
+static inline constexpr auto
+circle_aspect(int width,
+              int height) noexcept
+{
+#if KREISRUND
+        return 1.0;
+#else
+        return double(height) / double(width);
+#endif
+}
+
+class aspector {
+private:
+        cairo_t* const m_cr;
+        cairo_matrix_t m_matrix;
+
+public:
+        [[gnu::always_inline]]
+        aspector(cairo_t* cr,
+                 int x,
+                 int y,
+                 int width,
+                 int height,
+                 double dx,
+                 double dy,
+                 double aspect) noexcept
+                : m_cr{cr}
+        {
+                // The naive way to draw the ellipse would lead to non-uniform stroke
+                // width.  To make the stroke width uniform, restore the transformation
+                // before stroking.  See https://www.cairographics.org/cookbook/ellipses/
+                cairo_get_matrix(cr, &m_matrix);
+                cairo_translate(cr, dx, dy);
+                cairo_scale(cr, 1., aspect);
+        }
+
+        [[gnu::always_inline]]
+        aspector(cairo_t* cr,
+                 int x,
+                 int y,
+                 int width,
+                 int height,
+                 int dx,
+                 int dy) noexcept
+                : aspector(cr, x, y, width, height, dx, dy,
+                           circle_aspect(width, height))
+        {
+        }
+
+        [[gnu::always_inline]]
+        ~aspector() noexcept
+        {
+                cairo_set_matrix(m_cr, &m_matrix);
+        }
+};
+
+// A segment of a large multi-cell circle
 inline void
 circle_segment(cairo_t* cr,
                int x,
@@ -885,30 +946,416 @@ circle_segment(cairo_t* cr,
                int dy,
                int r) noexcept
 {
-        // The naive way to draw the ellipse would lead to non-uniform stroke
-        // width.  To make the stroke width uniform, restore the transformation
-        // before stroking.  See https://www.cairographics.org/cookbook/ellipses/
-
         cairo_rectangle(cr, x, y, width, height);
         cairo_clip(cr);
 
-        auto matrix = cairo_matrix_t{};
-        cairo_get_matrix(cr, &matrix);
+        {
+                auto const asp = aspector(cr, x, y, width, height,
+                                          x + dx * width, y + dy * height,
+                                          double(height) / double(width));
 
-        cairo_translate(cr, x + dx * width, y + dy * height);
-        cairo_scale(cr, 1., double(height) / double(width));
-        cairo_new_sub_path(cr); // or cairo_new_path() ?
-        cairo_arc(cr,
-                  0., 0., // centre
-                  r * width - line_width, // radius
-                  0., // start angle
-                  2. * M_PI); // end angle
-        cairo_close_path(cr);
+                cairo_new_sub_path(cr);
+                cairo_arc(cr,
+                          0., 0., // centre
+                          r * width - line_width, // radius
+                          0., // start angle
+                          2. * M_PI); // end angle
+                cairo_close_path(cr);
+        }
 
-        cairo_set_matrix(cr, &matrix);
         cairo_set_line_width(cr, line_width);
         cairo_stroke(cr);
 }
+
+enum class CircleSize : int {
+        LARGE = 0,
+        NORMAL = 1,
+        MEDIUM = 2,
+        SMALL = 4,
+};
+
+static inline constexpr auto
+white_circle_radius(int width,
+                    int height,
+                    int line_width,
+                    CircleSize size) noexcept
+{
+#if KREISRUND
+        return double(std::max(std::min(width, height) - line_width - 2 * std::to_underlying(size), 1)) * 0.5;
+#else
+        return std::max(double(width - line_width - 2 * std::to_underlying(size)) * 0.5, .5);
+#endif
+}
+
+static inline constexpr auto
+black_circle_aspect(double rw,
+                    double aw,
+                    int line_width) noexcept
+{
+        // Note that we cannot just take a white circle's radius,
+        // add half the line_width to it and use that to make and
+        // fill a circle. That would lead to the resulting ellipse
+        // be larger than the circle, due to the same reason that
+        // the naive way to draw a circle produces an uneven stroke
+        // width (see https://www.cairographics.org/cookbook/ellipses/ ).
+        // Instead, we can either fill *and* stroke a circle of the
+        // same radius as a white circle, or adjust the aspect so the
+        // resulting ellipse is the same height as the white ellipse,
+        // which is what the code below is doing.
+        auto const two_rw = 2.0 * rw;
+        return (two_rw * aw + line_width) / (two_rw + line_width);
+}
+
+inline void
+white_circle_segment(cairo_t* cr,
+                     int x,
+                     int y,
+                     int width,
+                     int height,
+                     int line_width,
+                     int xcenter,
+                     int ycenter,
+                     double start_angle,
+                     double end_angle,
+                     CircleSize size) noexcept
+{
+        {
+                auto const asp = aspector(cr, x, y, width, height, xcenter, ycenter);
+
+                cairo_new_sub_path(cr);
+
+                cairo_arc(cr,
+                          0., 0., // centre
+                          white_circle_radius(width, height, line_width, size), // radius
+                          start_angle,
+                          end_angle);
+        }
+
+        cairo_set_line_width(cr, line_width);
+        cairo_stroke(cr);
+}
+
+#ifdef ENABLE_FILL_CHARACTERS
+
+inline void
+white_circle_with_fill(cairo_t* cr,
+                       int x,
+                       int y,
+                       int width,
+                       int height,
+                       int line_width,
+                       int xcenter,
+                       int ycenter,
+                       CircleSize size,
+                       cairo_pattern_t* fill) noexcept
+{
+        {
+                auto const asp = aspector(cr, x, y, width, height, xcenter, ycenter);
+
+                cairo_new_sub_path(cr);
+
+                cairo_arc(cr,
+                          0., 0., // centre
+                          white_circle_radius(width, height, line_width, size), // radius
+                          0.0,
+                          2.0 * M_PI);
+        }
+
+        cairo_set_line_width(cr, line_width);
+        cairo_stroke_preserve(cr);
+        cairo_set_source(cr, fill);
+        cairo_fill(cr);
+}
+
+#endif // ENABLE_FILL_CHARACTERS
+
+inline void
+white_circle_with_quadrant(cairo_t* cr,
+                           int x,
+                           int y,
+                           int width,
+                           int height,
+                           int line_width,
+                           int xcenter,
+                           int ycenter,
+                           double start_angle,
+                           double end_angle,
+                           CircleSize size) noexcept
+{
+        {
+                auto const asp = aspector(cr, x, y, width, height, xcenter, ycenter);
+                auto const r = white_circle_radius(width, height, line_width, size);
+
+                cairo_new_sub_path(cr);
+                cairo_move_to(cr, 0., 0.);
+                cairo_arc(cr,
+                          0., 0., // centre
+                          r, // radius
+                          start_angle,
+                          end_angle);
+                cairo_line_to(cr, 0., 0.);
+                cairo_arc_negative(cr,
+                                   0., 0.,
+                                   r,
+                                   start_angle,
+                                   end_angle);
+                //cairo_line_to(cr, 0., 0.);
+
+                cairo_close_path(cr);
+        }
+
+        cairo_set_line_width(cr, line_width);
+        //cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+        cairo_stroke(cr);
+}
+
+inline void
+black_circle_segment(cairo_t* cr,
+                     int x,
+                     int y,
+                     int width,
+                     int height,
+                     int line_width,
+                     int xcenter,
+                     int ycenter,
+                     double start_angle,
+                     double end_angle,
+                     CircleSize size) noexcept
+{
+        {
+                auto const rw = white_circle_radius(width, height, line_width, size);
+                auto const aw = circle_aspect(width, height);
+                auto const asp = aspector(cr, x, y, width, height, xcenter, ycenter,
+                                    black_circle_aspect(rw, aw, line_width));
+
+                cairo_new_sub_path(cr);
+
+                cairo_move_to(cr, 0., 0.);
+                cairo_arc(cr,
+                          0., 0., // centre
+                          rw + double(line_width) * 0.5, // radius
+                          start_angle,
+                          end_angle);
+                cairo_line_to(cr, 0., 0.);
+
+                cairo_close_path(cr);
+        }
+
+        cairo_fill(cr);
+}
+
+inline void
+white_circle(cairo_t* cr,
+             int x,
+             int y,
+             int width,
+             int height,
+             int line_width,
+             int xcenter,
+             int ycenter,
+             CircleSize size) noexcept
+{
+        return white_circle_segment(cr, x, y, width, height, line_width, xcenter, ycenter,
+                                    0, 2. * M_PI,
+                                    size);
+}
+
+inline void
+black_circle(cairo_t* cr,
+             int x,
+             int y,
+             int width,
+             int height,
+             int line_width,
+             int xcenter,
+             int ycenter,
+             CircleSize size) noexcept
+{
+        return black_circle_segment(cr,
+                                    x, y,
+                                    width, height,
+                                    line_width,
+                                    xcenter, ycenter,
+                                    0.0 * M_PI, 2. * M_PI,
+                                    size);
+}
+
+inline void
+white_ellipse_segment(cairo_t* cr,
+                      int x,
+                      int y,
+                      int width,
+                      int height,
+                      int line_width,
+                      int xcenter,
+                      int ycenter,
+                      double start_angle,
+                      double end_angle,
+                      bool vertical) noexcept
+{
+        auto const dim = std::max(std::min(width, height) - 2 * line_width, 1);
+
+        {
+                auto const asp = aspector(cr, x, y, width, height, xcenter, ycenter,
+                                    vertical ? 3.0 / 2.0 : 2.0 / 3.0);
+
+                cairo_new_sub_path(cr);
+
+                cairo_arc(cr,
+                          0., 0., // centre
+                          vertical ? dim * (1.0 / 3.0) : dim * 0.5, // radius
+                          start_angle,
+                          end_angle);
+        }
+
+        cairo_set_line_width(cr, line_width);
+        cairo_stroke(cr);
+}
+
+inline void
+black_ellipse_segment(cairo_t* cr,
+                      int x,
+                      int y,
+                      int width,
+                      int height,
+                      int line_width,
+                      int xcenter,
+                      int ycenter,
+                      double start_angle,
+                      double end_angle,
+                      bool vertical) noexcept
+{
+        {
+                auto const dim = std::max(std::min(width, height) - 2 * line_width, 1);
+                auto const rw = vertical ? dim * (1.0 / 3.0) : dim * 0.5;
+                auto const aw = vertical ? 3.0 / 2.0 : 2.0 / 3.0;
+                auto const asp = aspector(cr, x, y, width, height, xcenter, ycenter,
+                                          black_circle_aspect(rw, aw, line_width));
+
+                cairo_new_sub_path(cr);
+
+                cairo_move_to(cr, 0., 0.);
+                cairo_arc(cr,
+                          0., 0., // centre
+                          rw + double(line_width) * 0.5, // radius
+                          start_angle,
+                          end_angle);
+                cairo_line_to(cr, 0., 0.);
+
+                cairo_close_path(cr);
+        }
+
+        cairo_fill(cr);
+}
+
+inline void
+black_ellipse_segment(cairo_t* cr,
+                      int x,
+                      int y,
+                      int width,
+                      int height,
+                      int line_width,
+                      int xcenter,
+                      int ycenter,
+                      double start_angle,
+                      double end_angle,
+                      double hax,
+                      double hay) noexcept
+{
+        {
+                auto const asp = aspector(cr, x, y, width, height, xcenter, ycenter,
+                                          hay / hax);
+
+                cairo_new_sub_path(cr);
+
+                cairo_move_to(cr, 0., 0.);
+                cairo_arc(cr,
+                          0., 0., // centre
+                          hax, // radius,
+                          start_angle,
+                          end_angle);
+                cairo_line_to(cr, 0., 0.);
+
+                cairo_close_path(cr);
+        }
+
+        cairo_fill(cr);
+}
+
+#ifdef ENABLE_POWERLINE_CHARACTERS
+
+// In contrast to the other circle and ellipsis characters whose
+// centre is grid-aligned, these powerline characters need to tile
+// with U+2588 FULL BLOCK, i.e. fill the whole height.
+// With the vertical half axis is fixed by the height, make these
+// characters as circular as possible in the available width.
+
+inline void
+powerline_white_ellipse_segment(cairo_t* cr,
+                                int x,
+                                int y,
+                                int width,
+                                int height,
+                                int line_width,
+                                int xcenter,
+                                double start_angle,
+                                double end_angle) noexcept
+{
+        auto const ycenter = y + double(height) * 0.5;
+        auto const half_line_width = double(line_width) * 0.5;
+        auto const hay = double(std::max(height - line_width, 1) * 0.5);
+        auto const hax = std::max(std::min(hay, double(width) - half_line_width), 1.0);
+        {
+                auto const asp = aspector(cr, x, y, width, height, xcenter, ycenter,
+                                          hay / hax);
+
+                cairo_new_sub_path(cr);
+
+                cairo_arc(cr,
+                          0., 0., // centre
+                          hax, // radius
+                          start_angle,
+                          end_angle);
+        }
+
+        cairo_set_line_width(cr, line_width);
+        cairo_stroke(cr);
+}
+
+inline void
+powerline_black_ellipse_segment(cairo_t* cr,
+                                int x,
+                                int y,
+                                int width,
+                                int height,
+                                int xcenter,
+                                double start_angle,
+                                double end_angle) noexcept
+{
+        auto const hay = double(height) * 0.5;
+        auto const ycenter = y + hay;
+        auto const hax = std::min(hay, double(width));
+        {
+                auto const asp = aspector(cr, x, y, width, height, xcenter, ycenter,
+                                          hay / hax);
+
+                cairo_new_sub_path(cr);
+
+                cairo_move_to(cr, 0., 0.);
+                cairo_arc(cr,
+                          0., 0., // centre
+                          hax, // radius,
+                          start_angle,
+                          end_angle);
+                cairo_line_to(cr, 0., 0.);
+
+                cairo_close_path(cr);
+        }
+
+        cairo_fill(cr);
+}
+
+#endif // ENABLE_POWERLINE_CHARACTERS
 
 static void
 polygon(cairo_t* cr,
@@ -932,6 +1379,33 @@ polygon(cairo_t* cr,
         }
         cairo_fill (cr);
 }
+
+class inverse_character {
+private:
+        cairo_t* m_cr;
+
+public:
+        inverse_character(cairo_t* cr,
+                          double x,
+                          double y,
+                          double width,
+                          double height) noexcept
+                : m_cr{cr}
+        {
+                cairo_push_group(cr);
+
+                cairo_rectangle(cr, x, y, width, height);
+                cairo_fill(cr);
+                cairo_set_source_rgba(cr, 0, 0, 0, 0);
+                cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+        }
+
+        ~inverse_character() noexcept
+        {
+                cairo_pop_group_to_source(m_cr);
+                cairo_paint(m_cr);
+        }
+};
 
 #ifdef ENABLE_FILL_CHARACTERS
 
@@ -2082,17 +2556,8 @@ Minifont::draw_graphic(cairo_t* cr,
 
                 // U+1FBBD NEGATIVE DIAGONAL CROSS
         case 0x1fbbd: {
-                cairo_push_group(cr);
-
-                cairo_rectangle(cr, x, y, width, height);
-                cairo_fill(cr);
-                cairo_set_source_rgba(cr, 0, 0, 0, 0);
-                cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
-
+                auto inv = inverse_character(cr, x, y, width, height);
                 diagonal_slope_1_1(cr, x, y, width, height, light_line_width, 3);
-
-                cairo_pop_group_to_source(cr);
-                cairo_paint(cr);
                 break;
         }
 
@@ -2100,16 +2565,9 @@ Minifont::draw_graphic(cairo_t* cr,
                 // U+1FBBF NEGATIVE DIAGONAL DIAMOND
         case 0x1fbbe ... 0x1fbbf: {
                 static constinit uint8_t const map[2] = { 0b1000, 0b1111 };
-                cairo_push_group(cr);
 
-                cairo_rectangle(cr, x, y, width, height);
-                cairo_fill(cr);
-                cairo_set_source_rgba(cr, 0, 0, 0, 0);
-                cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
-
+                auto inv = inverse_character(cr, x, y, width, height);
                 middle_diagonal(cr, x, y, width, height, light_line_width, map[c - 0x1fbbe]);
-                cairo_pop_group_to_source(cr);
-                cairo_paint(cr);
                 break;
         }
 
@@ -2626,6 +3084,305 @@ Minifont::draw_graphic(cairo_t* cr,
                 // U+1CE0A BOX DRAWINGS DOUBLE DIAGONAL UPPER LEFT TO MIDDLE CENTRE TO UPPER RIGHT
         case 0x1ce09 ... 0x1ce0a:
                 diagonal_double_middle(cr, x, y, width, height, light_line_width, c & 1);
+                break;
+
+                // Circle characters
+                //
+                // Names are translated into circle attributes as follows:
+                // WHITE, BLACK -> fill
+                // no attribute, LARGE, MEDIUM, MEDIUM SMALL, SMALL -> radius
+                // no attribute, HEAVY, VERY/EXTREMELY HEAVY -> line width
+
+        case 0x2b24: // ⬤ U+2B24 BLACK LARGE CIRCLE
+                black_circle(cr, x, y, width, height, light_line_width, xcenter, ycenter, CircleSize::LARGE);
+                break;
+        case 0x2b2c: // ⬬ U+2B2C BLACK HORIZONTAL ELLIPSE
+                black_ellipse_segment(cr, x, y, width, height, light_line_width,
+                                      xcenter, ycenter,
+                                      0.0, 2.0 * M_PI,
+                                      false);
+                break;
+        case 0x2b2d: // ⬭ U+2B2D WHITE HORIZONTAL ELLIPSE
+                white_ellipse_segment(cr, x, y, width, height, light_line_width,
+                                      xcenter, ycenter,
+                                      0.0, 2.0 * M_PI,
+                                      false);
+                break;
+        case 0x2b2e: // ⬮ U+2B2E BLACK VERTICAL ELLIPSE
+                black_ellipse_segment(cr, x, y, width, height, light_line_width,
+                                      xcenter, ycenter,
+                                      0.0, 2.0 * M_PI,
+                                      true);
+                break;
+        case 0x2b2f: // ⬯ U+2B2F WHITE VERTICAL ELLIPSE
+                white_ellipse_segment(cr, x, y, width, height, light_line_width,
+                                      xcenter, ycenter,
+                                      0.0, 2.0 * M_PI,
+                                      true);
+                break;
+        case 0x2b55: // ⭕ U+2B55 HEAVY LARGE CIRCLE
+                white_circle(cr, x, y, width, height, heavy_line_width, xcenter, ycenter, CircleSize::LARGE);
+                break;
+        case 0x2b57: // ⭗ U+2B57 HEAVY CIRCLE WITH CIRCLE INSIDE
+                white_circle(cr, x, y, width, height, heavy_line_width, xcenter, ycenter, CircleSize::NORMAL);
+                white_circle(cr, x, y, width, height, light_line_width, xcenter, ycenter, CircleSize::SMALL);
+                break;
+
+        case 0x2b58: // ⭘ U+2B58 HEAVY CIRCLE
+        case 0x1f787: // 🞇 U+1F787 HEAVY WHITE CIRCLE
+                // FIXMEchpe: what's the difference between these characters?
+                white_circle(cr, x, y, width, height, heavy_line_width, xcenter, ycenter, CircleSize::NORMAL);
+                break;
+
+        case 0x2bca: // ⯊ U+2BCA TOP HALF BLACK CIRCLE
+                black_circle_segment(cr, x, y, width, height, light_line_width, xcenter, ycenter, 1. * M_PI, 2. * M_PI, CircleSize::NORMAL);
+                break;
+
+        case 0x2bcb: // ⯋ U+2BCB BOTTOM HALF BLACK CIRCLE
+                black_circle_segment(cr, x, y, width, height, light_line_width, xcenter, ycenter, 0., 1. * M_PI, CircleSize::NORMAL);
+                break;
+
+        case 0x25cf: // ● U+25CF BLACK CIRCLE
+                black_circle(cr, x, y, width, height, light_line_width, xcenter, ycenter, CircleSize::NORMAL);
+                break;
+
+        case 0x25cb: // ○ U+25CB WHITE CIRCLE
+                /* Also? case ffee: U+FFEE HALFWIDTH WHITE CIRCLE */
+                white_circle(cr, x, y, width, height, light_line_width, xcenter, ycenter, CircleSize::NORMAL);
+                break;
+
+        case 0x25cc: { // ○ U+25CC DOTTED CIRCLE
+                auto const dash = double(light_line_width);
+                cairo_set_dash(cr, &dash, 1, 0.0);
+                cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+                white_circle(cr, x, y, width, height, light_line_width, xcenter, ycenter, CircleSize::NORMAL);
+                break;
+        }
+
+#ifdef ENABLE_FILL_CHARACTERS
+        case 0x25cd: // ◍ U+25CD CIRCLE WITH VERTICAL FILL
+                white_circle_with_fill(cr, x, y, width, height, light_line_width, xcenter, ycenter, CircleSize::NORMAL,
+                                       create_sparse_vertical_fill_pattern());
+                break;
+#endif // ENABLE_FILL_CHARACTERS
+
+        case 0x25d0: // ◐ U+25D0 CIRCLE WITH LEFT HALF BLACK
+        case 0x25d1: // ◑ U+25D1 CIRCLE WITH RIGHT HALF BLACK
+        case 0x25d2: // ◒ U+25D2 CIRCLE WITH LOWER HALF BLACK
+        case 0x25d3: // ◓ U+25D3 CIRCLE WITH UPPER HALF BLACK
+        case 0x25d4: // ◔ U+25D4 CIRCLE WITH UPPER RIGHT QUADRANT BLACK
+        case 0x25d5: { // ◕ U+25D5 CIRCLE WITH ALL BUT UPPER LEFT QUADRANT BLACK
+                static constinit double angles[12] = {
+                        0.5* M_PI, 1.5* M_PI,
+                        1.5* M_PI, 0.5* M_PI,
+                        0.0* M_PI, 1.0* M_PI,
+                        1.0* M_PI, 0.0* M_PI,
+                        1.5* M_PI, 0.0* M_PI,
+                        1.5* M_PI, 1.0* M_PI,
+                };
+
+                auto const v = (c - 0x25d0) << 1;
+                black_circle_segment(cr, x, y, width, height, light_line_width, xcenter, ycenter, angles[v], angles[v + 1], CircleSize::NORMAL);
+                white_circle(cr, x, y, width, height, light_line_width, xcenter, ycenter, CircleSize::NORMAL);
+                break;
+        }
+
+        case 0x25d6: // ◖ U+25D6 LEFT HALF BLACK CIRCLE
+                black_circle_segment(cr, x, y, width, height, light_line_width, xcenter, ycenter, 0.5 * M_PI, 1.5 * M_PI, CircleSize::NORMAL);
+                break;
+        case 0x25d7: // ◗ U+25D7 RIGHT HALF BLACK CIRCLE
+                black_circle_segment(cr, x, y, width, height, light_line_width, xcenter, ycenter, 1.5 * M_PI, 0.5 * M_PI, CircleSize::NORMAL);
+                break;
+
+        case 0x25ef: // ◯ U+25EF LARGE CIRCLE
+                white_circle(cr, x, y, width, height, light_line_width, xcenter, ycenter, CircleSize::LARGE);
+                break;
+        case 0x25d9: { // ◙ U+25D9 INVERSE WHITE CIRCLE
+                auto inv = inverse_character(cr, x, y, width, height);
+                // U+25CB WHITE CIRCLE
+                white_circle(cr, x, y, width, height, light_line_width, xcenter, ycenter, CircleSize::NORMAL);
+                break;
+        }
+
+        case 0x25da: { // ◚ U+25DA UPPER HALF INVERSE WHITE CIRCLE
+                auto inv = inverse_character(cr, x, y, width, upper_half);
+                // ◠ U+25E0 UPPER HALF CIRCLE
+                white_circle_segment(cr, x, y, width, height, light_line_width, xcenter, ycenter, 1. * M_PI, 2. * M_PI, CircleSize::NORMAL);
+                break;
+        }
+
+        case 0x25db: { // ◛ U+25DB LOWER HALF INVERSE WHITE CIRCLE
+                auto inv = inverse_character(cr, x, ycenter, width, height - upper_half);
+                // ◡ U+25E1 LOWER HALF CIRCLE
+                white_circle_segment(cr, x, y, width, height, light_line_width, xcenter, ycenter, 0., 1. * M_PI, CircleSize::NORMAL);
+                break;
+        }
+
+        case 0x25dc:   // ◜ U+25DC UPPER LEFT QUADRANT CIRCULAR ARC
+        case 0x25dd:   // ◝ U+25DD UPPER RIGHT QUADRANT CIRCULAR ARC
+        case 0x25de:   // ◞ U+25DE LOWER RIGHT QUADRANT CIRCULAR ARC
+        case 0x25df: { // ◟ U+25DF LOWER LEFT QUADRANT CIRCULAR ARC
+                static constinit double angles[5] = {
+                        1.0 * M_PI,
+                        1.5 * M_PI,
+                        0.0 * M_PI,
+                        0.5 * M_PI,
+                        1.0 * M_PI,
+                };
+
+                auto const v = c - 0x25dc;
+                white_circle_segment(cr, x, y, width, height, light_line_width, xcenter, ycenter, angles[v], angles[v + 1], CircleSize::NORMAL);
+                break;
+        }
+
+        case 0x25e0: // ◠ U+25E0 UPPER HALF CIRCLE
+                white_circle_segment(cr, x, y, width, height, light_line_width, xcenter, ycenter, 1. * M_PI, 2. * M_PI, CircleSize::NORMAL);
+                break;
+
+        case 0x25e1: // ◡ U+25E1 LOWER HALF CIRCLE
+                white_circle_segment(cr, x, y, width, height, light_line_width, xcenter, ycenter, 0., 1. * M_PI, CircleSize::NORMAL);
+                break;
+
+        case 0x25f4: // ◴ U+25F4 WHITE CIRCLE WITH UPPER LEFT QUADRANT
+        case 0x25f5: // ◵ U+25F5 WHITE CIRCLE WITH LOWER LEFT QUADRANT
+        case 0x25f6: // ◶ U+25F6 WHITE CIRCLE WITH LOWER RIGHT QUADRANT
+        case 0x25f7: { // ◷ U+25F7 WHITE CIRCLE WITH UPPER RIGHT QUADRANT
+                static constinit double angles[4] = {
+                        1.0 * M_PI,
+                        0.5 * M_PI,
+                        0.0 * M_PI,
+                        1.5 * M_PI,
+                };
+
+                auto const v = c - 0x25f4;
+                white_circle_with_quadrant(cr, x, y, width, height, light_line_width, xcenter, ycenter, angles[v], angles[(v + 3) & 3], CircleSize::NORMAL);
+                break;
+        }
+
+#ifdef ENABLE_POWERLINE_CHARACTERS
+        case 0xe0b4: // U+E0B4 left justified right half black circle
+                powerline_black_ellipse_segment(cr, x, y, width, height, x, 1.5 * M_PI, 0.5 * M_PI);
+                break;
+        case 0xe0b5: // U+E0B5 left justified right half white circle
+                powerline_white_ellipse_segment(cr, x, y, width, height, light_line_width, x, 1.5 * M_PI, 0.5 * M_PI);
+                break;
+        case 0xe0b6: // U+E0B6 right justified left half black circle
+                powerline_black_ellipse_segment(cr, x, y, width, height, xright, 0.5 * M_PI, 1.5 * M_PI);
+                break;
+        case 0xe0b7: // U+E0B7 right justified left half white circle
+                powerline_white_ellipse_segment(cr, x, y, width, height, light_line_width, xright, 0.5 * M_PI, 1.5 * M_PI);
+                break;
+#endif // ENABLE_POWERLINE_CHARACTERS
+
+        case 0x1cc6b: // 𜱫 U+1CC6B BLACK LARGE CIRCLE MINUS LEFT QUARTER SECTION
+        case 0x1cc6c: // 𜱬 U+1CC6C BLACK LARGE CIRCLE MINUS UPPER QUARTER SECTION
+        case 0x1cc6d: // 𜱭 U+1CC6D BLACK LARGE CIRCLE MINUS RIGHT QUARTER SECTION
+        case 0x1cc6e: { // 𜱮 U+1CC6E BLACK LARGE CIRCLE MINUS LOWER QUARTER SECTION
+                static constinit double angles[4] = {
+                        1.25 * M_PI,
+                        1.75 * M_PI,
+                        0.25 * M_PI,
+                        0.75 * M_PI,
+                };
+
+                auto const v = c - 0x1cc6b;
+                black_circle_segment(cr, x, y, width, height, light_line_width, xcenter, ycenter, angles[v], angles[(v + 3) & 3], CircleSize::LARGE);
+                break;
+        }
+
+        case 0x1ce00: // 𜸀 U+1CE00 RIGHT HALF AND LEFT HALF WHITE CIRCLE
+                white_circle_segment(cr, x, y, width, height, light_line_width, x, ycenter, 1.5 * M_PI, 2.5 * M_PI, CircleSize::NORMAL);
+                white_circle_segment(cr, x, y, width, height, light_line_width, x + width, ycenter, 0.5 * M_PI, 1.5 * M_PI, CircleSize::NORMAL);
+                break;
+
+        case 0x1ce01: // 𜸁 U+1CE01 LOWER HALF AND UPPER HALF WHITE CIRCLE
+                white_circle_segment(cr, x, y, width, height, light_line_width, xcenter, y, 0., M_PI, CircleSize::NORMAL);
+                white_circle_segment(cr, x, y, width, height, light_line_width, xcenter, y + height, 1. * M_PI, 2. * M_PI, CircleSize::NORMAL);
+                break;
+
+        case 0x1ce0b: // 𜸋 U+1CE0B LEFT HALF WHITE ELLIPSE
+                white_ellipse_segment(cr, x, y, width, height, light_line_width,
+                                      xright, ycenter,
+                                      0.5 * M_PI, 1.5 * M_PI,
+                                      false);
+                break;
+        case 0x1ce0c: // 𜸌 U+1CE0C RIGHT HALF WHITE ELLIPSE
+                white_ellipse_segment(cr, x, y, width, height, light_line_width,
+                                      x, ycenter,
+                                      1.5 * M_PI, 0.5 * M_PI,
+                                      false);
+                break;
+
+        case 0x1f534: // 🔴 U+1F534 LARGE RED CIRCLE
+        case 0x1f535: // 🔵 U+1F535 LARGE BLUE CIRCLE
+        case 0x1f7e0: // 🟠 U+1F7E0 LARGE ORANGE CIRCLE
+        case 0x1f7e1: // 🟡 U+1F7E1 LARGE YELLOW CIRCLE
+        case 0x1f7e2: // 🟢 U+1F7E2 LARGE GREEN CIRCLE
+        case 0x1f7e3: // 🟣 U+1F7E3 LARGE PURPLE CIRCLE
+        case 0x1f7e4: { // 🟤 U+1F7E4 LARGE BROWN CIRCLE
+                static constinit double const colors[7][3] = {
+                        { 1.0, 0.0, 0.0 }, // red
+                        { 0.0, 0.0, 1.0 }, // blue
+                        { 1.0, 0.65, 0.0 }, // orange
+                        { 1.0, 1.0, 0.0 }, // yellow
+                        { 0.0, 1.0, 0.0 }, // green
+                        { 0.65, 0.125, 1.0 }, // purple
+                        { 1.0, 0.25, 0.25 }, // brown
+                };
+                auto const v = c >= 0x1f7e0 ? c - 0x1f7e0 + 2 : c - 0x1f534;
+                cairo_set_source_rgb(cr, colors[v][0], colors[v][1], colors[v][2]);
+                black_circle(cr, x, y, width, height, light_line_width, xcenter, ycenter, CircleSize::LARGE);
+                break;
+        }
+
+        case 0x1f78a: // 🞊 U+1F78A WHITE CIRCLE CONTAINING BLACK SMALL CIRCLE
+                // ○ U+25CB WHITE CIRCLE
+                white_circle(cr, x, y, width, height, light_line_width, xcenter, ycenter, CircleSize::NORMAL);
+                // FIXME this blackj circle is too large
+                // inscribed black circle
+                //black_circle(cr, x, y, width, height, light_line_width, xcenter, ycenter, CircleSize::SMALL);
+                break;
+
+        case 0x1f907: // 🤇 U+1F907 LEFT HALF CIRCLE
+                white_circle_segment(cr, x, y, width, height, light_line_width, xcenter, ycenter, 0.5 * M_PI, 1.5 * M_PI, CircleSize::NORMAL);
+                break;
+
+        case 0x1fbe0: // 🯠 U+1FBE0 TOP JUSTIFIED LOWER HALF WHITE CIRCLE
+                white_circle_segment(cr, x, y, width, height, light_line_width, xcenter, y, 0., M_PI, CircleSize::NORMAL);
+               break;
+        case 0x1fbe1: // 🯡 U+1FBE1 RIGHT JUSTIFIED LEFT HALF WHITE CIRCLE
+                white_circle_segment(cr, x, y, width, height, light_line_width, x + width, ycenter, 0.5 * M_PI, 1.5 * M_PI, CircleSize::NORMAL);
+               break;
+        case 0x1fbe2: // 🯢 U+1FBE2 BOTTOM JUSTIFIED UPPER HALF WHITE CIRCLE
+                white_circle_segment(cr, x, y, width, height, light_line_width, xcenter, y + height, 1. * M_PI, 2. * M_PI, CircleSize::NORMAL);
+               break;
+        case 0x1fbe3: // 🯣 U+1FBE3 LEFT JUSTIFIED RIGHT HALF WHITE CIRCLE
+                white_circle_segment(cr, x, y, width, height, light_line_width, x, ycenter, 1.5 * M_PI, 2.5 * M_PI, CircleSize::NORMAL);
+               break;
+
+        case 0x1fbe8: // 🯨 U+1FBE8 TOP JUSTIFIED LOWER HALF BLACK CIRCLE
+                black_circle_segment(cr, x, y, width, height, light_line_width, xcenter, y, 0., M_PI, CircleSize::NORMAL);
+               break;
+        case 0x1fbe9: // 🯩 U+1FBE9 RIGHT JUSTIFIED LEFT HALF BLACK CIRCLE
+                black_circle_segment(cr, x, y, width, height, light_line_width, xright, ycenter, 0.5 * M_PI, 1.5 * M_PI, CircleSize::NORMAL);
+               break;
+        case 0x1fbea: // 🯪 U+1FBEA BOTTOM JUSTIFIED UPPER HALF BLACK CIRCLE
+                black_circle_segment(cr, x, y, width, height, light_line_width, xcenter, ybottom, 1. * M_PI, 2. * M_PI, CircleSize::NORMAL);
+               break;
+        case 0x1fbeb: // 🯫 U+1FBEB LEFT JUSTIFIED RIGHT HALF BLACK CIRCLE
+                black_circle_segment(cr, x, y, width, height, light_line_width, x, ycenter, 1.5 * M_PI, 2.5 * M_PI, CircleSize::NORMAL);
+               break;
+        case 0x1fbec: // 🯬 U+1FBEC TOP RIGHT JUSTIFIED LOWER LEFT QUARTER BLACK CIRCLE
+                black_circle_segment(cr, x, y, width, height, light_line_width, xright, y, 0.5 * M_PI, 1.0 * M_PI, CircleSize::NORMAL);
+                break;
+        case 0x1fbed: // 🯭 U+1FBED BOTTOM LEFT JUSTIFIED UPPER RIGHT QUARTER BLACK CIRCLE
+                black_circle_segment(cr, x, y, width, height, light_line_width, x, ybottom, 1.5 * M_PI, 0.0 * M_PI, CircleSize::NORMAL);
+                break;
+        case 0x1fbee: // 🯮 U+1FBEE BOTTOM RIGHT JUSTIFIED UPPER LEFT QUARTER BLACK CIRCLE
+                black_circle_segment(cr, x, y, width, height, light_line_width, xright, ybottom, 1.0 * M_PI, 1.5 * M_PI, CircleSize::NORMAL);
+                break;
+        case 0x1fbef: // 🯯 U+1FBEF TOP LEFT JUSTIFIED LOWER RIGHT QUARTER BLACK CIRCLE
+                black_circle_segment(cr, x, y, width, height, light_line_width, x, y, 0.0 * M_PI, 0.5 * M_PI, CircleSize::NORMAL);
                 break;
 
         default:
