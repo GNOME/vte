@@ -1122,8 +1122,11 @@ try
                 case PROP_REWRAP_ON_RESIZE:
                         g_value_set_boolean (value, vte_terminal_get_rewrap_on_resize (terminal));
                         break;
-                case PROP_SCROLLBACK_LINES:
-                        g_value_set_uint (value, vte_terminal_get_scrollback_lines(terminal));
+                case PROP_SCROLLBACK_LINES: {
+                        // https://gitlab.gnome.org/GNOME/vte/-/issues/2913
+                        auto const v = vte_terminal_get_scrollback_lines(terminal);
+                        g_value_set_uint(value, v == -1 ? G_MAXUINT : std::max(guint(v), G_MAXUINT));
+                }
                         break;
                 case PROP_SCROLL_ON_INSERT:
                         g_value_set_boolean(value, vte_terminal_get_scroll_on_insert(terminal));
@@ -1277,8 +1280,11 @@ try
                 case PROP_REWRAP_ON_RESIZE:
                         vte_terminal_set_rewrap_on_resize (terminal, g_value_get_boolean (value));
                         break;
-                case PROP_SCROLLBACK_LINES:
-                        vte_terminal_set_scrollback_lines (terminal, g_value_get_uint (value));
+                case PROP_SCROLLBACK_LINES: {
+                        // https://gitlab.gnome.org/GNOME/vte/-/issues/2913
+                        auto const v = g_value_get_uint(value);
+                        vte_terminal_set_scrollback_lines (terminal, v >= G_MAXINT ? -1 : long(v));
+                }
                         break;
                 case PROP_SCROLL_ON_INSERT:
                         vte_terminal_set_scroll_on_insert(terminal, g_value_get_boolean(value));
@@ -2555,6 +2561,10 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * scrollback.  Note that this setting only affects the normal screen buffer.
          * For terminal types which have an alternate screen buffer, no scrollback is
          * allowed on the alternate screen buffer.
+	 *
+	 * Note that any value greater or equal to %G_MAXINT is interpreted as unlimited
+	 * scrollback, i.e. like `-1` when passed to vte_terminal_set_scrollback_lines(),
+	 * and the value of this property for unlimited scrollback is %G_MAXUINT.
          */
         pspecs[PROP_SCROLLBACK_LINES] =
                 g_param_spec_uint ("scrollback-lines", NULL, NULL,
