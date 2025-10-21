@@ -111,6 +111,7 @@ if get_option('gtk3')
   meson.add_install_script(
     'meson_desktopfile.py',
     desktopdatadir,
+    get_option('app-hidden').to_string(),
     app_gtk3_desktop_name,
   )
 endif
@@ -134,6 +135,7 @@ if get_option('gtk4')
   meson.add_install_script(
     'meson_desktopfile.py',
     desktopdatadir,
+    get_option('app-hidden').to_string(),
     app_gtk4_desktop_name,
   )
 endif

@@ -37,6 +37,13 @@ option(
 )
 
 option(
+  'app-hidden',
+  type: 'boolean',
+  value: false,
+  description: 'Mark the vte apaplication as NotShowIn gnome',
+)
+
+option(
   'dbg', # for some reason, 'debug' is "reserved"
   type: 'boolean',
   value: false,
