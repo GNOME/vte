@@ -703,22 +703,24 @@ test_colors = executable(
 
 test_units += [test_colors,]
 
-test_color_lightness_sources = config_sources + color_lightness_sources + files(
-  'vtetypes.cc',
-  'vtetypes.hh',
-  'color-lightness-tests.cc',
-)
+if get_option('gtk3') or get_option('gtk4')
+  test_color_lightness_sources = config_sources + color_lightness_sources + files(
+    'vtetypes.cc',
+    'vtetypes.hh',
+    'color-lightness-tests.cc',
+  )
 
-test_color_lightness_deps = [
-  fmt_dep,
-  glib_dep,
-  pango_dep,
-]
+  test_color_lightness_deps = [
+    fmt_dep,
+    glib_dep,
+    pango_dep,
+  ]
 
-if get_option('gtk3')
-  test_color_lightness_deps += [gtk3_dep,]
-elif get_option('gtk4')
-  test_color_lightness_deps += [gtk4_dep,]
+  if get_option('gtk3')
+    test_color_lightness_deps += [gtk3_dep,]
+  elif get_option('gtk4')
+    test_color_lightness_deps += [gtk4_dep,]
+  endif
 endif
 
 test_color_lightness = executable(
