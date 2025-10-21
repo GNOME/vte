@@ -30,6 +30,13 @@ option(
 )
 
 option(
+  'app',
+  type: 'boolean',
+  value: true,
+  description: 'Enable vte apaplication',
+)
+
+option(
   'dbg', # for some reason, 'debug' is "reserved"
   type: 'boolean',
   value: false,

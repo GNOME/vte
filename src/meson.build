@@ -1162,6 +1162,8 @@ if systemd_dep.found()
   )
 endif
 
-# Demo application
+# VTE Application
 
-subdir('app')
+if get_option('app')
+  subdir('app')
+endif
