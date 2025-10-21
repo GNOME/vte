@@ -105,6 +105,7 @@ if get_option('gtk3')
     input: 'vte.desktop.in',
     install: true,
     install_dir: vte_prefix / desktopdatadir,
+    install_tag: 'runtime',
     output: app_gtk3_desktop_name,
   )
 
@@ -129,6 +130,7 @@ if get_option('gtk4')
     input: 'vte.desktop.in',
     install: true,
     install_dir: vte_prefix / desktopdatadir,
+    install_tag: 'runtime',
     output: app_gtk4_desktop_name,
   )
 
