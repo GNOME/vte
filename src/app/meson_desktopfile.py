@@ -22,15 +22,16 @@ if os.environ.get('DESTDIR'):
     sys.exit(0)
 
 argc = len(sys.argv)
-if argc < 3:
+if argc < 4:
     sys.exit(1)
 
 prefix = os.environ['MESON_INSTALL_PREFIX']
 desktopdatadir = sys.argv[1]
+app_hidden = sys.argv[2] == 'true'
 
 exit_code = 0
 
-for i in range(2, argc):
+for i in range(3, argc):
     try:
         desktopfile = os.path.join(prefix, desktopdatadir, sys.argv[i])
         result = subprocess.run(['desktop-file-validate',
@@ -41,5 +42,18 @@ for i in range(2, argc):
     except FileNotFoundError:
         # desktop-file-validate not installed
         pass
+
+    if app_hidden:
+        try:
+            desktopfile = os.path.join(prefix, desktopdatadir, sys.argv[i])
+            result = subprocess.run(['desktop-file-edit',
+                                     '--add-not-show-in=GNOME',
+                                     desktopfile])
+            if result.returncode != 0:
+                exit_code = 1
+
+        except FileNotFoundError:
+            # desktop-file-edit not installed
+            pass
 
 sys.exit(exit_code)
