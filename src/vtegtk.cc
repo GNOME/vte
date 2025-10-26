@@ -1589,8 +1589,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
         /**
          * VteTerminal::hyperlink-hover-uri-changed:
          * @vteterminal: the object which received the signal
-         * @uri: the nonempty target URI under the mouse, or NULL
-         * @bbox: the bounding box of the hyperlink anchor text, or NULL
+         * @uri (nullable): the nonempty target URI under the mouse, or %NULL
+         * @bbox (nullable): the bounding box of the hyperlink anchor text, or %NULL
          *
          * Emitted when the hovered hyperlink changes.
          *
