@@ -33,6 +33,15 @@
 #include "debug.hh"
 #include "gobject-glue.hh"
 
+/* Note that the exact priority used is an implementation detail subject to change
+ * and *not* an API guarantee.
+ * */
+#if VTE_GTK == 3
+#define VTE_TERMINAL_CSS_PRIORITY (GTK_STYLE_PROVIDER_PRIORITY_APPLICATION)
+#elif VTE_GTK == 4
+#define VTE_TERMINAL_CSS_PRIORITY (GTK_STYLE_PROVIDER_PRIORITY_APPLICATION - 2)
+#endif
+
 #if VTE_GTK == 3
 #define VTE_STYLE_CLASS_MONOSPACE GTK_STYLE_CLASS_MONOSPACE
 #elif VTE_GTK == 4
@@ -44,6 +53,58 @@ using namespace std::literals;
 namespace vte {
 
 namespace platform {
+
+#if VTE_GTK == 4
+static void
+widget_style_provider_parsing_error_cb(GtkCssProvider* provider,
+                                       void* section,
+                                       GError* error)
+{
+        if (error->domain == GTK_CSS_PARSER_WARNING)
+                g_warning("Warning parsing CSS: %s", error->message);
+        else
+                g_assert_no_error(error);
+}
+#endif // VTE_GTK == 4
+
+static GtkStyleProvider*
+widget_style_provider() noexcept
+{
+        static vte::glib::RefPtr<GtkStyleProvider> m_style_provider;
+
+        if (m_style_provider)
+                return m_style_provider.get();
+
+        m_style_provider = vte::glib::take_ref(GTK_STYLE_PROVIDER(gtk_css_provider_new()));
+
+#if VTE_GTK == 3
+        auto err = vte::glib::Error{};
+#elif VTE_GTK == 4
+        g_signal_connect(m_style_provider.get(), "parsing-error",
+                         G_CALLBACK(widget_style_provider_parsing_error_cb),
+                         nullptr);
+#endif
+        gtk_css_provider_load_from_data(GTK_CSS_PROVIDER(m_style_provider.get()),
+                                        "VteTerminal, " VTE_TERMINAL_CSS_NAME " {\n"
+                                         "padding: 1px 1px 1px 1px;\n"
+#if (VTE_GTK == 4) || ((VTE_GTK == 3) && GTK_CHECK_VERSION (3, 24, 22))
+                                         "background-color: @text_view_bg;\n"
+#else
+                                         "background-color: @theme_base_color;\n"
+#endif
+                                         "color: @theme_text_color;\n"
+                                         "}\n",
+                                         -1
+#if VTE_GTK == 3
+                                         , nullptr
+#endif
+                                         );
+#if VTE_GTK == 3
+        err.assert_no_error();
+#endif
+
+        return m_style_provider.get();
+}
 
 static void vadjustment_value_changed_cb(vte::platform::Widget* that) noexcept;
 
@@ -579,7 +640,12 @@ Widget::Widget(VteTerminal* t)
         // Create a default adjustment
         set_vadjustment({});
 
+        gtk_style_context_add_provider(gtk_widget_get_style_context(gtk()),
+                                       widget_style_provider(),
+                                       VTE_TERMINAL_CSS_PRIORITY);
+
 #if VTE_GTK == 3
+        gtk_widget_set_has_window(gtk(), false);
         gtk_widget_set_can_focus(gtk(), true);
 #endif
 

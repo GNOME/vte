@@ -286,6 +286,7 @@ libvte_common_sources = base16_sources + color_lightness_sources + cairo_glue_so
   'vtedefines.hh',
   'vtegtk.cc',
   'vtegtk.hh',
+  'vtegtype.hh',
   'vteinternal.hh',
   'vteproperties.cc',
   'vtepropertiesinternal.hh',

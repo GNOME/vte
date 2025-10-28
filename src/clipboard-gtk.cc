@@ -22,6 +22,7 @@
 #include "gtk-glue.hh"
 #include "widget.hh"
 #include "vteinternal.hh"
+#include "vtegtype.hh"
 
 #include <new>
 #include <stdexcept>
@@ -492,19 +493,9 @@ using VteContentProviderClass = GdkContentProviderClass;
 
 static GType vte_content_provider_get_type(void);
 
-G_DEFINE_TYPE_WITH_CODE(VteContentProvider, vte_content_provider, GDK_TYPE_CONTENT_PROVIDER,
-                        {
-                                VteContentProvider_private_offset =
-                                        g_type_add_instance_private(g_define_type_id, sizeof(ContentProvider));
-                        });
+_VTE_DEFINE_TYPE(VteContentProvider, vte_content_provider, GDK_TYPE_CONTENT_PROVIDER, ContentProvider);
 
-template<typename T>
-static inline auto
-IMPL(T* that)
-{
-        auto const pthat = reinterpret_cast<VteContentProvider*>(that);
-        return std::launder(reinterpret_cast<ContentProvider*>(vte_content_provider_get_instance_private(pthat)));
-}
+#define IMPL(that) (vte_content_provider_get_impl(that))
 
 static void
 vte_content_provider_content_changed(GdkContentProvider* provider) noexcept
@@ -628,27 +619,6 @@ catch (...)
 {
         vte::glib::set_error_from_exception(error);
         return false;
-}
-
-static void
-vte_content_provider_init(VteContentProvider* provider)
-try
-{
-        auto place = vte_content_provider_get_instance_private(provider);
-        new (place) ContentProvider{provider};
-}
-catch (...)
-{
-        vte::log_exception();
-        g_error("Failed to create ContentProvider\n");
-}
-
-static void
-vte_content_provider_finalize(GObject* object) noexcept
-{
-        IMPL(object)->~ContentProvider();
-
-        G_OBJECT_CLASS(vte_content_provider_parent_class)->finalize(object);
 }
 
 static void

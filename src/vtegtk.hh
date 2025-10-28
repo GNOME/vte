@@ -114,3 +114,5 @@ enum {
         PROP_VSCROLL_POLICY
 };
 extern GParamSpec *pspecs[LAST_PROP];
+
+#define VTE_TERMINAL_CSS_NAME "vte-terminal"

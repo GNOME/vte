@@ -65,6 +65,7 @@
 #include "vteptyinternal.hh"
 #include "vteregexinternal.hh"
 #include "vteuuidinternal.hh"
+#include "vtegtype.hh"
 
 #include <cairo-gobject.h>
 
@@ -83,21 +84,8 @@
 #define I_(string) (g_intern_static_string(string))
 #define _VTE_PARAM_DEPRECATED (vte::debug::check_categories(vte::debug::category::SIGNALS) ? G_PARAM_DEPRECATED : 0)
 
-#define VTE_TERMINAL_CSS_NAME "vte-terminal"
-
-/* Note that the exact priority used is an implementation detail subject to change
- * and *not* an API guarantee.
- * */
-#if VTE_GTK == 3
-#define VTE_TERMINAL_CSS_PRIORITY (GTK_STYLE_PROVIDER_PRIORITY_APPLICATION)
-#elif VTE_GTK == 4
-#define VTE_TERMINAL_CSS_PRIORITY (GTK_STYLE_PROVIDER_PRIORITY_APPLICATION - 2)
-#endif
-
 template<typename T>
 constexpr bool check_enum_value(T value) noexcept;
-
-static constinit size_t vte_terminal_class_n_instances = 0;
 
 static inline void
 sanitise_widget_size_request(int* minimum,
@@ -131,10 +119,6 @@ sanitise_widget_size_request(int* minimum,
         *natural = std::clamp(*natural, *minimum, limit);
 }
 
-struct _VteTerminalClassPrivate {
-        GtkStyleProvider *style_provider;
-};
-
 template<>
 constexpr bool check_enum_value<VteFormat>(VteFormat value) noexcept
 {
@@ -147,30 +131,18 @@ constexpr bool check_enum_value<VteFormat>(VteFormat value) noexcept
         }
 }
 
-#if VTE_GTK == 4
-
-static void
-style_provider_parsing_error_cb(GtkCssProvider* provider,
-                                void* section,
-                                GError* error)
-{
-        if (error->domain == GTK_CSS_PARSER_WARNING)
-                g_warning("Warning parsing CSS: %s", error->message);
-        else
-                g_assert_no_error(error);
-}
-
-#endif
-
-
 class VteTerminalPrivate {
 public:
         VteTerminalPrivate(VteTerminal* terminal)
                 : m_widget{std::make_shared<vte::platform::Widget>(terminal)}
         {
+                ++s_instances_count;
         }
 
-        ~VteTerminalPrivate() = default;
+        ~VteTerminalPrivate()
+        {
+                --s_instances_count;
+        }
 
         VteTerminalPrivate(VteTerminalPrivate const&) = delete;
         VteTerminalPrivate(VteTerminalPrivate&&) = delete;
@@ -194,39 +166,31 @@ public:
                 m_widget.reset();
         }
 
+        static auto instances_count() noexcept { return s_instances_count; }
+
 private:
         std::shared_ptr<vte::platform::Widget> m_widget;
+        static inline size_t s_instances_count{0};
 };
 
 #if WITH_A11Y && VTE_GTK == 4
-# define VTE_IMPLEMENT_ACCESSIBLE \
+# define VTE_IMPLEMENT_ACCESSIBLE_TEXT \
   G_IMPLEMENT_INTERFACE(GTK_TYPE_ACCESSIBLE_TEXT, \
                         _vte_accessible_text_iface_init)
 #else
-# define VTE_IMPLEMENT_ACCESSIBLE
+# define VTE_IMPLEMENT_ACCESSIBLE_TEXT
 #endif
 
-G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
-                        {
-                                VteTerminal_private_offset =
-                                        g_type_add_instance_private(g_define_type_id, sizeof(VteTerminalPrivate));
-                        }
-                        g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
-                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, nullptr)
-                        VTE_IMPLEMENT_ACCESSIBLE)
+_VTE_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET, VteTerminalPrivate,
+                           G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, nullptr)
+                           VTE_IMPLEMENT_ACCESSIBLE_TEXT)
 
-static inline auto
-get_private(VteTerminal* terminal)
-{
-        return reinterpret_cast<VteTerminalPrivate*>(vte_terminal_get_instance_private(terminal));
-}
-
-#define PRIVATE(t) (get_private(t))
+#define PRIVATE(terminal) (vte_terminal_get_impl(terminal))
 
 static inline auto
 get_widget(VteTerminal* terminal) /* throws */
 {
-        return get_private(terminal)->get();
+        return PRIVATE(terminal)->get();
 }
 
 #define WIDGET(t) (get_widget(t))
@@ -949,36 +913,6 @@ catch (...)
 }
 
 static void
-vte_terminal_init(VteTerminal *terminal)
-try
-{
-        ++vte_terminal_class_n_instances;
-
-        void *place;
-	GtkStyleContext *context;
-
-        context = gtk_widget_get_style_context(&terminal->widget);
-        gtk_style_context_add_provider (context,
-                                        VTE_TERMINAL_GET_CLASS (terminal)->priv->style_provider,
-                                        VTE_TERMINAL_CSS_PRIORITY);
-
-#if VTE_GTK == 3
-        gtk_widget_set_has_window(&terminal->widget, FALSE);
-#endif
-
-	place = vte_terminal_get_instance_private(terminal);
-        new (place) VteTerminalPrivate{terminal};
-}
-catch (...)
-{
-        vte::log_exception();
-
-        // There's not really anything we can do after the
-        // construction of Widget failed... we'll crash soon anyway.
-        g_error("Widget::Widget threw\n");
-}
-
-static void
 vte_terminal_dispose(GObject *object) noexcept
 {
         try {
@@ -988,20 +922,7 @@ vte_terminal_dispose(GObject *object) noexcept
                 vte::log_exception();
         }
 
-	/* Call the inherited dispose() method. */
 	G_OBJECT_CLASS(vte_terminal_parent_class)->dispose(object);
-}
-
-static void
-vte_terminal_finalize(GObject *object) noexcept
-{
-        auto terminal = VTE_TERMINAL(object);
-        PRIVATE(terminal)->~VteTerminalPrivate();
-
-	/* Call the inherited finalize() method. */
-	G_OBJECT_CLASS(vte_terminal_parent_class)->finalize(object);
-
-        --vte_terminal_class_n_instances;
 }
 
 static void
@@ -2797,34 +2718,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         process_timer = g_timer_new();
 
-        klass->priv = G_TYPE_CLASS_GET_PRIVATE (klass, VTE_TYPE_TERMINAL, VteTerminalClassPrivate);
-
-        klass->priv->style_provider = GTK_STYLE_PROVIDER (gtk_css_provider_new ());
-#if VTE_GTK == 3
-        auto err = vte::glib::Error{};
-#elif VTE_GTK == 4
-        g_signal_connect(klass->priv->style_provider, "parsing-error",
-                         G_CALLBACK(style_provider_parsing_error_cb), nullptr);
-#endif
-        gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (klass->priv->style_provider),
-                                         "VteTerminal, " VTE_TERMINAL_CSS_NAME " {\n"
-                                         "padding: 1px 1px 1px 1px;\n"
-#if (VTE_GTK == 4) || ((VTE_GTK == 3) && GTK_CHECK_VERSION (3, 24, 22))
-                                         "background-color: @text_view_bg;\n"
-#else
-                                         "background-color: @theme_base_color;\n"
-#endif
-                                         "color: @theme_text_color;\n"
-                                         "}\n",
-                                         -1
-#if VTE_GTK == 3
-                                         , NULL
-#endif
-                                         );
-#if VTE_GTK == 3
-        err.assert_no_error();
-#endif
-
 #if WITH_A11Y
 #if VTE_GTK == 3
         /* a11y */
@@ -3074,7 +2967,7 @@ vte_install_termprop(char const* name,
         g_return_val_if_fail(name, -1);
 
         // Cannot install more termprops after a VteTerminal instance has been created.
-        g_return_val_if_fail(vte_terminal_class_n_instances == 0, -1);
+        g_return_val_if_fail(VteTerminalPrivate::instances_count() == 0, -1);
 
         return _vte_properties_registry_install(_vte_get_termprops_registry(),
                                                 g_intern_string(name),
@@ -3099,7 +2992,7 @@ vte_install_termprop_alias(char const* name,
                            char const* target_name) noexcept
 {
         // Cannot install more termprops after a VteTerminal instance has been created.
-        g_return_val_if_fail(vte_terminal_class_n_instances == 0, -1);
+        g_return_val_if_fail(VteTerminalPrivate::instances_count() == 0, -1);
 
         return _vte_properties_registry_install_alias(_vte_get_termprops_registry(),
                                                       name,
