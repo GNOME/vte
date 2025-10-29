@@ -99,7 +99,7 @@ static void type_name##_init(TypeName* self) noexcept \
 try \
 {                                                          \
   auto const ptr = type_name##_get_instance_private(self); \
-  if ((uintptr_t(ptr) & alignof(PrivateTypeName)) != 0) [[unlikely]] \
+  if ((uintptr_t(ptr) % alignof(PrivateTypeName)) != 0) [[unlikely]] \
           g_error("%s private ptr %p not aligned %zu as required for type %s\n", \
                   G_OBJECT_TYPE_NAME(self), ptr, alignof(PrivateTypeName), #PrivateTypeName); \
   new (ptr) PrivateTypeName{self}; \
