@@ -4055,23 +4055,13 @@ window_icon_changed_cb(GObject* object,
         gtk_window_set_icon(GTK_WINDOW(window), icon);
 
 #elif VTE_GTK == 4
-        // FIXME: Apparently gdk_toplevel_set_icon_list doesn't work at all?
-        (void)icon;
-#if 0
-        // gdk_toplevel_set_icon_list is not implemented on
-        // wayland, so only do this on X11.
-#ifdef GDK_WINDOWING_X11
-        if (GDK_IS_X11_DISPLAY(gtk_widget_get_display(GTK_WIDGET(window)))) {
-                auto const toplevel = GDK_TOPLEVEL(gtk_native_get_surface(GTK_NATIVE(window)));
-                if (icon) {
-                        GList list = {.data = icon, .next = nullptr, .prev = nullptr};
-                        gdk_toplevel_set_icon_list(toplevel, &list);
-                } else {
-                        gdk_toplevel_set_icon_list(toplevel, nullptr);
-                }
+        auto const toplevel = GDK_TOPLEVEL(gtk_native_get_surface(GTK_NATIVE(window)));
+        if (icon) {
+                GList list = {.data = icon, .next = nullptr, .prev = nullptr};
+                gdk_toplevel_set_icon_list(toplevel, &list);
+        } else {
+                gdk_toplevel_set_icon_list(toplevel, nullptr);
         }
-#endif GDK_WINDOWING_X11
-#endif // 0
 #endif // VTE_GTK
 }
 
