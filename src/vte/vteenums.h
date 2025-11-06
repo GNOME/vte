@@ -23,6 +23,8 @@
 
 #include <glib.h>
 
+#include "vtemacros.h"
+
 G_BEGIN_DECLS
 
 /**
@@ -118,7 +120,7 @@ typedef enum {
  *   in vte_pty_child_setup(). See man:tty_ioctl(4) for more information. Since: 0.58
  * @VTE_PTY_DEFAULT: the default flags
  */
-typedef enum {
+typedef enum _VTE_GNUC_FLAG_ENUM {
   VTE_PTY_NO_LASTLOG  = 1 << 0,
   VTE_PTY_NO_UTMP     = 1 << 1,
   VTE_PTY_NO_WTMP     = 1 << 2,
@@ -136,7 +138,7 @@ typedef enum {
  * A flag type to determine how terminal contents should be written
  * to an output stream.
  */
-typedef enum {
+typedef enum _VTE_GNUC_FLAG_ENUM {
   VTE_WRITE_DEFAULT = 0
 } VteWriteFlags;
 
@@ -187,7 +189,7 @@ typedef enum {
  *
  * Since: 0.62
  */
-typedef enum /*< skip >*/ {
+typedef enum _VTE_GNUC_FLAG_ENUM /*< skip >*/ {
         VTE_FEATURE_FLAG_BIDI    = 1ULL << 0,
         VTE_FEATURE_FLAG_ICU     = 1ULL << 1,
         VTE_FEATURE_FLAG_SYSTEMD = 1ULL << 2,
@@ -195,7 +197,6 @@ typedef enum /*< skip >*/ {
 
         VTE_FEATURE_FLAGS_MASK   = 0xFFFFFFFFFFFFFFFFULL, /* force enum to 64 bit */
 } VteFeatureFlags;
-
 
 /**
  * VteAlign:
@@ -225,7 +226,7 @@ typedef enum {
  *
  * Since: 0.78
  */
-typedef enum /*< flags >*/ {
+typedef enum _VTE_GNUC_FLAG_ENUM /*< flags >*/ {
         VTE_UUID_FORMAT_SIMPLE = 1u << 0,
         VTE_UUID_FORMAT_BRACED = 1u << 1,
         VTE_UUID_FORMAT_URN = 1u << 2,
@@ -241,7 +242,7 @@ typedef enum /*< flags >*/ {
  *
  * Since: 0.78
  */
-typedef enum /*< flags >*/ {
+typedef enum _VTE_GNUC_FLAG_ENUM /*< flags >*/ {
         VTE_PROPERTY_FLAG_NONE = 0u,
         VTE_PROPERTY_FLAG_EPHEMERAL = 1u << 0,
 } VtePropertyFlags;
