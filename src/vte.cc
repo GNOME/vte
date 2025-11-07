@@ -4743,7 +4743,24 @@ Terminal::pty_io_write(int const fd,
                                            count);
 		}
 		_vte_byte_array_consume(m_outgoing, count);
-	}
+	} else {
+                /* Write failed. If the error indicates the child side of PTY closed,
+                 * disconnect the source and clear the buffer to prevent a busy loop.
+                 */
+                auto const err = errno;
+                if (err == EPIPE || err == EBADF) {
+                        _vte_debug_print(vte::debug::category::IO,
+                                         "PTY write failed with ({}), disconnecting write source",
+                                         g_strerror (err));
+                        disconnect_pty_write();
+                        _vte_byte_array_clear(m_outgoing);
+                        return false;
+                }
+                /* For other errors (e.g., EAGAIN), just return false to stop
+                 * the source from firing immediately. It will be re-enabled
+                 * when the fd becomes writable again. */
+                return false;
+        }
 
         /* Run again if there are more bytes to write */
         return _vte_byte_array_length(m_outgoing) != 0;
