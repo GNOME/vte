@@ -1,0 +1,20 @@
+Most of VTE is licenced under the terms of the GNU Lesser General
+Public License, version 3. Parts of the source are under the
+terms of the GNU General Public License, version 3. Parts also
+incorporate sources copied from elsewhere under a compatible licence.
+
+As required by the licences themselves and/or for convenience,
+this repository distributes copies of the text of these licences:
+
+* COPYING.GPL3: GPL 3 licence
+* COPYING.LGPL3: Lesser GPL 3 licence
+* COPYING.CC-BY-4-0: CC-BY-4.0 licence
+* COPYING.XTERM: Xterm licence
+
+The presence of these licence texts does not declare, either
+explicitly or implicitly, that any part of the source is covered
+by any or all of these licences. Consult the source files for
+information on which licence(s) apply to each file. Files without
+licence information are only available under the LGPL, unless
+the commit message of the commit adding these file(s) states
+otherwise.
