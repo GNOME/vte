@@ -544,6 +544,7 @@ compiler_flags_c_only = [
 ]
 
 compiler_flags_cxx_only = [
+  '-fimplicit-constexpr',
   '-Wimplicit-fallthrough=5',
   '-Wnon-virtual-dtor',
   '-Wstrict-null-sentinel',
