@@ -131,15 +131,37 @@ void _vte_debug_hexdump(char const* str,
 #endif // VTE_DEBUG
 
 #ifdef G_DISABLE_ASSERT
-# define vte_assert_cmpint(a,op,b) G_STMT_START {} G_STMT_END
-# define vte_assert_cmpuint(a,op,b) G_STMT_START {} G_STMT_END
-# define vte_assert_cmphex(a,op,b) G_STMT_START {} G_STMT_END
-# define vte_assert_true(v) G_STMT_START {} G_STMT_END
-# define vte_assert_false(v) G_STMT_START {} G_STMT_END
+#define vte_assert_cmpfloat(a,op,b) G_STMT_START {} G_STMT_END
+#define vte_assert_cmpfloat_with_epsilon(a,op,b) G_STMT_START {} G_STMT_END
+#define vte_assert_cmphex(a,op,b) G_STMT_START {} G_STMT_END
+#define vte_assert_cmpint(a,op,b) G_STMT_START {} G_STMT_END
+#define vte_assert_cmpmem(a,la,b,lb) G_STMT_START {} G_STMT_END
+#define vte_assert_cmpstr(a,op,b) G_STMT_START {} G_STMT_END
+#define vte_assert_cmpstrv(a,b) G_STMT_START {} G_STMT_END
+#define vte_assert_cmpuint(a,op,b) G_STMT_START {} G_STMT_END
+#define vte_assert_cmpvariant(a,b) G_STMT_START {} G_STMT_END
+#define vte_assert_false(v) G_STMT_START {} G_STMT_END
+#define vte_assert_no_errno(v) G_STMT_START {} G_STMT_END
+#define vte_assert_no_error(v) G_STMT_START {} G_STMT_END
+#define vte_assert_nonnull(v) G_STMT_START {} G_STMT_END
+#define vte_assert_not_reached(v) G_STMT_START { __builtin_unreachable(); } G_STMT_END
+#define vte_assert_null(v) G_STMT_START {} G_STMT_END
+#define vte_assert_true(v) G_STMT_START {} G_STMT_END
 #else
-# define vte_assert_cmpint(a,op,b) g_assert_cmpint(a,op,b)
-# define vte_assert_cmpuint(a,op,b) g_assert_cmpuint(a,op,b)
-# define vte_assert_cmphex(a,op,b) g_assert_cmphex(a,op,b)
-# define vte_assert_true(v) g_assert_true(v)
-# define vte_assert_false(v) g_assert_false(v)
+#define vte_assert_cmpfloat(a,op,b) g_assert_cmpfloat(a,op,b)
+#define vte_assert_cmpfloat_with_epsilon(a,b,e) g_assert_cmpfloat_with_epsilon(a,b,e)
+#define vte_assert_cmphex(a,op,b) g_assert_cmphex(a,op,b)
+#define vte_assert_cmpint(a,op,b) g_assert_cmpint(a,op,b)
+#define vte_assert_cmpmem(a,la,b,lb) g_assert_cmpmem(a,la,b,lb)
+#define vte_assert_cmpstr(a,op,b) g_assert_cmpstr(a,op,b)
+#define vte_assert_cmpstrv(a,b) g_assert_cmpstrv(a,b)
+#define vte_assert_cmpuint(a,op,b) g_assert_cmpuint(a,op,b)
+#define vte_assert_cmpvariant(a,b) g_assert_cmpvariant(a,b)
+#define vte_assert_false(v) g_assert_false(v)
+#define vte_assert_no_errno(v) g_assert_no_errno(v)
+#define vte_assert_no_error(v) g_assert_no_error(v)
+#define vte_assert_nonnull(v) g_assert_nonnull(v)
+#define vte_assert_not_reached() g_assert_not_reached()
+#define vte_assert_null(v) g_assert_null(v)
+#define vte_assert_true(v) g_assert_true(v)
 #endif
