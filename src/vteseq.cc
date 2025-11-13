@@ -6260,6 +6260,27 @@ Terminal::DECTID(vte::parser::Sequence const& seq)
 }
 
 void
+Terminal::DECTLTC(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECTLTC - select transmit line termination characters
+         * Selects a string of up to six end-of-line characters
+         * to be sent to the host in local editing mode.
+         * This can be used to send a control function at the
+         * end of a line transmission.
+         *
+         * Arguments:
+         *   args[0..5]: decimal value of a character
+         *     Can be C0, GL, DEL, C1, GR; values outside 0…254
+         *     are ignored
+         *
+         * References: VT340 Text Programming Manual p. 145f
+         *
+         * Not worth implementing.
+         */
+}
+
+void
 Terminal::DECTME(vte::parser::Sequence const& seq)
 {
         /*
@@ -6287,6 +6308,50 @@ Terminal::DECTST(vte::parser::Sequence const& seq)
          *   args[1]: which test to perform
          *
          * References: VT525
+         *
+         * Not worth implementing.
+         */
+}
+
+void
+Terminal::DECTTC(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECTTC - select transmit termination character
+         * Selects end-of-block character to be sent to the
+         * host in local editing mode.
+         *
+         * Arguments:
+         *   args[0]: the end-of-block character
+         *     0: none (disabled)
+         *     1: FF (0/12)
+         *     2: ETX (0/03)
+         *     3: EOT (0/04)
+         *     4: CR (0/13)
+         *     5: DC3 (1/03)
+         *
+         * References: VT340 Text Programming Manual p. 144
+         *
+         * Not worth implementing.
+         */
+}
+
+void
+Terminal::DECTTCX(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECTTCX - select transmit termination character extended
+         * Selects a string of up to six end-of-block characters
+         * to be sent to the host in local editing mode.
+         * This can be used to send a control function at the
+         * end of a block transmission.
+         *
+         * Arguments:
+         *   args[0..5]: decimal value of a character
+         *     Can be C0, GL, DEL, C1, GR; values outside 0…254
+         *     are ignored
+         *
+         * References: VT340 Text Programming Manual p. 145f
          *
          * Not worth implementing.
          */
