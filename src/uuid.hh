@@ -27,6 +27,8 @@
 #include "glib-glue.hh"
 #include "cxx-utils.hh"
 
+// Reference: https://datatracker.ietf.org/doc/html/rfc9562
+
 #define VTE_DEFINE_UUID(timelow_, timemid_, timehigh_, clock_, node_) \
         vte::uuid{uint32_t(0x ## timelow_ ## u), \
                   uint16_t(0x ## timemid_ ## u), \
@@ -56,11 +58,16 @@ public:
                 // {06e023d5-86d8-420e-8103-383e4566087a}
                 BRACED = 1u << 1,
 
-                // A string representation the form
+                // A string representation of the form
                 // urn:uuid:06e023d5-86d8-420e-8103-383e4566087a
                 URN = 1u << 2,
 
+                // A non-conforming string representation of the form
+                // 06e023d586d8420e8103383e4566087a
+                ID128 = 1u << 3,
+
                 ANY = SIMPLE | BRACED | URN,
+                ANY_ID128 = ANY | ID128,
         };
 
         constexpr uuid() noexcept = default;
@@ -174,12 +181,14 @@ private:
                 m_bytes[8] |= 0x80;
         }
 
-        constexpr int version() const noexcept
+ public:
+
+        constexpr unsigned version() const noexcept
         {
                 return m_bytes[6] >> 4;
         }
 
-        constexpr int variant() const noexcept
+        constexpr unsigned variant() const noexcept
         {
                 return (m_bytes[8] & 0xc0) >> 6;
         }
@@ -201,10 +210,10 @@ private:
  *
  * Returns: %true if @str is a valid UUID, %false otherwise.
  */
-        bool uuid_string_is_valid(std::string_view const& str,
-                                  uuid::format fmt = uuid::format::ANY) noexcept;
+bool uuid_string_is_valid(std::string_view const& str,
+                          uuid::format fmt = uuid::format::ANY) noexcept;
 
-        std::string uuid_string_random(uuid::format fmt = uuid::format::SIMPLE);
+std::string uuid_string_random(uuid::format fmt = uuid::format::SIMPLE);
 
 VTE_CXX_DEFINE_BITMASK(uuid::format)
 

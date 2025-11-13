@@ -11107,6 +11107,10 @@ Terminal::emit_pending_signals()
                 }
         }
 
+	if (m_pending_changes & std::to_underlying(PendingChanges::SYSTEMD_CONTEXT)) {
+                // FIXME: notify about systemd context changes
+        }
+
         if (!m_no_legacy_signals) {
                 // Emit deprecated signals and notify:: for deprecated properties,
 

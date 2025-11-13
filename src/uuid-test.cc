@@ -62,6 +62,27 @@ test_uuid_equal(void)
 }
 
 static void
+assert_bytes_equal(uint8_t const* bytes,
+                   uint8_t const data[16],
+                   int line = __builtin_LINE())
+{
+        for (auto i = 0u; i < 16; ++i)
+                g_assert_cmphex(bytes[i], ==, data[i]);
+}
+
+static void
+test_uuid_bytes(void)
+{
+        uint8_t const data[16] = {0x4c, 0x4e, 0xd7, 0xc6, 0x70, 0xc1, 0x41, 0xbd, 0xb7, 0x96, 0xb1, 0x86, 0xfc, 0xfc, 0xa3, 0xa9};
+
+        auto const u1 = VTE_DEFINE_UUID(4c4ed7c6, 70c1, 41bd, b796, b186fcfca3a9);
+        assert_bytes_equal(u1.bytes(), data);
+
+        auto const u2 = uuid{"4c4ed7c6-70c1-41bd-b796-b186fcfca3a9", uuid::format::SIMPLE};
+        assert_bytes_equal(u2.bytes(), data);
+}
+
+static void
 test_uuid_string(void)
 {
         g_assert_false(uuid_string_is_valid("6079c6d3-ffe3-42ac-a3cf"));
@@ -73,9 +94,23 @@ test_uuid_string(void)
         g_assert_false(uuid_string_is_valid("urn:uuid:{6079c6d3-ffe3-42ac-a3cf-7137b101b6ca}"));
 
         g_assert_true(uuid_string_is_valid("00000000-0000-0000-0000-000000000000"));
+        g_assert_true(uuid_string_is_valid("{00000000-0000-0000-0000-000000000000}"));
+        g_assert_true(uuid_string_is_valid("urn:uuid:00000000-0000-0000-0000-000000000000"));
+        g_assert_true(uuid_string_is_valid("00000000-0000-0000-0000-000000000000", uuid::format::ANY_ID128));
+        g_assert_true(uuid_string_is_valid("{00000000-0000-0000-0000-000000000000}", uuid::format::ANY_ID128));
+        g_assert_true(uuid_string_is_valid("urn:uuid:00000000-0000-0000-0000-000000000000", uuid::format::ANY_ID128));
+        g_assert_true(uuid_string_is_valid("00000000000000000000000000000000", uuid::format::ANY_ID128));
         g_assert_true(uuid_string_is_valid("6079c6d3-ffe3-42ac-a3cf-7137b101b6ca"));
         g_assert_true(uuid_string_is_valid("{6079c6d3-ffe3-42ac-a3cf-7137b101b6ca}"));
         g_assert_true(uuid_string_is_valid("urn:uuid:6079c6d3-ffe3-42ac-a3cf-7137b101b6ca"));
+        g_assert_true(uuid_string_is_valid("6079c6d3ffe342aca3cf7137b101b6ca", uuid::format::ID128));
+        g_assert_true(uuid_string_is_valid("6079c6d3ffe342aca3cf7137b101b6ca", uuid::format::ANY_ID128));
+
+        g_assert_false(uuid_string_is_valid("6079c6d3-ffe3-f2ac-a3cf-7137b101b6ca", uuid::format::SIMPLE));
+        g_assert_true(uuid_string_is_valid("6079c6d3ffe342acc3cf7137b101b6ca", uuid::format::ID128));
+
+        g_assert_false(uuid_string_is_valid("6079c6d3-ffe3-42ac-c3cf-7137b101b6ca", uuid::format::SIMPLE));
+        g_assert_true(uuid_string_is_valid("6079c6d3ffe3f2aca3cf7137b101b6ca", uuid::format::ID128));
 
         try {
                 auto u = uuid("00000001-0002-1003-8004-000000000005");
@@ -122,6 +157,12 @@ test_uuid_generate_v3(void)
 {
         auto u = uuid(uuid_v3, uuid_namespace_dns, "gnome.org");
         g_assert_true(u == gnome_uuid3);
+        g_assert_cmpint(u.version(), ==, 3);
+
+        // Test vector from RFC9562
+        u = uuid(uuid_v3, uuid_namespace_dns, "www.example.com");
+        auto const uref = uuid("5df41881-3aed-3515-88a7-2f4a814cf09e");
+        g_assert_true(u == uref);
 }
 
 static void
@@ -133,6 +174,8 @@ test_uuid_generate_v4(void)
         g_assert_false(a.is_nil());
         g_assert_false(b.is_nil());
         g_assert_false(a == b);
+        g_assert_cmpint(a.version(), ==, 4);
+        g_assert_cmpint(b.version(), ==, 4);
 }
 
 static void
@@ -140,6 +183,12 @@ test_uuid_generate_v5(void)
 {
         auto u = uuid(uuid_v5, uuid_namespace_dns,"gnome.org");
         g_assert_true(u == gnome_uuid5);
+        g_assert_cmpint(u.version(), ==, 5);
+
+        // Test vector from RFC9562
+        u = uuid(uuid_v5, uuid_namespace_dns, "www.example.com");
+        auto const uref = uuid("2ed6657d-e927-568b-95e1-2665a8aea6a2");
+        g_assert_true(u == uref);
 }
 
 static void
@@ -154,6 +203,8 @@ test_uuid_to_string(void)
         str = uuid_namespace_x500.str(uuid::format::URN);
         g_assert_cmpstr(str.c_str(), ==, "urn:uuid:6ba7b814-9dad-11d1-80b4-00c04fd430c8");
 
+        str = uuid_namespace_x500.str(uuid::format::ID128);
+        g_assert_cmpstr(str.c_str(), ==, "6ba7b8149dad11d180b400c04fd430c8");
 }
 
 static void
@@ -173,8 +224,8 @@ test_uuid_format(void)
         str = fmt::format("{:u}", u);
         g_assert_cmpstr(str.c_str(), ==, "urn:uuid:7cb65faf-4c02-4593-a7cc-afc8129372b5");
 
-        //str = fmt::format("{:i}", u);
-        //g_assert_cmpstr(str.c_str(), ==, "7cb65faf4c024593a7ccafc8129372b5");
+        str = fmt::format("{:i}", u);
+        g_assert_cmpstr(str.c_str(), ==, "7cb65faf4c024593a7ccafc8129372b5");
 }
 
 int
@@ -185,6 +236,7 @@ main(int argc,
 
         /* uuid Tests */
         g_test_add_func("/vte/uuid/equal", test_uuid_equal);
+        g_test_add_func("/vte/uuid/bytes", test_uuid_bytes);
         g_test_add_func("/vte/uuid/string", test_uuid_string);
         g_test_add_func("/vte/uuid/random", test_uuid_random);
         g_test_add_func("/vte/uuid/namespace", test_uuid_namespace);
