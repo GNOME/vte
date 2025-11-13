@@ -754,6 +754,11 @@ public:
                 return terminal()->termprops();
         }
 
+        void queue_termprops_changed() noexcept
+        {
+                terminal()->queue_termprops_changed();
+        }
+
         void set_no_legacy_signals() noexcept
         {
                 m_no_legacy_signals = true;

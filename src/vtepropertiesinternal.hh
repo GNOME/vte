@@ -44,3 +44,9 @@ VTE_CXX_DEFINE_FACADE_PP(VteProperties, vte::property::Store);
 
 char const* _vte_properties_get_property_uri_string_by_id(VteProperties const* properties,
                                                           int prop) noexcept;
+
+bool _vte_properties_reset_property(VteProperties* properties,
+                                    char const* prop) noexcept;
+
+bool _vte_properties_reset_property_by_id(VteProperties* properties,
+                                          int prop) noexcept;

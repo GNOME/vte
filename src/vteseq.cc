@@ -1727,17 +1727,12 @@ Terminal::set_termprop_uri(vte::parser::Sequence const& seq,
                         } else {
                                 // invalid URI, or not a file: URI
                                 set = true;
-                                reset_termprop(*info);
+                                m_termprops.reset(*info);
                         }
                 }
         } else {
-                // Only reset the termprop if it's not already reset
-                if (auto const old_value = m_termprops.value(*info);
-                    !old_value ||
-                    !std::holds_alternative<std::monostate>(*old_value)) {
+                if (m_termprops.reset(*info))
                         set = true;
-                        reset_termprop(*info);
-                }
         }
 
         if (set) {
@@ -7785,7 +7780,7 @@ try
                         }
                 } else {
                         set = true;
-                        reset_termprop(*info);
+                        m_termprops.reset(*info);
                 }
 
                 if (set) {

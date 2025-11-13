@@ -823,7 +823,7 @@ private:
 
 public:
         Store() = delete;
-        ~Store() = default;
+        virtual ~Store() = default;
 
         Store(Store const&) = delete;
         Store(Store&&) = delete;
@@ -888,6 +888,15 @@ public:
         {
                 return std::addressof(m_values.at(id));
         }
+
+        virtual bool reset(Registry::Property const& info)
+        {
+                if (auto v = value(info))
+                        *v = {};
+
+                return true;
+        }
+
 }; // class Store
 
 class TrackingStore final : public Store {
@@ -925,7 +934,7 @@ public:
                 return m_dirty.at(id);
         }
 
-        void reset(Registry::Property const& info)
+        bool reset(Registry::Property const& info) override
         {
                 auto const is_valueless = info.type() == Type::VALUELESS;
                 auto v = value(info);
@@ -936,9 +945,11 @@ public:
                 } else if (is_valueless) {
                         dirty(info) = false;
                 }
+
+                return dirty(info);
         }
 
-        void reset_termprops()
+        void reset_all()
         {
                 for (auto const& info: registry().get_all()) {
                         reset(info);

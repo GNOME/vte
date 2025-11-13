@@ -1170,7 +1170,7 @@ vte_properties_ref_property_uri(VteProperties const* properties,
                                                      _vte_properties_get_property_id(properties, prop));
 }
 
-/**
+/*
  * vte_properties_get_property_uri_string_by_id:
  * @properties: a #VteProperties
  * @prop: a property ID
@@ -1965,7 +1965,6 @@ catch (...)
         return false;
 }
 
-
 /**
  * vte_properties_get_property_flags:
  * @prop: a property name of a %VTE_PROPERTY_STRING property
@@ -2000,4 +1999,31 @@ vte_properties_get_property_flags(VteProperties const* properties,
                                                        gtype,
                                                        ignore_unknown_flags,
                                                        valuep);
+}
+
+bool
+_vte_properties_reset_property_by_id(VteProperties* properties,
+                                     int prop) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_PROPERTIES(properties), false);
+        g_return_val_if_fail(prop >= 0, false);
+
+        auto const impl = _vte_facade_unwrap_pp(properties);
+        if (auto const info = impl->lookup(prop)) // note: not lookup_checked
+                impl->reset(*info);
+}
+catch (...)
+{
+        return false;
+}
+
+bool
+_vte_properties_reset_property(VteProperties* properties,
+                               char const* prop) noexcept
+{
+        g_return_val_if_fail(prop != nullptr, false);
+
+        return _vte_properties_reset_property_by_id(properties,
+                                                    _vte_properties_get_property_id(properties, prop));
 }

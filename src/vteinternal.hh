@@ -861,25 +861,16 @@ public:
                 return m_termprops;
         }
 
-        void reset_termprop(vte::property::Registry::Property const& info)
+        void queue_termprops_changed() noexcept
         {
-                auto const is_valueless = info.type() == vte::property::Type::VALUELESS;
-                auto value = m_termprops.value(info);
-                if (value &&
-                    !std::holds_alternative<std::monostate>(*value)) {
-                        *value = {};
-                        m_termprops.dirty(info.id()) = !is_valueless;
-                } else if (is_valueless) {
-                        m_termprops.dirty(info.id()) = false;
-                }
+                m_pending_changes |= vte::to_integral(PendingChanges::TERMPROPS);
+
+                // FIXME: need to start processing
         }
 
         void reset_termprops()
         {
-                for (auto const& info: m_termprops.registry().get_all()) {
-                        reset_termprop(info);
-                }
-
+                m_termprops.reset_all();
                 m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS);
         }
 
