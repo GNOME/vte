@@ -1282,6 +1282,54 @@ test_seq_glue_arg(void)
         g_assert_cmpint(seq.collect1(it, 42, 100, 200), ==, 100);
 }
 
+
+static void
+test_seq_glue_arg_signed(void)
+{
+        parser.reset();
+
+        // Since this test a convenience function that operates
+        // only on the vte_seq_arg_t's params, we can speed up
+        // these tests by setting them directly instead of
+        // building a string, parsing it and then testing the
+        // params.
+        auto raw_seq = *seq.seq_ptr();
+        auto& n_args = raw_seq->n_args;
+        auto& args = raw_seq->args;
+        raw_seq->n_final_args = 1;
+
+        auto test = [&](std::initializer_list<int> params,
+                        int expected_v) noexcept -> void
+        {
+                n_args = 0;
+                for (auto p : params) {
+                        args[n_args] = vte_seq_arg_init(p);
+                        vte_seq_arg_finish(&args[n_args], (n_args + 1) < params.size());
+                        ++n_args;
+                }
+
+                if (auto const v = seq.collect_signed(0)) {
+                        g_assert_true(v);
+                        g_assert_cmpint(*v, ==, expected_v);
+                } else {
+                        g_assert_false(v);
+                        g_assert_cmpint(-1, ==, expected_v);
+                }
+        };
+
+        test({}, 0); // ""
+        test({0}, 0); // "0"
+        test({1}, 1); // "1"
+        test({32767}, 32767); // "0"
+        test({32768}, -32768); // "0"
+        test({32769}, -32767); // "0"
+        test({65534}, -2); // "0"
+        test({65535}, -1); // "0"
+
+        test({0, -1}, -1); // non-final
+        test({0, 0}, -1); // non-final
+}
+
 static void
 test_seq_glue_bignum(void)
 {
@@ -1345,6 +1393,148 @@ test_seq_glue_bignum(void)
         test({1, -1, -1, -1, -1}, false); // "1::::", too many components
         test({-1, 1}, false); // ":1", leading default param
         test({0, 1}); // "0:1" // however this is ok
+}
+
+static void
+test_seq_glue_fpnum(void)
+{
+        parser.reset();
+
+        // Since this test a convenience function that operates
+        // only on the vte_seq_arg_t's params, we can speed up
+        // these tests by setting them directly instead of
+        // building a string, parsing it and then testing the
+        // params.
+        auto raw_seq = *seq.seq_ptr();
+        auto& n_args = raw_seq->n_args;
+        auto& args = raw_seq->args;
+        raw_seq->n_final_args = 1;
+
+        auto test = [&](std::initializer_list<int> params,
+                        double expected_v,
+                        bool ok = true) noexcept -> void
+        {
+                n_args = 0;
+                for (auto p : params) {
+                        args[n_args] = vte_seq_arg_init(p);
+                        vte_seq_arg_finish(&args[n_args], (n_args + 1) < params.size());
+                        ++n_args;
+                }
+
+                auto const idx = 0;
+                auto v = seq.collect_fpnumber(idx);
+
+                if (ok) {
+                        g_assert_true(v);
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+                        g_assert_cmpfloat(*v, ==, expected_v);
+#pragma GCC diagnostic pop
+                } else {
+                        g_assert_false(v);
+                }
+        };
+
+        auto test_fail = [&](std::initializer_list<int> params) noexcept -> void
+        {
+                return test(params, 0.0, false);
+        };
+
+        constexpr auto const q = 1./65536.;
+
+        test({}, 0.0); // default value
+        test({0}, 0.0);
+        test({1}, 1.0);
+        test({65535}, 65535.0);
+
+        test({0, 0}, 0.0);
+        test({1, 0}, 1.0);
+        test({0, 65535}, 65535 * q);
+        test({1, 65535}, 1 + 65535 * q);
+        test({65535, 0}, 65535.0);
+        test({65535, 65535}, 65535.0 + 65535 * q); // max
+
+        test({2, -1}, 2.0);
+
+        test({-1, 0}, 0.0); // ":0", leading default param, value 0
+
+        test_fail({-1, -1, -1}); // too many components
+        test_fail({1, -1, -1}); // too many components
+        test_fail({1, 1, -1}); // too many components
+        test_fail({1, 1, 1}); // too many components
+
+}
+
+static void
+test_seq_glue_fpnum_signed(void)
+{
+        parser.reset();
+
+        // Since this test a convenience function that operates
+        // only on the vte_seq_arg_t's params, we can speed up
+        // these tests by setting them directly instead of
+        // building a string, parsing it and then testing the
+        // params.
+        auto raw_seq = *seq.seq_ptr();
+        auto& n_args = raw_seq->n_args;
+        auto& args = raw_seq->args;
+        raw_seq->n_final_args = 1;
+
+        auto test = [&](std::initializer_list<int> params,
+                        double expected_v,
+                        bool ok = true) noexcept -> void
+        {
+                n_args = 0;
+                for (auto p : params) {
+                        args[n_args] = vte_seq_arg_init(p);
+                        vte_seq_arg_finish(&args[n_args], (n_args + 1) < params.size());
+                        ++n_args;
+                }
+
+                auto const idx = 0;
+                auto v = seq.collect_fpnumber_signed(idx);
+
+                if (ok) {
+                        g_assert_true(v);
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+                        g_assert_cmpfloat(*v, ==, expected_v);
+#pragma GCC diagnostic pop
+                } else {
+                        g_assert_false(v);
+                }
+        };
+
+        auto test_fail = [&](std::initializer_list<int> params) noexcept -> void
+        {
+                return test(params, 0.0, false);
+        };
+
+        constexpr auto const q = 1./65536.;
+
+        test({}, 0.0);
+        test({0}, 0.0);
+        test({1}, 1.0);
+        test({32767}, 32767.0);
+        test({32768}, -32768.0);
+        test({32769}, -32767.0);
+        test({65534}, -2.0);
+        test({65535}, -1.0);
+
+        test({0, 0}, 0.0);
+        test({1, 0}, 1.0);
+        test({1, 65535}, 1.0 + 65535 * q);
+        test({32767, 65535}, 32767.0 + 65535 * q);
+        test({32768, 1}, -32768.0 + q);
+        test({32769, 1}, -32767.0 + q);
+        test({65534, 1}, -2.0 + q);
+        test({65535, 1}, -1.0 + q);
+        test({65535, 65535}, -q);
+
+        test_fail({0, 0, 0}); // "0:0:0", too many subparams
+        test_fail({-1, 0, 0}); // "0:0:0", too many subparams
 }
 
 static void
@@ -1734,7 +1924,10 @@ main(int argc,
         g_test_add_func("/vte/parser/sequences/arg", test_seq_arg);
         g_test_add_func("/vte/parser/sequences/string", test_seq_string);
         g_test_add_func("/vte/parser/sequences/glue/arg", test_seq_glue_arg);
+        g_test_add_func("/vte/parser/sequences/glue/arg-signed", test_seq_glue_arg_signed);
         g_test_add_func("/vte/parser/sequences/glue/bignum", test_seq_glue_bignum);
+        g_test_add_func("/vte/parser/sequences/glue/fpnum", test_seq_glue_fpnum);
+        g_test_add_func("/vte/parser/sequences/glue/fpnum-signed", test_seq_glue_fpnum_signed);
         g_test_add_func("/vte/parser/sequences/glue/uchar", test_seq_glue_uchar);
         g_test_add_func("/vte/parser/sequences/glue/string", test_seq_glue_string);
         g_test_add_func("/vte/parser/sequences/glue/string-tokeniser/char", test_seq_glue_string_tokeniser<char>);

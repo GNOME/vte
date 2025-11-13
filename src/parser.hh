@@ -19,6 +19,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <optional>
@@ -1451,6 +1452,21 @@ public:
                 return __builtin_expect(idx < size(), 1) ? vte_seq_arg_default(m_seq->args[idx]) : true;
         }
 
+        /* param_signed:
+         * @idx:
+         * @default_v:
+         *
+         * Returns: the value of the parameter at index @idx, or @default_v if
+         *   the parameter at this index has default value, or the index
+         *   is out of bounds.
+         */
+        inline constexpr int param_signed(unsigned int idx,
+                                          int default_v = 0) const noexcept
+        {
+                auto const v = param(idx);
+                return v != -1 ? int(int16_t(uint16_t(v))) : default_v;
+        }
+
         /* next:
          * @idx:
          *
@@ -1551,6 +1567,21 @@ public:
                 return idx <= next(start_idx);
         }
 
+        /* collect_signed:
+         * @idx:
+         * @default_v:
+         *
+         * Collects a signed 16-bit number from a final parameter.
+         * Defaulted params have value 0.
+         *
+         * Returns: the parameter value, or %nullopt if the parameter has
+         *   default value or is not a final parameter
+         */
+        inline constexpr std::optional<int> collect_signed(unsigned int idx) const noexcept
+        {
+                return param_nonfinal(idx) ? std::nullopt : std::make_optional<int>(param_signed(idx, 0));
+        }
+
         /* collect_number:
          * @start_idx:
          *
@@ -1582,6 +1613,63 @@ public:
                         value <<= 16;
                         value += param(i, 0);
                 }
+
+                return value;
+        }
+
+        /* collect_fpnumber:
+         * @start_idx:
+         *
+         * Collects a double number from a pair of subparameters encoding
+         * a positive 16:16 fixed point number. Default or missing subparams have
+         * value 0.
+         *
+         * Returns: the number, or %nullopt if there are more than 2
+         *   subparameters.
+         */
+        inline constexpr std::optional<double> collect_fpnumber(unsigned int start_idx) const noexcept
+        {
+                auto idx = start_idx;
+                auto const next_idx = next(start_idx);
+
+                // 16.16 fixed point format, so we expect at most
+                // 2 subparameters.
+                if ((next_idx - idx) > 2)
+                        return std::nullopt;
+
+                auto value = double(param(idx, 0));
+                ++idx;
+                if (idx < next_idx)
+                        value += double(param(idx, 0)) * (1.0 / 65536.0);
+
+                return value;
+        }
+
+        /* collect_fpnumber_signed:
+         * @start_idx:
+         *
+         * Collects a double number from a pair of subparameters encoding
+         * a signed 16:16 fixed point number. Default or missing subparams have
+         * value 0. The value of the first subparameter is interpreted as a
+         * signed 16-bit integer value.
+         *
+         * Returns: the number, or %nullopt if there are more than 2
+         *   subparameters.
+         */
+        inline constexpr std::optional<double> collect_fpnumber_signed(unsigned int start_idx) const noexcept
+        {
+                auto idx = start_idx;
+                auto const next_idx = next(start_idx);
+
+                // 16.16 fixed point format, so we expect at most
+                // 2 subparameters.
+                if ((next_idx - idx) > 2)
+                        return std::nullopt;
+
+                auto value = double(param_signed(idx, 0));
+                ++idx;
+                if (idx < next_idx)
+                        value += double(param(idx, 0)) * (1.0 / 65536.0);
 
                 return value;
         }
