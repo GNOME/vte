@@ -447,7 +447,57 @@ modes = [
     mode_WHAT('DECARM', 8, default=True, preserve_decstr=True),
 
     mode_WHAT('XTERM_MOUSE_X10', 9, default=False, flags=Flags.WRITABLE),
+
+    # DECEDM - edit mode
+    #
+    # Default: reset
+    #
+    # References: VT340 Text Programming Manual p. 136
+    #
+    # Not worth implementing.
+    mode_WHAT('DECEDM', 10, default=False),
+
+    # DECEDM - line transmission mode
+    #
+    # Default: reset
+    #
+    # References: VT340 Text Programming Manual p. 138f
+    #
+    # Not worth implementing.
     mode_WHAT('DECLTM', 11, default=False),
+
+    # DECSCFDM - space compression mode
+    # Controls whether the terminal sends SP (2/0) characters at the end of
+    # character fields. If set, the terminal sends RS (1/14) at the end of
+    # character fields and omits spaces; if unset, the terminal sends SP (2/0).
+    #
+    # Default: reset
+    #
+    # References: VT340 Text Programming Manual p. 147
+    #
+    # Not worth implementing.
+    mode_WHAT('DECSCFDM', 13, default=False),
+
+    # DECTEM - transmit execution mode
+    # In local edit mode (DECEDM), when pressing Enter, determinates whether
+    # the terminal transmits immediately or waits for host permission.
+    # If set, sends immediately; if unset, sends a STS first and only
+    # transmits upon receipt of DECXMIT.
+    #
+    # Default: reset
+    #
+    # References: VT340 Text Programming Manual p. 148
+    #
+    # Not worth implementing.
+    mode_WHAT('DECTEM', 14, default=False),
+
+    # DECEKEM - edit key execution mode
+    #
+    # Default: reset
+    #
+    # References: VT340 Text Programming Manual p. 147
+    #
+    # Not worth implementing.
     mode_WHAT('DECEKEM', 16, default=False),
 
     # DECPFF - print FF mode
@@ -577,6 +627,13 @@ modes = [
 
     mode_WHAT('XTERM_ALTBUF', 47, default=False, flags=Flags.WRITABLE),
 
+    # DEC131TM - VT131 transmit mode
+    #
+    # Default: reset
+    #
+    # References: VT340 Text Programming Manual p. 140
+    #
+    # Not worth implementing.
     mode_WHAT('DEC131TM', 53, default=False),
 
     # DECNAKB - greek/north-american keyboard mapping mode
@@ -1083,7 +1140,8 @@ modes = [
 
     # [u]RXVT:
 
-    mode_WHAT('RXVT_TOOLBAR', 10, default=False),
+    # Conflicts with DECEDM
+    # mode_WHAT('RXVT_TOOLBAR', 10, default=False),
     mode_WHAT('RXVT_SCROLLBAR', 30, default=False),
 
     # Conflicts with DECHEBM
@@ -1179,8 +1237,8 @@ modes = [
     # XTERM:
 
     mode_WHAT('XTERM_ATT610_BLINK', 12, default=False),
-    mode_WHAT('XTERM_CURSOR_BLINK', 13, default=False),
-    mode_WHAT('XTERM_CURSOR_BLINK_XOR', 14, default=False),
+    # mode_WHAT('XTERM_CURSOR_BLINK', 13, default=False),
+    # mode_WHAT('XTERM_CURSOR_BLINK_XOR', 14, default=False),
     mode_WHAT('XTERM_CURSES_HACK', 41, default=False),
     mode_WHAT('XTERM_MARGIN_BELL', 44, default=False),
     mode_WHAT('XTERM_REVERSE_WRAP', 45, default=False),
