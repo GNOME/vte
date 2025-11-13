@@ -116,3 +116,5 @@ enum {
 extern GParamSpec *pspecs[LAST_PROP];
 
 #define VTE_TERMINAL_CSS_NAME "vte-terminal"
+
+VteProperties* _vte_terminal_get_termprops(VteTerminal* terminal) noexcept;

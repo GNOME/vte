@@ -8840,6 +8840,62 @@ vte_terminal_get_termprop_flags(VteTerminal* terminal,
 }
 
 /**
+ * vte_terminal_reset_termprop_by_id:
+ * @terminal: a #VteTerminal
+ * @prop: a termprop ID
+ *
+ * Like vte_terminal_reset_termprop() except that it takes the termprop
+ * by ID. See that function for more information.
+ *
+ * Since: 0.84
+ */
+void
+vte_terminal_reset_termprop_by_id(VteTerminal* terminal,
+                                  int prop) noexcept
+try
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(prop >= 0);
+
+        if (_vte_properties_reset_property_by_id(_vte_terminal_get_termprops(terminal),
+                                                 prop)) {
+                // Nnotify about the changed value
+                WIDGET(terminal)->queue_termprops_changed();
+        }
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
+ * vte_terminal_reset_termprop:
+ * @terminal: a #VteTerminal
+ * @prop: a termprop name
+ *
+ * Resets the termprop @prop to its default value.
+ *
+ * Since: 0.84
+ */
+void
+vte_terminal_reset_termprop(VteTerminal* terminal,
+                            char const* prop) noexcept
+try
+{
+        g_return_if_fail(prop != nullptr);
+
+        if (_vte_properties_reset_property(_vte_terminal_get_termprops(terminal),
+                                           prop)) {
+                // Nnotify about the changed value
+                WIDGET(terminal)->queue_termprops_changed();
+        }
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
  * vte_get_termprops_registry:
  *
  * Returns the #VtePropertiesRegistry of the terminal's
@@ -8871,14 +8927,8 @@ catch (...)
  */
 VtePropertiesRegistry*
 _vte_get_termprops_registry(void) noexcept
-try
 {
-        return _vte_facade_wrap_pr(vte::terminal::termprops_registry());
-}
-catch (...)
-{
-        vte::log_exception();
-        return nullptr;
+        return const_cast<VtePropertiesRegistry*>(vte_get_termprops_registry());
 }
 
 /**
@@ -8904,4 +8954,19 @@ catch (...)
 {
         vte::log_exception();
         return nullptr;
+}
+
+/*
+ * _vte_terminal_get_termprops:
+ * @terminal: a #VteTerminal
+ *
+ * Returns the #VteProperties containing the value of the terminal's
+ *   termprops (non-const version)
+ *
+ * Returns: (transfer none): a #VteProperties
+ */
+VteProperties*
+_vte_terminal_get_termprops(VteTerminal* terminal) noexcept
+{
+        return const_cast<VteProperties*>(vte_terminal_get_termprops(terminal));
 }
