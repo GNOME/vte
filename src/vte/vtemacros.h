@@ -57,11 +57,12 @@
 
 #define _VTE_PUBLIC __attribute__((__visibility__("default"))) extern
 
-#if defined(VTE_COMPILATION) && defined(__cplusplus)
-#if __cplusplus >= 201103L
-#define _VTE_CXX_NOEXCEPT noexcept
-#endif
-#endif
-#ifndef _VTE_CXX_NOEXCEPT
+#if defined(__cplusplus) && __cplusplus >= 201103L
+#define _VTE_CXX_NOEXCEPT noexcept(true)
+#else
+#ifdef __GNUC__
+#define _VTE_CXX_NOEXCEPT __attribute__((__nothrow__))
+#else
 #define _VTE_CXX_NOEXCEPT
 #endif
+#endif /* __cplusplus __ */
