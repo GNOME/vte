@@ -756,17 +756,17 @@ if get_option('gtk3') or get_option('gtk4')
   elif get_option('gtk4')
     test_color_lightness_deps += [gtk4_dep,]
   endif
+
+  test_color_lightness = executable(
+    'test-color-lightness',
+    dependencies: test_color_lightness_deps,
+    include_directories: top_inc,
+    install: false,
+    sources: test_color_lightness_sources,
+  )
+
+  test_units += [test_color_lightness,]
 endif
-
-test_color_lightness = executable(
-  'test-color-lightness',
-  dependencies: test_color_lightness_deps,
-  include_directories: top_inc,
-  install: false,
-  sources: test_color_lightness_sources,
-)
-
-test_units += [test_color_lightness,]
 
 test_minifont_common_sources = config_sources + files(
   'minifont-test.cc'
