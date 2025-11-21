@@ -1025,9 +1025,36 @@ _vte_accessible_text_init (GtkAccessibleText *accessible)
                                         GTK_ACCESSIBLE_VALUE_UNDEFINED);
 }
 
+static void
+get_offset_for_lines (VteAccessibleTextContents *contents,
+                      gsize                      line_start,
+                      gsize                      line_count,
+                      gsize                     *start_offset,
+                      gsize                     *end_offset)
+{
+        gsize n_linebreaks = char_positions_get_size (&contents->linebreaks);
+
+        if (line_start >= n_linebreaks) {
+                *start_offset = contents->n_chars;
+                *end_offset = contents->n_chars;
+                return;
+        }
+
+        *start_offset = *char_positions_index (&contents->linebreaks, line_start);
+
+        if (line_start + line_count >= n_linebreaks) {
+                *end_offset = contents->n_chars;
+        } else {
+                *end_offset = *char_positions_index (&contents->linebreaks, line_start + line_count);
+        }
+}
+
 void
 _vte_accessible_text_scrolled (GtkAccessibleText *accessible, long delta)
 {
+        gsize start_offset, end_offset;
+        gsize nextlen, prevlen;
+        const char *nextstr, *prevstr;
         VteTerminal *terminal = VTE_TERMINAL (accessible);
         VteAccessibleText *state = vte_accessible_text_get (terminal);
         VteAccessibleTextContents *prev = &state->contents[state->contents_flip];
@@ -1048,33 +1075,47 @@ _vte_accessible_text_scrolled (GtkAccessibleText *accessible, long delta)
 
         if (delta > 0) {
                 /* Scrolling down: lines at the top disappeared, new lines appeared at bottom */
-                gsize lines_to_remove = MIN(delta, char_positions_get_size(&prev->linebreaks));
-                if (lines_to_remove > 0 && char_positions_get_size(&prev->linebreaks) > 0) {
-                        /* Find how many characters were in the removed lines */
-                        gsize chars_removed = 0;
-                        if (lines_to_remove < char_positions_get_size(&prev->linebreaks)) {
-                                chars_removed = *char_positions_index(&prev->linebreaks, lines_to_remove);
-                        } else {
-                                chars_removed = prev->n_chars;
+                gsize lines_to_remove = MIN((gsize)delta, char_positions_get_size(&prev->linebreaks));
+                get_offset_for_lines (prev, 0, lines_to_remove, &start_offset, &end_offset);
+                if (end_offset > 0) {
+                        /* Notify that text was removed from the beginning */
+                        gtk_accessible_text_update_contents (accessible,
+                                                             GTK_ACCESSIBLE_TEXT_CONTENT_CHANGE_REMOVE,
+                                                             start_offset, end_offset);
+                                
+                        /* Notify that new text was added at the end */
+                        state->contents_flip = !state->contents_flip;
+                        nextstr = vte_accessible_text_contents_get_string (next, &nextlen);
+                        prevstr = vte_accessible_text_contents_get_string (prev, &prevlen);
+                        gsize after_scroll_offset = *char_positions_index(&prev->linebreaks, lines_to_remove);
+                        gsize byte_offset = *char_positions_index(&prev->characters, after_scroll_offset);
+                        const char *prevc = prevstr + byte_offset;
+                        const char *nextc = nextstr;
+                        gsize diff_start_offset = 0;
+
+                        /* Find the beginning of changes */
+                        while ((diff_start_offset < prev->n_chars) && (diff_start_offset < next->n_chars)) {
+                                gunichar prevch = g_utf8_get_char (prevc);
+                                gunichar nextch = g_utf8_get_char (nextc);
+
+                                if (prevch != nextch) {
+                                        break;
+                                }
+
+                                diff_start_offset++;
+
+                                prevc = g_utf8_next_char (prevc);
+                                nextc = g_utf8_next_char (nextc);
                         }
 
-                        if (chars_removed > 0) {
-                                /* Notify that text was removed from the beginning */
-                                gtk_accessible_text_update_contents(accessible,
-                                                                    GTK_ACCESSIBLE_TEXT_CONTENT_CHANGE_REMOVE,
-                                                                    0, chars_removed);
-                                
-                                /* Notify that new text was added at the end */
-                                state->contents_flip = !state->contents_flip;
-                                gtk_accessible_text_update_contents(accessible,
-                                                                    GTK_ACCESSIBLE_TEXT_CONTENT_CHANGE_INSERT,
-                                                                    MAX(0L, (long)next->n_chars - (long)chars_removed),
-                                                                    next->n_chars);
-                        }
+                        gtk_accessible_text_update_contents (accessible,
+                                                             GTK_ACCESSIBLE_TEXT_CONTENT_CHANGE_INSERT,
+                                                             diff_start_offset,
+                                                             next->n_chars);
                 }
         } else if (delta < 0) {
                 /* Scrolling up: lines at the bottom disappeared, new lines appeared at top */
-                gsize lines_to_remove = MIN(-delta, char_positions_get_size(&prev->linebreaks));
+                gsize lines_to_remove = MIN((gsize)-delta, char_positions_get_size(&prev->linebreaks));
                 if (lines_to_remove > 0 && char_positions_get_size(&prev->linebreaks) > 0) {
                         /* Find how many characters were in the removed lines from bottom */
                         gsize start_remove = char_positions_get_size(&prev->linebreaks) - lines_to_remove;
@@ -1100,5 +1141,6 @@ _vte_accessible_text_scrolled (GtkAccessibleText *accessible, long delta)
                         }
                 }
         }
+
         state->text_scrolled = TRUE;
 }
