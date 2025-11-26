@@ -5170,16 +5170,18 @@ Terminal::map_erase_binding(EraseMode mode,
                 /* FIXMEchpe: why? this overrides the FALSE set above? */
                 suppress_alt_esc = true;
                 break;
-        case EraseMode::eTTY: {
-                struct termios tio;
-                if (pty() &&
-                    tcgetattr(pty()->fd(), &tio) != -1) {
-                        normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
-                        normal_length = 1;
-                }
-                suppress_alt_esc = false;
-                break;
-        }
+        case EraseMode::eTTY:
+                if (pty()) {
+                        struct termios tio;
+                        if (tcgetattr(pty()->fd(), &tio) != -1) {
+                                normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
+                                normal_length = 1;
+                                suppress_alt_esc = false;
+                        }
+                        break;
+                } /* else: AUTO */
+                assert(auto_mode != eTTY);
+                [[fallthrough]];
         case eAUTO:
                 assert(auto_mode != eAUTO);
                 return map_erase_binding(auto_mode,
@@ -5349,7 +5351,7 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 		switch (event.keyval()) {
 		case GDK_KEY_BackSpace:
                         map_erase_binding(m_backspace_binding,
-                                          EraseMode::eTTY,
+                                          ((m_backspace_binding != EraseMode::eTTY) && pty()) ? EraseMode::eTTY : EraseMode::eASCII_BACKSPACE,
                                           m_modifiers,
                                           normal,
                                           normal_length,
