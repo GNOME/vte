@@ -16,7 +16,7 @@
 [wrap-git]
 depth = 1
 patch_directory = fmt
-revision = 11.1.4
+revision = 12.1.0
 url = https://github.com/fmtlib/fmt.git
 
 [provide]

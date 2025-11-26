@@ -20,7 +20,7 @@ project(
     'cpp_std=gnu++20'
   ],
   license: ['MIT',],
-  version: '11.1.4',
+  version: '12.1.0',
 )
 
 fmt_inc = include_directories('include', is_system: true,)
@@ -29,6 +29,7 @@ fmt_dep = declare_dependency(
   include_directories: fmt_inc,
   compile_args: [
     '-DFMT_HEADER_ONLY',
+    '-DFMT_USE_CONSTEVAL',
   ]
 )
 
