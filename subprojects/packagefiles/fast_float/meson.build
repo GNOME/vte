@@ -20,7 +20,7 @@ project(
     'cpp_std=gnu++20'
   ],
   license: ['MIT',],
-  version: '6.1.6',
+  version: '8.1.0',
 )
 
 fast_float_inc = include_directories('include', is_system: true,)
