@@ -10094,9 +10094,6 @@ Terminal::draw(cairo_region_t const* region) noexcept
         int allocated_width, allocated_height;
         int extra_area_for_cursor;
         bool text_blink_enabled_now;
-#if WITH_SIXEL
-        auto const ring = m_screen->row_data;
-#endif
         auto now_ms = int64_t{0};
 
         allocated_width = get_allocated_width();
@@ -10139,41 +10136,6 @@ Terminal::draw(cairo_region_t const* region) noexcept
                                                     allocated_height - m_border.top - m_border.bottom};
         m_draw.clip_border(&vert_clip);
 
-#if WITH_SIXEL
-	/* Draw images */
-	if (m_images_enabled) {
-		vte::grid::row_t top_row = first_displayed_row();
-		vte::grid::row_t bottom_row = last_displayed_row();
-                auto const& image_map = ring->image_map();
-                auto const image_map_end = image_map.end();
-                for (auto it = image_map.begin(); it != image_map_end; ++it) {
-                        auto const& image = it->second;
-
-                        if (image->get_bottom() < top_row ||
-                            image->get_top() > bottom_row)
-				continue;
-
-#if VTE_GTK == 3
-			auto const x = image->get_left () * m_cell_width;
-			auto const y = (image->get_top () - m_screen->scroll_delta) * m_cell_height;
-
-                        /* Clear cell extent; image may be slightly smaller */
-                        m_draw.clear(x, y, image->get_width() * m_cell_width,
-                                     image->get_height() * m_cell_height,
-                                     get_color(VTE_DEFAULT_BG), m_background_alpha);
-
-                        // FIXMEgtk4
-			// image->paint(cr, x, y, m_cell_width, m_cell_height);
-#elif VTE_GTK == 4
-                        /* Nothing has been drawn yet in this snapshot, so no need
-                         * to clear over any existing data like you do in GTK 3.
-                         */
-
-                        // FIXMEgtk4 draw image
-#endif
-		}
-	}
-#endif /* WITH_SIXEL */
 
         /* Whether blinking text should be visible now */
         m_text_blink_state = true;
