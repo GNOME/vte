@@ -436,7 +436,7 @@ public:
         }
 
         /*
-         * set_dispatch_unripe:
+         * set_dispatch_unripe_dcs:
          *
          * Enables or disables dispatch of unripe DCS sequences.
          * If enabled, known DCS sequences with the %VTE_DISPATCH_UNRIPE
@@ -459,9 +459,9 @@ public:
          *   the subparser should take care to handle C0 and C1 controls
          *   the same way as this parser would.
          */
-        inline void set_dispatch_unripe(bool enable) noexcept
+        inline void set_dispatch_unripe_dcs(bool enable) noexcept
         {
-                m_dispatch_unripe = enable;
+                m_dispatch_unripe_dcs = enable;
         }
 
         /*
@@ -494,7 +494,7 @@ public:
 protected:
         vte_seq_t m_seq;
         guint m_state{0};
-        bool m_dispatch_unripe{false};
+        bool m_dispatch_unripe_dcs{false};
 
         inline int feed_to_state(uint32_t raw) noexcept
         {
@@ -1015,7 +1015,7 @@ protected:
                 auto flags = unsigned{};
                 m_seq.command = parse_host_dcs(&m_seq, &flags);
 
-                return (flags & VTE_DISPATCH_UNRIPE) && m_dispatch_unripe ? VTE_SEQ_DCS : VTE_SEQ_NONE;
+                return (flags & VTE_DISPATCH_UNRIPE) && m_dispatch_unripe_dcs ? VTE_SEQ_DCS : VTE_SEQ_NONE;
         }
 
         inline int action_dcs_start(uint32_t raw) noexcept

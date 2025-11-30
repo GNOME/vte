@@ -8433,7 +8433,7 @@ Terminal::Terminal(vte::platform::Widget* w,
          * so we can switch data syntax and parse the contents with
          * the SIXEL subparser.
          */
-        m_parser.set_dispatch_unripe(true);
+        m_parser.set_dispatch_unripe_dcs(true);
 
 	/* Set up I/O encodings. */
 	m_outgoing = _vte_byte_array_new();

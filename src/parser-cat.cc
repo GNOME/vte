@@ -900,7 +900,7 @@ public:
                 m_bench_times = g_array_new(false, true, sizeof(int64_t));
 
 #if WITH_SIXEL
-                m_parser.set_dispatch_unripe(!m_no_sixel);
+                m_parser.set_dispatch_unripe_dcs(!m_no_sixel);
 #endif
         }
 
