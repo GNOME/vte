@@ -137,6 +137,7 @@ static constinit struct {
         { "Fq", "kf62", XTERM_KEY_F62, 0, true },
         { "Fr", "kf63", XTERM_KEY_F63, 0, true },
 
+        { "@8", "kent", GDK_KEY_KP_Enter, 0, false },
         { "K1", "ka1", GDK_KEY_KP_Home, 0, false },
         { "K4", "kc1", GDK_KEY_KP_End, 0, false },
         { "K3", "ka3", GDK_KEY_KP_Prior, 0, false },
@@ -158,9 +159,10 @@ static constinit struct {
         { "",   "RGB", XTERM_KEY_RGB, 0, false },
         { "TN", "name", XTERM_KEY_TCAPNAME, 0, false },
 
+#define BASE "k"
 #define DEXT(name, parm, code) { "", name, code, parm, false }
-#define D1ST(name, parm, code) DEXT("k" #name, parm, code)
-#define DMOD(name, parm, code) DEXT("k" #name #parm, parm, code)
+#define D1ST(name, parm, code) DEXT(BASE #name, parm, code)
+#define DMOD(name, parm, code) DEXT(BASE #name #parm, parm, code)
 
 #define DGRP(name, code)                        \
         D1ST(name, 2, code),                    \
@@ -186,7 +188,32 @@ static constinit struct {
         DGRP(IC, GDK_KEY_Insert),
         DGRP(NXT, GDK_KEY_Next),
         DGRP(PRV, GDK_KEY_Prior),
+
+        /* all of the numeric-keypad could be used with modifiers (i.e., DGRP),
+         * but applications would not use the suffix 2-8 code, because that
+         * would give two-digits.
+         */
+        { "", "kp1", GDK_KEY_KP_1, 0, false },
+        { "", "kp2", GDK_KEY_KP_2, 0, false },
+        { "", "kp3", GDK_KEY_KP_3, 0, false },
+        { "", "kp4", GDK_KEY_KP_4, 0, false },
+        { "", "kp5", GDK_KEY_KP_5, 0, false },
+        { "", "kp6", GDK_KEY_KP_6, 0, false },
+        { "", "kp7", GDK_KEY_KP_7, 0, false },
+        { "", "kp8", GDK_KEY_KP_8, 0, false },
+        { "", "kp9", GDK_KEY_KP_9, 0, false },
+
+#undef BASE
+#define BASE "kp"
+        DGRP(ADD, GDK_KEY_KP_Add),
+        DGRP(CMA, GDK_KEY_KP_Separator),
+        DGRP(DIV, GDK_KEY_KP_Divide),
+        DGRP(DOT, GDK_KEY_KP_Decimal),
+        DGRP(MUL, GDK_KEY_KP_Multiply),
+        DGRP(SUB, GDK_KEY_KP_Subtract),
+        DGRP(ZRO, GDK_KEY_KP_0),
 };
+#undef BASE
 #undef DATA
 #undef DEXT
 #undef D1ST
