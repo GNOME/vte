@@ -174,7 +174,7 @@ static constinit struct {
         /* the terminfo codes here are ncurses extensions */
         /* ignore the termcap names, which are empty */
         { "", "kUP", GDK_KEY_Up, GDK_SHIFT_MASK, false },
-        { "", "kDN", GDK_KEY_Up, GDK_SHIFT_MASK, false },
+        { "", "kDN", GDK_KEY_Down, GDK_SHIFT_MASK, false },
 
         DGRP(DN, GDK_KEY_Down),
         DGRP(LFT, GDK_KEY_Left),
