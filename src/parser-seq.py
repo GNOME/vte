@@ -750,8 +750,6 @@ sequences = [
             comment='select disconnect delay time'),
     seq_CSI('MINTTY_PROGRESS', 'q', intermediates=(Intermediate.PERCENT,), flags=Flags.NOP,
             comment='set progress report'),
-    seq_CSI('DECSR', 'q', intermediates=(Intermediate.MULT,),
-            comment='secure reset'),
     seq_CSI('DECELF', 'q', intermediates=(Intermediate.PLUS,), flags=Flags.NOP,
             comment='enable local functions'),
     seq_CSI('DECTID', 'q', intermediates=(Intermediate.COMMA,), flags=Flags.NOP,
