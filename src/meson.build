@@ -122,6 +122,7 @@ parser_sources += custom_target(
   install: false,
   output: [
     'parser-c01.hh',
+    'parser-cmd-handlers.hh',
     'parser-cmd.hh',
     'parser-csi.hh',
     'parser-dcs.hh',
