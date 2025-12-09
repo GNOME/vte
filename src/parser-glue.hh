@@ -78,6 +78,12 @@ public:
                 memset(&m_seq, 0, sizeof(m_seq));
         }
 
+        constexpr SequenceBuilder(unsigned type)
+                : SequenceBuilder{}
+        {
+                set_type(type);
+        }
+
         constexpr SequenceBuilder(unsigned type,
                                   uint32_t f,
                                   unsigned char intermediate,
@@ -432,7 +438,7 @@ using u32SequenceBuilder = SequenceBuilder<std::u32string>;
 
 namespace reply {
 
-#define _VTE_REPLY(cmd,type,final_char,pintro,intermediate,code) \
+#define _VTE_REPLY(cmd,type,final_char,pintro,ni,intermediate) \
 inline constexpr auto cmd() noexcept {     \
         return u8SequenceBuilder{VTE_SEQ_##type, \
                                  final_char, \
@@ -443,6 +449,10 @@ inline constexpr auto cmd() noexcept {     \
 #include "parser-reply.hh"
 
 #undef _VTE_REPLY
+
+inline constexpr auto OSC() noexcept {
+        return u8SequenceBuilder{VTE_SEQ_OSC};
+}
 
 } // namespace reply
 

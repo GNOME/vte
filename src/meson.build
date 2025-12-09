@@ -126,7 +126,6 @@ parser_sources = files(
   'parser-decsgr.hh',
   'parser-glue.hh',
   'parser-osc.hh',
-  'parser-reply.hh',
   'parser-sgr.hh',
   'parser-string.hh',
   'parser.cc',
@@ -144,10 +143,12 @@ parser_sources += custom_target(
   install: false,
   output: [
     'parser-c01.hh',
+    'parser-cmd-handlers.hh',
     'parser-cmd.hh',
     'parser-csi.hh',
     'parser-dcs.hh',
     'parser-esc.hh',
+    'parser-reply.hh',
     'parser-sci.hh',
   ],
 )
