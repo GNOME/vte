@@ -20,7 +20,7 @@ project(
     'cpp_std=gnu++20'
   ],
   license: ['MIT',],
-  version: '6.4.0',
+  version: '7.7.1',
 )
 
 py = import('python')

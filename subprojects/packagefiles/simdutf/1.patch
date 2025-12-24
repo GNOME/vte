@@ -1,0 +1,34 @@
+From 7390382f017cecf01de628be58957dc13494bdb8 Mon Sep 17 00:00:00 2001
+From: Christian Persch <chpe@src.gnome.org>
+Date: Wed, 24 Dec 2025 09:28:12 +0100
+Subject: [PATCH] Try fixing VTE build with simdutf 7.7.1
+
+---
+ src/implementation.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/implementation.cpp b/src/implementation.cpp
+index 2f4006d4..0c452c72 100644
+--- a/src/implementation.cpp
++++ b/src/implementation.cpp
+@@ -873,7 +873,7 @@ public:
+   }
+ #endif // SIMDUTF_FEATURE_ASCII
+ 
+-#if SIMDUTF_FEATURE_ASCII
++#if SIMDUTF_FEATURE_UTF16 && SIMDUTF_FEATURE_ASCII
+   simdutf_warn_unused bool
+   validate_utf16le_as_ascii(const char16_t *,
+                             size_t) const noexcept final override {
+@@ -885,7 +885,7 @@ public:
+                             size_t) const noexcept final override {
+     return false;
+   }
+-#endif // SIMDUTF_FEATURE_ASCII
++#endif // SIMDUTF_FEATURE_UTF16 && SIMDUTF_FEATURE_ASCII
+ 
+ #if SIMDUTF_FEATURE_UTF16 || SIMDUTF_FEATURE_DETECT_ENCODING
+   simdutf_warn_unused bool
+-- 
+2.51.0
+

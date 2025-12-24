@@ -16,8 +16,9 @@
 [wrap-git]
 depth = 1
 patch_directory = simdutf
-revision = v6.4.0
+revision = v7.7.1
 url = https://github.com/simdutf/simdutf.git
+diff_files = simdutf/1.patch
 
 [provide]
 simdutf = simdutf_dep
