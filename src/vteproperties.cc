@@ -216,7 +216,7 @@ try
                 if (type)
                         *type = VtePropertyType(info->type());
                 if (flags)
-                        *flags = VtePropertyFlags(info->flags());
+                        *flags = VtePropertyFlags(VtePropertyFlags(info->flags()) & VTE_PROPERTY_FLAGS_ALL);
                 return true;
         }
 
@@ -267,7 +267,7 @@ try
                 if (type)
                         *type = VtePropertyType(info->type());
                 if (flags)
-                        *flags = VtePropertyFlags(info->flags());
+                        *flags = VtePropertyFlags(VtePropertyFlags(info->flags()) & VTE_PROPERTY_FLAGS_ALL);
                 return true;
         }
 

@@ -22,6 +22,8 @@
 
 #include "cxx-utils.hh"
 
+#define VTE_PROPERTY_FLAGS_ALL VtePropertyFlags(VTE_PROPERTY_FLAG_EPHEMERAL)
+
 VTE_CXX_DEFINE_FACADE_PR(VtePropertiesRegistry, vte::property::Registry);
 VTE_CXX_DEFINE_FACADE_PP(VtePropertiesRegistry, vte::property::Registry);
 
