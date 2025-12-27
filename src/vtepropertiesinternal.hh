@@ -52,6 +52,8 @@ gboolean vte_properties_registry_query_by_id(VtePropertiesRegistry const* regist
 
 VtePropertiesRegistry const* vte_get_termprops_registry(void) noexcept;
 
+#define VTE_PROPERTY_FLAGS_ALL VtePropertyFlags(VTE_PROPERTY_FLAG_EPHEMERAL)
+
 VTE_CXX_DEFINE_FACADE_PR(VtePropertiesRegistry, vte::property::Registry);
 VTE_CXX_DEFINE_FACADE_PP(VtePropertiesRegistry, vte::property::Registry);
 
