@@ -92,6 +92,8 @@
 #define VTE_TERMINAL_CSS_PRIORITY (GTK_STYLE_PROVIDER_PRIORITY_APPLICATION - 2)
 #endif
 
+#define VTE_PROPERTY_FLAGS_ALL VtePropertyFlags(VTE_PROPERTY_FLAG_EPHEMERAL)
+
 template<typename T>
 constexpr bool check_enum_value(T value) noexcept;
 
@@ -3522,7 +3524,7 @@ try
                 if (type)
                         *type = VtePropertyType(info->type());
                 if (flags)
-                        *flags = VtePropertyFlags(info->flags());
+                        *flags = VtePropertyFlags(VtePropertyFlags(info->flags()) & VTE_PROPERTY_FLAGS_ALL);
                 return true;
         }
 
@@ -3567,7 +3569,7 @@ try
                 if (type)
                         *type = VtePropertyType(info->type());
                 if (flags)
-                        *flags = VtePropertyFlags(info->flags());
+                        *flags = VtePropertyFlags(VtePropertyFlags(info->flags()) & VTE_PROPERTY_FLAGS_ALL);
                 return true;
         }
 
