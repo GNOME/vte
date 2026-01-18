@@ -17,7 +17,7 @@ project(
   'fmt',
   'cpp',
   default_options: [
-    'cpp_std=gnu++20'
+    'cpp_std=gnu++23'
   ],
   license: ['MIT',],
   version: '11.1.4',
