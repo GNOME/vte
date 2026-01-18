@@ -17,7 +17,7 @@ project(
   'simdutf',
   'cpp',
   default_options: [
-    'cpp_std=gnu++20'
+    'cpp_std=gnu++23'
   ],
   license: ['MIT',],
   version: '7.7.1',
