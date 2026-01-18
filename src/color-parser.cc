@@ -216,6 +216,13 @@ parse_named(std::string const& spec,
 
 #define SKIP_WHITESPACES(s) while (*(s) == ' ') (s)++;
 
+enum class ParseCoord {
+        HSL_H,
+        HSL_S,
+        HSL_L,
+        RGB_ANY,
+};
+
 /* Parses a single color component from a rgb() or rgba() specification
  * according to CSS3 rules. Compared to exact CSS3 parsing we are liberal
  * in what we accept as follows:
@@ -229,7 +236,8 @@ parse_named(std::string const& spec,
 static bool
 parse_rgb_value(char const *str,
                 char const **endp,
-                float *number)
+                float *number,
+                ParseCoord coord)
 {
         const char *p;
         char *end;
@@ -244,15 +252,27 @@ parse_rgb_value(char const *str,
 
         SKIP_WHITESPACES (p);
 
-        if (*p == '%')
-                {
-                        *endp = (char const*)(p + 1);
+        if (*p == '%') {
+                *endp = (char const*)(p + 1);
+                *number = std::clamp(*number / 100.0f, 0.0f, 1.0f);
+        } else {
+                switch (coord) {
+                        using enum ParseCoord;
+                case HSL_H:
+                        *number = fmod(*number, 360.0);
+                        if (*number < 0)
+                                *number += 360.0;
+                        *number = std::clamp(*number / 360.0f, 0.0f, 1.0f);
+                        break;
+                case HSL_S:
+                case HSL_L:
                         *number = std::clamp(*number / 100.0f, 0.0f, 1.0f);
-                }
-        else
-                {
+                        break;
+                case RGB_ANY:
                         *number = std::clamp(*number / 255.0f, 0.0f, 1.0f);
+                        break;
                 }
+        }
 
         return true;
 }
@@ -345,7 +365,7 @@ parse_csslike(std::string const& spec) noexcept
 
         /* Parse red */
         SKIP_WHITESPACES (str);
-        if (!parse_rgb_value (str, &str, &r))
+        if (!parse_rgb_value (str, &str, &r, is_hsl ? ParseCoord::HSL_H : ParseCoord::RGB_ANY))
                 return std::nullopt;
         SKIP_WHITESPACES (str);
 
@@ -356,7 +376,7 @@ parse_csslike(std::string const& spec) noexcept
 
         /* Parse green */
         SKIP_WHITESPACES (str);
-        if (!parse_rgb_value (str, &str, &g))
+        if (!parse_rgb_value (str, &str, &g, is_hsl ? ParseCoord::HSL_S : ParseCoord::RGB_ANY))
                 return std::nullopt;
         SKIP_WHITESPACES (str);
 
@@ -367,7 +387,7 @@ parse_csslike(std::string const& spec) noexcept
 
         /* Parse blue */
         SKIP_WHITESPACES (str);
-        if (!parse_rgb_value (str, &str, &b))
+        if (!parse_rgb_value (str, &str, &b, is_hsl ? ParseCoord::HSL_L : ParseCoord::RGB_ANY))
                 return std::nullopt;
         SKIP_WHITESPACES (str);
 
@@ -399,7 +419,7 @@ parse_csslike(std::string const& spec) noexcept
                 return std::nullopt;
 
         if (is_hsl)
-                return rgba_from_hsla(r * 255.0f,
+                return rgba_from_hsla(r * 360.0f,
                                       std::clamp(g, 0.0f, 1.0f),
                                       std::clamp(b, 0.0f, 1.0f),
                                       std::clamp(a, 0.0f, 1.0f));

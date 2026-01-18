@@ -102,6 +102,8 @@ test_color_parse_css(void)
         assert_color_parse_value("hsl (0, 100%, 50%)", rgba(1.0, 0.0, 0.0, 1.0), color_format::CSSLIKE);
         assert_color_parse_value("hsla (120, 255, 50%, 0.1)", rgba(0.0, 1.0, 0.0, 0.1), color_format::CSSLIKE);
         assert_color_parse_value("hsl(180, 100%, 25%)", rgba(0.0, 0.5, 0.5, 1.0), color_format::CSSLIKE);
+
+        assert_color_parse_value("hsl(360, 100, 25)", rgba(0.5, 0.0, 0.0, 1.0), color_format::CSSLIKE);
 }
 
 static void
