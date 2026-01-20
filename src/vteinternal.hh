@@ -1660,6 +1660,7 @@ public:
                                size_t& normal_length,
                                bool& suppress_alt_esc,
                                bool& add_modifiers);
+        std::pair<bool, bool> key_event_action(vte::platform::KeyEvent const& event);
 
         bool set_enable_a11y(bool setting);
         bool set_enable_bidi(bool setting);

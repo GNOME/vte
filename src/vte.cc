@@ -5206,6 +5206,147 @@ Terminal::map_erase_binding(EraseMode mode,
         }
 }
 
+std::pair<bool, bool>
+Terminal::key_event_action(vte::platform::KeyEvent const& event)
+{
+        auto const keyval = event.keyval();
+        auto const perform = event.is_key_press();
+        auto handled = false, scrolled = false;
+
+        switch (event.keyval()) {
+        case GDK_KEY_KP_Insert:
+        case GDK_KEY_Insert:
+                if (m_modifiers & GDK_SHIFT_MASK) {
+                        if (m_modifiers & GDK_CONTROL_MASK) {
+                                if (perform)
+                                        emit_paste_clipboard();
+                                handled = true;
+                        } else {
+                                if (perform)
+                                        widget()->clipboard_request_text(vte::platform::ClipboardType::PRIMARY);
+                                handled = true;
+                        }
+                } else if (m_modifiers & GDK_CONTROL_MASK) {
+                        if (perform)
+                                emit_copy_clipboard();
+                        handled = true;
+                }
+                break;
+        case GDK_KEY_KP_Up:
+        case GDK_KEY_Up:
+                if (m_screen == &m_normal_screen &&
+                    m_modifiers & GDK_CONTROL_MASK &&
+                    m_modifiers & GDK_SHIFT_MASK) {
+                        if (perform) {
+                                scroll_lines(-1);
+                                scrolled = true;
+                        }
+                        handled = true;
+                }
+                break;
+        case GDK_KEY_KP_Down:
+        case GDK_KEY_Down:
+                if (m_screen == &m_normal_screen &&
+                    m_modifiers & GDK_CONTROL_MASK &&
+                    m_modifiers & GDK_SHIFT_MASK) {
+                        if (perform) {
+                                scroll_lines(1);
+                                scrolled = true;
+                        }
+                        handled = true;
+                }
+                break;
+        case GDK_KEY_KP_Left:
+        case GDK_KEY_Left:
+                if (m_screen == &m_normal_screen &&
+                    m_modifiers & GDK_CONTROL_MASK &&
+                    m_modifiers & GDK_SHIFT_MASK) {
+                        if (perform) {
+                                scroll_to_previous_prompt();
+                                scrolled = true;
+                        }
+                        handled = true;
+                }
+                break;
+        case GDK_KEY_KP_Right:
+        case GDK_KEY_Right:
+                if (m_screen == &m_normal_screen &&
+                    m_modifiers & GDK_CONTROL_MASK &&
+                    m_modifiers & GDK_SHIFT_MASK) {
+                        if (perform) {
+                                scroll_to_next_prompt();
+                                scrolled = true;
+                        }
+                        handled = true;
+                }
+                break;
+        case GDK_KEY_KP_Page_Up:
+        case GDK_KEY_Page_Up:
+                if (m_screen == &m_normal_screen &&
+                    m_modifiers & GDK_SHIFT_MASK) {
+                        if (perform) {
+                                scroll_pages(-1);
+                                scrolled = true;
+                        }
+                        handled = true;
+                }
+                break;
+        case GDK_KEY_KP_Page_Down:
+        case GDK_KEY_Page_Down:
+                if (m_screen == &m_normal_screen &&
+                    m_modifiers & GDK_SHIFT_MASK) {
+                        if (perform) {
+                                scroll_pages(1);
+                                scrolled = true;
+                        }
+                        handled = true;
+                }
+                break;
+        case GDK_KEY_KP_Home:
+        case GDK_KEY_Home:
+                if (m_screen == &m_normal_screen &&
+                    m_modifiers & GDK_SHIFT_MASK) {
+                        if (perform) {
+                                scroll_to_top();
+                                scrolled = true;
+                        }
+                        handled = true;
+                }
+                break;
+        case GDK_KEY_KP_End:
+        case GDK_KEY_End:
+                if (m_screen == &m_normal_screen &&
+                    m_modifiers & GDK_SHIFT_MASK) {
+                        scroll_to_bottom();
+                        scrolled = true;
+                        handled = true;
+                }
+                break;
+		/* Let Shift +/- tweak the font, like XTerm does. */
+        case GDK_KEY_KP_Add:
+        case GDK_KEY_KP_Subtract:
+                if (m_modifiers & (GDK_SHIFT_MASK | GDK_CONTROL_MASK)) {
+                        switch (keyval) {
+                        case GDK_KEY_KP_Add:
+                                if (perform)
+                                        emit_increase_font_size();
+                                handled = true;
+                                break;
+                        case GDK_KEY_KP_Subtract:
+                                if (perform)
+                                        emit_decrease_font_size();
+                                handled = true;
+                                break;
+                        }
+                }
+                break;
+        default:
+                break;
+        }
+
+        return {handled, scrolled};
+}
+
 bool
 Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 {
@@ -5346,7 +5487,11 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
         }
 
 	/* Now figure out what to send to the child. */
-	if (event.is_key_press() && !modifier && !handled) {
+        if (!modifier && !handled) {
+                std::tie(handled, scrolled) = key_event_action(event);
+                suppress_alt_esc |= handled;
+        }
+	if (!modifier && !handled) {
 		/* Map the key to a sequence name if we can. */
 		switch (event.keyval()) {
 		case GDK_KEY_BackSpace:
@@ -5370,131 +5515,10 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
                                           add_modifiers);
                         handled = true;
 			break;
-		case GDK_KEY_KP_Insert:
-		case GDK_KEY_Insert:
-			if (m_modifiers & GDK_SHIFT_MASK) {
-				if (m_modifiers & GDK_CONTROL_MASK) {
-                                        emit_paste_clipboard();
-					handled = TRUE;
-					suppress_alt_esc = TRUE;
-				} else {
-                                        widget()->clipboard_request_text(vte::platform::ClipboardType::PRIMARY);
-					handled = TRUE;
-					suppress_alt_esc = TRUE;
-				}
-			} else if (m_modifiers & GDK_CONTROL_MASK) {
-                                emit_copy_clipboard();
-				handled = TRUE;
-				suppress_alt_esc = TRUE;
-			}
-			break;
-		/* Keypad/motion keys. */
-		case GDK_KEY_KP_Up:
-		case GDK_KEY_Up:
-			if (m_screen == &m_normal_screen &&
-			    m_modifiers & GDK_CONTROL_MASK &&
-                            m_modifiers & GDK_SHIFT_MASK) {
-				scroll_lines(-1);
-				scrolled = TRUE;
-				handled = TRUE;
-				suppress_alt_esc = TRUE;
-			}
-			break;
-		case GDK_KEY_KP_Down:
-		case GDK_KEY_Down:
-			if (m_screen == &m_normal_screen &&
-			    m_modifiers & GDK_CONTROL_MASK &&
-                            m_modifiers & GDK_SHIFT_MASK) {
-				scroll_lines(1);
-				scrolled = TRUE;
-				handled = TRUE;
-				suppress_alt_esc = TRUE;
-			}
-			break;
-                case GDK_KEY_KP_Left:
-                case GDK_KEY_Left:
-                        if (m_screen == &m_normal_screen &&
-                            m_modifiers & GDK_CONTROL_MASK &&
-                            m_modifiers & GDK_SHIFT_MASK) {
-                                scroll_to_previous_prompt();
-                                scrolled = TRUE;
-                                handled = TRUE;
-                                suppress_alt_esc = TRUE;
-                        }
-                        break;
-                case GDK_KEY_KP_Right:
-                case GDK_KEY_Right:
-                        if (m_screen == &m_normal_screen &&
-                            m_modifiers & GDK_CONTROL_MASK &&
-                            m_modifiers & GDK_SHIFT_MASK) {
-                                scroll_to_next_prompt();
-                                scrolled = TRUE;
-                                handled = TRUE;
-                                suppress_alt_esc = TRUE;
-                        }
-                        break;
-		case GDK_KEY_KP_Page_Up:
-		case GDK_KEY_Page_Up:
-			if (m_screen == &m_normal_screen &&
-			    m_modifiers & GDK_SHIFT_MASK) {
-				scroll_pages(-1);
-				scrolled = TRUE;
-				handled = TRUE;
-				suppress_alt_esc = TRUE;
-			}
-			break;
-		case GDK_KEY_KP_Page_Down:
-		case GDK_KEY_Page_Down:
-			if (m_screen == &m_normal_screen &&
-			    m_modifiers & GDK_SHIFT_MASK) {
-				scroll_pages(1);
-				scrolled = TRUE;
-				handled = TRUE;
-				suppress_alt_esc = TRUE;
-			}
-			break;
-		case GDK_KEY_KP_Home:
-		case GDK_KEY_Home:
-			if (m_screen == &m_normal_screen &&
-			    m_modifiers & GDK_SHIFT_MASK) {
-                                scroll_to_top();
-				scrolled = TRUE;
-				handled = TRUE;
-			}
-			break;
-		case GDK_KEY_KP_End:
-		case GDK_KEY_End:
-			if (m_screen == &m_normal_screen &&
-			    m_modifiers & GDK_SHIFT_MASK) {
-                                scroll_to_bottom();
-				scrolled = TRUE;
-				handled = TRUE;
-			}
-			break;
-		/* Let Shift +/- tweak the font, like XTerm does. */
-		case GDK_KEY_KP_Add:
-		case GDK_KEY_KP_Subtract:
-			if (m_modifiers & (GDK_SHIFT_MASK | GDK_CONTROL_MASK)) {
-				switch (keyval) {
-				case GDK_KEY_KP_Add:
-					emit_increase_font_size();
-					handled = TRUE;
-					suppress_alt_esc = TRUE;
-					break;
-				case GDK_KEY_KP_Subtract:
-					emit_decrease_font_size();
-					handled = TRUE;
-					suppress_alt_esc = TRUE;
-					break;
-				}
-			}
-			break;
-		default:
-			break;
-		}
-		/* If the above switch statement didn't do the job, try mapping
-		 * it to a literal or capability name. */
-                if (handled == FALSE) {
+                }
+
+		/* Try mapping to a literal or capability name. */
+                if (!handled) {
                         if (G_UNLIKELY (m_enable_bidi &&
                                         m_modes_private.VTE_BIDI_SWAP_ARROW_KEYS() &&
                                         (keyval == GDK_KEY_Left ||
