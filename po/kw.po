@@ -1,0 +1,67 @@
+# Cornish translation for vte.
+# Copyright (C) 2026 vte's COPYRIGHT HOLDER
+# This file is distributed under the same license as the vte package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Flynn Peck <cirilla@tuta.io>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte master\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues/\n"
+"POT-Creation-Date: 2026-01-20 22:03+0000\n"
+"PO-Revision-Date: 2026-01-26 12:56+0000\n"
+"Last-Translator: Flynn Peck <cirilla@tuta.io>\n"
+"Language-Team: kw\n"
+"Language: kw\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-DL-VCS-Web: https://gitlab.gnome.org/GNOME/vte/\n"
+"X-DL-Lang: kw\n"
+"X-DL-Module: vte\n"
+"X-DL-Branch: master\n"
+"X-DL-Domain: po\n"
+"X-DL-State: Translating\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Gtranslator 49.0\n"
+
+#: src/vte.cc:8494
+msgid "WARNING"
+msgstr "GWARNYANS"
+
+#: src/vte.cc:8496
+msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
+msgstr "GnuTLS na byw, data a wra skrifa war plasen anargelys!"
+
+#: src/spawn.cc:133
+#, c-format
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "Y fyllis gorra pib anlettyans: %s"
+
+#: src/spawn.cc:178
+#, c-format
+msgid "poll error: %s"
+msgstr "error votyans: %s"
+
+#: src/spawn.cc:185
+msgid "Operation timed out"
+msgstr "Oberyans yn termyn yn-mes"
+
+#: src/spawn.cc:195
+msgid "Operation was cancelled"
+msgstr "Oberyans yw hedhys"
+
+#: src/spawn.cc:213
+#, c-format
+msgid "Failed to read from child pipe (%s)"
+msgstr "Y fyllis redya rag pib flogh (%s)"
+
+#: src/spawn.cc:664
+#, c-format
+msgid "Failed to change to directory “%s”: %s"
+msgstr "Y fyllis chanjya dhe restrenva “%s”: %s"
+
+#: src/spawn.cc:733
+#, c-format
+msgid "Failed to execute child process “%s”: "
+msgstr "Y fyllis eksekutya argerdh flogh: “%s”:"
