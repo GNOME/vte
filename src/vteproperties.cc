@@ -30,7 +30,6 @@
 
 #include "vtemacros.h"
 #include "vteenums.h"
-#include "vteproperties.h"
 
 #include "properties.hh"
 #include "vtepropertiesinternal.hh"

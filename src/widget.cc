@@ -27,8 +27,8 @@
 #include <stdexcept>
 #include <string>
 
-#include "vtegtk.hh"
 #include "vtepropertiesinternal.hh"
+#include "vtegtk.hh"
 #include "vteptyinternal.hh"
 #include "debug.hh"
 #include "gobject-glue.hh"

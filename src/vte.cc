@@ -75,6 +75,7 @@
 #include "marshal.h"
 #include "pastify.hh"
 #include "vtepty.h"
+#include "vtepropertiesinternal.hh"
 #include "vtegtk.hh"
 #include "cxx-utils.hh"
 #include "gobject-glue.hh"

@@ -59,8 +59,8 @@
 #include "widget.hh"
 #include "color.hh"
 
-#include "vtegtk.hh"
 #include "vtepropertiesinternal.hh"
+#include "vtegtk.hh"
 #include "termpropsregistry.hh"
 #include "vteptyinternal.hh"
 #include "vteregexinternal.hh"
@@ -80,6 +80,8 @@
 #if WITH_ICU
 #include "icu-glue.hh"
 #endif
+
+VteProperties const* vte_terminal_get_termprops(VteTerminal* terminal) noexcept;
 
 #define I_(string) (g_intern_static_string(string))
 #define _VTE_PARAM_DEPRECATED (vte::debug::check_categories(vte::debug::category::SIGNALS) ? G_PARAM_DEPRECATED : 0)

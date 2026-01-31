@@ -31,6 +31,7 @@
 
 #include <vte/vte.h>
 #include "vteinternal.hh"
+#include "vtepropertiesinternal.hh"
 #include "vtegtk.hh"
 #include "caps.hh"
 #include "debug.hh"
