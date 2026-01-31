@@ -2010,8 +2010,11 @@ try
         g_return_val_if_fail(prop >= 0, false);
 
         auto const impl = _vte_facade_unwrap_pp(properties);
-        if (auto const info = impl->lookup(prop)) // note: not lookup_checked
+        if (auto const info = impl->lookup(prop)) { // note: not lookup_checked
                 impl->reset(*info);
+                return true;
+        }
+        return false;
 }
 catch (...)
 {
