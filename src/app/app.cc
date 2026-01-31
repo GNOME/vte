@@ -154,7 +154,6 @@ public:
         gboolean scrollbar{true};
         gboolean shaping{true};
         gboolean shell{true};
-        gboolean sixel{true};
         gboolean systemd_scope{true};
         gboolean test_mode{false};
         gboolean track_clipboard_targets{false};
@@ -740,7 +739,6 @@ private:
                 load_bool_option("ScrollOnOutput", &scroll_on_output);
                 load_bool_option("Shaping", &shaping);
                 load_bool_option("Shell", &shell);
-                load_bool_option("Sixel", &sixel);
                 load_bool_option("SystemdScope", &systemd_scope);
                 load_bool_option("TestMode", &test_mode);
                 load_bool_option("TrackClipboardTargets", &track_clipboard_targets);
@@ -947,7 +945,6 @@ private:
                 save_bool_option("ScrollOnOutput", scroll_on_output, defopt.scroll_on_output);
                 save_bool_option("Shaping" , shaping, defopt.shaping);
                 save_bool_option("Shell" , shell, defopt.shell);
-                save_bool_option("Sixel" , sixel, defopt.sixel);
                 save_bool_option("SystemdScope" , systemd_scope, defopt.systemd_scope);
                 save_bool_option("TestMode" , test_mode, defopt.test_mode);
                 save_bool_option("TrackClipboardTargets" , track_clipboard_targets, defopt.track_clipboard_targets);
@@ -1281,10 +1278,6 @@ public:
                                 0, &shell,
                                 "Enable spawning a shell inside the terminal",
                                 "Disable spawning a shell inside the terminal");
-                add_bool_option("sixel", 0, "no-sixel", 0,
-                                0, &sixel,
-                                "Enable SIXEL images",
-                                "Disable SIXEL images");
                 add_bool_option("systemd-scope", 0, "no-systemd-scope", 0,
                                 0, &systemd_scope,
                                 "Enable using systemd user scope",
@@ -4242,7 +4235,6 @@ vteapp_window_constructed(GObject *object)
         vte_terminal_set_enable_a11y(window->terminal, options.a11y);
         vte_terminal_set_enable_bidi(window->terminal, options.bidi);
         vte_terminal_set_enable_shaping(window->terminal, options.shaping);
-        vte_terminal_set_enable_sixel(window->terminal, options.sixel);
         vte_terminal_set_enable_fallback_scrolling(window->terminal, options.fallback_scrolling);
         vte_terminal_set_enable_legacy_osc777(window->terminal, options.legacy_osc777);
         vte_terminal_set_mouse_autohide(window->terminal, true);

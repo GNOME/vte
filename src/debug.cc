@@ -54,7 +54,6 @@ _vte_debug_init(void)
                 { "bidi",         unsigned(BIDI         )},
                 { "conversion",   unsigned(CONVERSION   )},
                 { "exceptions",   unsigned(EXCEPTIONS   )},
-                { "image",        unsigned(IMAGE        )},
         };
 
         auto flags = g_parse_debug_string(g_getenv("VTE_DEBUG"),

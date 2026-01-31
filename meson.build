@@ -204,7 +204,6 @@ config_h.set10('WITH_A11Y', get_option('a11y'))
 config_h.set10('WITH_FRIBIDI', get_option('fribidi'))
 config_h.set10('WITH_GNUTLS', get_option('gnutls'))
 config_h.set10('WITH_ICU', get_option('icu'))
-config_h.set10('WITH_SIXEL', get_option('sixel'))
 config_h.set10('WITH_TERMINFO', get_option('terminfo'))
 
 ver = glib_min_req_version.split('.')
@@ -836,7 +835,6 @@ output += '  ICU:          ' + get_option('icu').to_string() + '\n'
 output += '  GIR:          ' + get_option('gir').to_string() + '\n'
 output += '  systemd:      ' + systemd_dep.found().to_string() + '\n'
 output += '  Terminfo:     ' + get_option('terminfo').to_string() + '\n'
-output += '  SIXEL:        ' + get_option('sixel').to_string() + '\n'
 output += '  Glade:        ' + get_option('glade').to_string() + '\n'
 output += '  Vala:         ' + get_option('vapi').to_string() + '\n'
 output += '\n'

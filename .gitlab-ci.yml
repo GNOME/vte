@@ -64,6 +64,5 @@ variables:
     -Dgir=true
     -Dvapi=true
     -Ddocs=true
-    -Dsixel=true
 
   VERSUCH_CI_BOT_NAME: "VTE Automation"

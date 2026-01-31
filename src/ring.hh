@@ -27,13 +27,6 @@
 #include "vterowdata.hh"
 #include "vtestream.h"
 
-#if WITH_SIXEL
-#include "cairo-glue.hh"
-#include "image.hh"
-#include <map>
-#include <memory>
-#endif
-
 #include <type_traits>
 
 typedef struct _VteVisualPosition {
@@ -247,45 +240,6 @@ private:
         hyperlink_idx_t m_hyperlink_hover_idx{0};  /* The hyperlink idx of the hovered cell.
                                                  An idx is allocated on hover even if the cell is scrolled out to the streams. */
         row_t m_hyperlink_maybe_gc_counter{0};  /* Do a GC when it reaches 65536. */
-
-#if WITH_SIXEL
-
-private:
-        size_t m_next_image_priority{0};
-        size_t m_image_fast_memory_used{0};
-
-        /* m_image_priority_map stores the Image. key is the priority of the image. */
-        using image_map_type = std::map<size_t, std::unique_ptr<vte::image::Image>>;
-        image_map_type m_image_map{};
-
-        /* m_image_by_top_map stores only an iterator to the Image in m_image_priority_map;
-         * key is the top row of the image.
-         */
-        using image_by_top_map_type = std::multimap<row_t, vte::image::Image*>;
-        image_by_top_map_type m_image_by_top_map{};
-
-        void image_gc() noexcept;
-        void image_gc_region() noexcept;
-        void unlink_image_from_top_map(vte::image::Image const* image) noexcept;
-        void rebuild_image_top_map() /* throws */;
-        bool rewrap_images_in_range(image_by_top_map_type::iterator& it,
-                                    size_t text_start_ofs,
-                                    size_t text_end_ofs,
-                                    row_t new_row_index) noexcept;
-
-public:
-        auto const& image_map() const noexcept { return m_image_map; }
-
-        void append_image(vte::Freeable<cairo_surface_t> surface,
-                          int pixelwidth,
-                          int pixelheight,
-                          long left,
-                          long top,
-                          long cell_width,
-                          long cell_height) /* throws */;
-
-
-#endif /* WITH_SIXEL */
 };
 
 }; /* namespace base */

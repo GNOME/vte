@@ -38,22 +38,6 @@ class Widget;
 
 } // namespace platform
 
-namespace property {
-
-class Registry;
-class Store;
-class TrackingStore;
-
-} // namespace property
-
-namespace sixel {
-
-class Context;
-class Parser;
-class Sequence;
-
-} // namespace sixel
-
 namespace terminal {
 
 enum class TermpropType;

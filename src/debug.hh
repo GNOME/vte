@@ -58,7 +58,6 @@ enum class category : unsigned {
         BIDI          = 1u << 28,
         CONVERSION    = 1u << 29,
         EXCEPTIONS    = 1u << 30,
-        IMAGE         = 1u << 31,
 };
 
 VTE_CXX_DEFINE_BITMASK(category);

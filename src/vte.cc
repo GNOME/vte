@@ -3659,43 +3659,6 @@ Terminal::insert_single_width_chars(gunichar const *p, int len)
         }
 }
 
-#if WITH_SIXEL
-
-void
-Terminal::insert_image(ProcessingContext& context,
-                       vte::Freeable<cairo_surface_t> image_surface) /* throws */
-{
-        if (!image_surface)
-                return;
-
-        auto const image_width_px = cairo_image_surface_get_width(image_surface.get());
-        auto const image_height_px = cairo_image_surface_get_height(image_surface.get());
-
-        /* Calculate geometry */
-
-        auto const left = m_screen->cursor.col;
-        auto const top = m_screen->cursor.row;
-        auto const width = (image_width_px + m_cell_width_unscaled - 1) / m_cell_width_unscaled;
-        auto const height = (image_height_px + m_cell_height_unscaled - 1) / m_cell_height_unscaled;
-
-        m_screen->row_data->append_image(std::move(image_surface),
-                                         image_width_px,
-                                         image_height_px,
-                                         left,
-                                         top,
-                                         m_cell_width_unscaled,
-                                         m_cell_height_unscaled);
-
-        /* Erase characters under the image. Since this inserts content, we need
-         * to update the processing context's bbox.
-         */
-        context.pre_GRAPHIC();
-        erase_image_rect(height, width);
-        context.post_GRAPHIC();
-}
-
-#endif /* WITH_SIXEL */
-
 guint8
 Terminal::get_bidi_flags() const noexcept
 {
@@ -4050,12 +4013,6 @@ Terminal::process_incoming()
                         break;
 #endif
 
-#if WITH_SIXEL
-                case DataSyntax::DECSIXEL:
-                        process_incoming_decsixel(context, *chunk);
-                        break;
-#endif
-
                 default:
                         g_assert_not_reached();
                         break;
@@ -4323,7 +4280,10 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                 }
         }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-label"
 switched_data_syntax:
+#pragma GCC diagnostic pop
 
         // Update start for data consumed
         chunk.set_begin_reading(ip);
@@ -4451,7 +4411,10 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
                 return;
         }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-label"
  switched_data_syntax:
+#pragma GCC diagnostic pop
 
         // Update start for data consumed
         chunk.set_begin_reading(ip);
@@ -4464,70 +4427,6 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
 }
 
 #endif /* WITH_ICU */
-
-#if WITH_SIXEL
-
-void
-Terminal::process_incoming_decsixel(ProcessingContext& context,
-                                    vte::base::Chunk& chunk)
-{
-        auto const [status, ip] = m_sixel_context->parse(chunk.begin_reading(),
-                                                         chunk.end_reading(),
-                                                         chunk.eos());
-
-        // Update start for data consumed
-        chunk.set_begin_reading(ip);
-
-        switch (status) {
-        case vte::sixel::Parser::ParseStatus::CONTINUE:
-                break;
-
-        case vte::sixel::Parser::ParseStatus::COMPLETE: try {
-                /* Like the main parser, the sequence only takes effect
-                 * if introducer and terminator match (both C0 or both C1).
-                 */
-                if (m_sixel_context->is_matching_controls()) {
-                        if (m_sixel_context->id() == vte::sixel::Context::k_termprop_icon_image_id) {
-                                auto const info = m_termprops.registry().lookup(VTE_PROPERTY_ID_ICON_IMAGE);
-                                assert(info);
-                                auto const width = m_sixel_context->image_width();
-                                auto const height = m_sixel_context->image_height();
-                                if (width >= 16 && width <= 512 &&
-                                    height >= 16 && height <= 512) {
-                                        m_termprops.dirty(*info) = true;
-                                        *m_termprops.value(*info) = std::move(m_sixel_context->image_cairo());
-                                } else {
-                                        m_termprops.reset(*info);
-                                }
-
-                                m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS);
-                        } else {
-                                insert_image(context, m_sixel_context->image_cairo());
-                        }
-                }
-                } catch (...) {
-                }
-                m_sixel_context->reset();
-                pop_data_syntax();
-                break;
-
-        case vte::sixel::Parser::ParseStatus::ABORT: try {
-                if (m_sixel_context->id() == vte::sixel::Context::k_termprop_icon_image_id) {
-                        auto const info = m_termprops.registry().lookup(VTE_PROPERTY_ID_ICON_IMAGE);
-                        assert(info);
-                        m_termprops.reset(*info);
-                        m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS);
-                }
-                } catch (...) {
-                }
-
-                m_sixel_context->reset();
-                pop_data_syntax();
-                break;
-        }
-}
-
-#endif /* WITH_SIXEL */
 
 bool
 Terminal::pty_io_read(int const fd,
@@ -8454,12 +8353,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 	for (auto i = 0; i < VTE_PALETTE_SIZE; i++)
 		m_palette[i].sources[std::to_underlying(color_palette::ColorSource::Escape)].is_set = false;
 
-        /* Dispatch unripe DCS (for now, just DECSIXEL) sequences,
-         * so we can switch data syntax and parse the contents with
-         * the SIXEL subparser.
-         */
-        m_parser.set_dispatch_unripe_dcs(true);
-
 	/* Set up I/O encodings. */
 	m_outgoing = _vte_byte_array_new();
 
@@ -10161,7 +10054,6 @@ Terminal::draw(cairo_region_t const* region) noexcept
                                                     allocated_height - m_border.top - m_border.bottom};
         m_draw.clip_border(&vert_clip);
 
-
         /* Whether blinking text should be visible now */
         m_text_blink_state = true;
         text_blink_enabled_now = (unsigned)m_text_blink_mode & (unsigned)(m_has_focus ? TextBlinkMode::eFOCUSED : TextBlinkMode::eUNFOCUSED);
@@ -10767,26 +10659,11 @@ Terminal::reset_data_syntax()
                 return;
 
         switch (current_data_syntax()) {
-#if WITH_SIXEL
-        case DataSyntax::DECSIXEL:
-                m_sixel_context->reset();
-                break;
-#endif
-
         default:
                 break;
         }
 
         pop_data_syntax();
-}
-
-void
-Terminal::reset_graphics_color_registers()
-{
-#if WITH_SIXEL
-        if (m_sixel_context)
-                m_sixel_context->reset_colors();
-#endif
 }
 
 /*
@@ -10897,11 +10774,6 @@ Terminal::reset(bool clear_tabstops,
 	/* Clear modifiers. */
 	m_modifiers = 0;
 
-#if WITH_SIXEL
-        if (m_sixel_context)
-                m_sixel_context->reset_colors();
-#endif
-
         /* Reset the saved cursor. */
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);
@@ -10914,12 +10786,6 @@ Terminal::reset(bool clear_tabstops,
 
         /* Reset XTerm window controls */
         m_xterm_wm_iconified = false;
-
-        /* When not using private colour registers, we should
-         * clear (assign to black) all SIXEL colour registers.
-         * (DEC PPLV2 § 5.8)
-         */
-        reset_graphics_color_registers();
 
         // Reset termprops
         reset_termprops();
