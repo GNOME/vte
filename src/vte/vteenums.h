@@ -221,8 +221,8 @@ typedef enum {
  * @VTE_UUID_FORMAT_BRACED: braced format
  * @VTE_UUID_FORMAT_URN: urn format
  * @VTE_UUID_FORMAT_ANY: any format of the above
- * @VTE_UUID_FORMAT_ID128: non-conforming systemd ID128 format. Since: 0.84
- * @VTE_UUID_FORMAT_ANY_ID128: any format of the above. Since: 0.84
+ * @VTE_UUID_FORMAT_ID128: non-conforming systemd ID128 format. Since: 0.86
+ * @VTE_UUID_FORMAT_ANY_ID128: any format of the above. Since: 0.86
  *
  * An enumeration that specifies the format of a #VteUuid.
  *
@@ -367,7 +367,7 @@ typedef enum {
  *
  * An enum containing the IDs of the systemd properties.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 typedef enum {
         VTE_SYSTEMD_PROPERTY_ID_CONTEXT_ID = 0,
@@ -431,7 +431,7 @@ typedef enum {
  *
  * An enum for the types of systemd contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 typedef enum {
         VTE_SYSTEMD_CONTEXT_TYPE_BUILTIN = 0, /* built-in context root */
@@ -456,7 +456,7 @@ typedef enum {
  *
  * An enum for systemd context operations.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 typedef enum {
         VTE_SYSTEMD_CONTEXT_OPERATION_START = 1,
@@ -472,7 +472,7 @@ typedef enum {
  *
  * An enum showing how the systemd context terminated.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 typedef enum {
         VTE_SYSTEMD_CONTEXT_EXIT_CONDITION_SUCCESS = 0,

@@ -36,7 +36,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_START contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_BOOT_ID "bootid"
 
@@ -50,7 +50,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_START contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_COMM "comm"
 
@@ -63,7 +63,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_START contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_COMMAND_LINE "cmdline"
 
@@ -76,7 +76,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_START contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_CONTAINER "container"
 
@@ -85,7 +85,7 @@ G_BEGIN_DECLS
  *
  * A %VTE_PROPERTY_UUID property to specify the context ID.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_CONTEXT_ID "context-id"
 
@@ -98,7 +98,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_START contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_CONTEXT_TYPE "type"
 
@@ -111,7 +111,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_START contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_CURRENT_DIRECTORY "cwd"
 
@@ -124,7 +124,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_END contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_EXIT_CONDITION "exit"
 
@@ -138,7 +138,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_END contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_EXIT_SIGNAL "signal"
 
@@ -151,7 +151,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_END contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_EXIT_STATUS "status"
 
@@ -164,7 +164,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_START contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_HOSTNAME "hostname"
 
@@ -178,7 +178,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_START contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_MACHINE_ID "machineid"
 
@@ -191,7 +191,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_START contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_PID "pid"
 
@@ -204,7 +204,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_START contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_PIDFD_INODE "pidfdid"
 
@@ -217,7 +217,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_START contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_TARGET_HOST "targethost"
 
@@ -235,7 +235,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_START contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_TARGET_USER "targetuser"
 
@@ -248,7 +248,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_START contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_USER "user"
 
@@ -261,7 +261,7 @@ G_BEGIN_DECLS
  * This property is only available for
  * %VTE_SYSTEMD_CONTEXT_OPERATION_START contexts.
  *
- * Since: 0.84
+ * Since: 0.86
  */
 #define VTE_SYSTEMD_PROPERTY_VM "vm"
 

@@ -8903,7 +8903,7 @@ catch (...)
  *
  * Returns: (transfer none): a #VtePropertiesRegistry
  *
- * Since: 0.84
+ * Since: 0.86
  */
 VtePropertiesRegistry const*
 vte_get_termprops_registry(void) noexcept
@@ -8940,7 +8940,7 @@ _vte_get_termprops_registry(void) noexcept
  *
  * Returns: (transfer none): a #VteProperties
  *
- * Since: 0.84
+ * Since: 0.86
  */
 VteProperties const*
 vte_terminal_get_termprops(VteTerminal* terminal) noexcept
