@@ -52,8 +52,8 @@ public:
                         m_format = vte::uuid::format::BRACED;
                 else if (fmt == 'u')
                         m_format = vte::uuid::format::URN;
-                else if (fmt == 'i')
-                        m_format = vte::uuid::format::ID128;
+                //else if (fmt == 'i')
+                //m_format = vte::uuid::format::ID128;
                 else
                         throw format_error{"Invalid format"};
 

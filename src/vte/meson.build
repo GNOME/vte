@@ -25,10 +25,9 @@ libvte_common_public_headers = files(
   'vteproperties.h',
   'vtepty.h',
   'vteregex.h',
-  'vtesystemd.h',
   'vteterminal.h',
-  'vtetypebuiltins.h',
   'vteuuid.h',
+  'vtetypebuiltins.h',
 )
 
 libvte_common_enum_headers = files(

@@ -134,17 +134,13 @@ struct _VteTerminalClass {
         void (* termprop_changed)(VteTerminal* terminal,
                                   char const* prop);
 
-        void (* systemd_context)(VteTerminal* terminal,
-                                 VteSystemdContextOperation op,
-                                 VteProperties const* properties);
-
         /* Add new vfuncs just above, and subtract from the padding below. */
 
         /* Padding for future expansion. */
 #if _VTE_GTK == 3
-        gpointer _padding[9];
+        gpointer _padding[10];
 #elif _VTE_GTK == 4
-        gpointer _padding[12];
+        gpointer _padding[13];
 #endif /* _VTE_GTK */
 
 // FIXMEgtk4 use class private data instead
