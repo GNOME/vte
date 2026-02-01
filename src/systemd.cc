@@ -56,9 +56,10 @@ create_scope_for_pid_sync(pid_t pid,
 
         auto uuid = vte::uuid_string_random();
         auto scope = fmt::format("vte-spawn-{}.scope", uuid);
-        auto prgname = vte::glib::take_string(g_utf8_make_valid(g_get_prgname(), -1));
+        auto const prgname_raw = g_get_prgname();
+        auto prgname = vte::glib::take_string(prgname_raw ? g_utf8_make_valid(prgname_raw, -1) : nullptr);
         auto description = fmt::format("VTE child process {} launched by {} process {}",
-                                       pid, prgname.get(), getpid());
+                                       pid, prgname ? prgname.get() : "(unknown)", getpid());
 
         auto builder_stack = GVariantBuilder{};
         auto builder = &builder_stack;
