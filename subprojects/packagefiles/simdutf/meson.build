@@ -1,4 +1,4 @@
-# Copyright © 2025 Christian Persch
+# Copyright © 2025, 2026 Christian Persch
 #
 # This library is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published
@@ -40,13 +40,35 @@ simdutf_amalgamate = [
   '--output-dir', meson.project_build_root(),
   '--no-zip',
   '--no-readme',
-  '--with-utf8',
-  # '--with-utf16',
-  '--with-utf32',
-  # '--with-base64',
-  # '--with-detect-enc',
-  '--with-ascii',
 ]
+
+if get_option('ascii')
+  simdutf_amalgamate += ['--with-ascii']
+endif
+
+if get_option('base64')
+  simdutf_amalgamate += ['--with-base64']
+endif
+
+if get_option('detect-encoding')
+  simdutf_amalgamate += ['--with-detect-enc']
+endif
+
+if get_option('latin1')
+  simdutf_amalgamate += ['--with-latin1']
+endif
+
+if get_option('utf8')
+  simdutf_amalgamate += ['--with-utf8']
+endif
+
+if get_option('utf16')
+  simdutf_amalgamate += ['--with-utf16']
+endif
+
+if get_option('utf32')
+  simdutf_amalgamate += ['--with-utf32']
+endif
 
 if get_option('debug')
   simdutf_amalgamate += ['--debug-source']

@@ -1,0 +1,64 @@
+# Copyright © 2026 Christian Persch
+#
+# This library is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this library.  If not, see <https://www.gnu.org/licenses/>.
+
+option(
+  'ascii',
+  type: 'boolean',
+  value: false,
+  description: 'Enable ascii validation support',
+)
+
+option(
+  'base64',
+  type: 'boolean',
+  value: false,
+  description: 'Enable Base-64 support',
+)
+
+option(
+  'detect-encoding',
+  type: 'boolean',
+  value: false,
+  description: 'Enable encoding detection support',
+)
+
+option(
+  'latin1',
+  type: 'boolean',
+  value: false,
+  description: 'Enable Latin-1 support',
+)
+
+option(
+  'utf8',
+  type: 'boolean',
+  value: true,
+  description: 'Enable UTF-8 support',
+)
+
+option(
+  'utf16',
+  type: 'boolean',
+  value: false,
+  description: 'Enable UTF-16 support',
+)
+
+option(
+  'utf32',
+  type: 'boolean',
+  value: false,
+  description: 'Enable UTF-32 support',
+)
+
