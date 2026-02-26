@@ -9700,6 +9700,40 @@ Terminal::draw_rows(VteScreen *screen_,
                                 c = _vte_unistr_append_unistr (0x00A0, cell->c);
                                 lcol = -1;
                         }
+                        /* Combine adjacent regional indicators into one cluster so
+                         * OpenType ccmp can form country-flag emoji glyphs.
+                         * Keep this constrained to cells that would otherwise be in
+                         * the same draw run (same style/colors/link state). */
+                        auto const base = _vte_unistr_get_base(c);
+                        if (_vte_unistr_strlen(c) == 1 &&
+                            base >= 0x1F1E6 && base <= 0x1F1FF &&
+                            j < row_data->len && j < column_count) {
+                                auto next = _vte_row_data_get(row_data, j);
+                                if (next &&
+                                    !next->attr.fragment() &&
+                                    next->attr.columns() == 1 &&
+                                    _vte_unistr_strlen(next->c) == 1) {
+                                        auto const next_base = _vte_unistr_get_base(next->c);
+                                        if (next_base >= 0x1F1E6 && next_base <= 0x1F1FF) {
+                                                auto const next_selected = cell_is_selected_log(j, row);
+                                                guint next_fore, next_back, next_deco;
+                                                determine_colors(next, next_selected, &next_fore, &next_back, &next_deco);
+                                                auto const next_hyperlink = (m_allow_hyperlink && next->attr.hyperlink_idx != 0);
+                                                auto const next_hilite = (next_hyperlink && next->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
+                                                                         (!next_hyperlink && regex_match_has_current() && m_match_span.contains(row, j));
+                                                if (next->attr.attr == nattr &&
+                                                    next_fore == nfore &&
+                                                    next_back == nback &&
+                                                    next_deco == ndeco &&
+                                                    next_hyperlink == nhyperlink &&
+                                                    next_hilite == nhilite) {
+                                                        c = _vte_unistr_append_unistr(c, next->c);
+                                                        j += next->attr.columns();
+                                                }
+                                        }
+                                }
+                        }
+
                         // FIXME No need for the "< column_count" safety cap once bug 135 is addressed.
                         while (j < row_data->len && j < column_count) {
                                 /* Combine with subsequent spacing marks. */
