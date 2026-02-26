@@ -83,6 +83,7 @@ option(
   type: 'boolean',
   value: true,
   description: 'Enable GNUTLS support',
+  deprecated: true,
 )
 
 option(
