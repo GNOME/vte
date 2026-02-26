@@ -1874,6 +1874,7 @@ Widget::map() noexcept
         if (m_event_window)
                 gdk_window_show_unraised(m_event_window);
 #endif
+        terminal()->widget_map();
 }
 
 #if VTE_GTK == 4

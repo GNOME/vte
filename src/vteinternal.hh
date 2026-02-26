@@ -769,6 +769,7 @@ public:
         /* Adjustment updates pending. */
         bool m_adjustment_changed_pending;
         bool m_adjustment_value_changed_pending;
+        bool m_widget_mapped{false};
         gboolean m_cursor_moved_pending;
         gboolean m_contents_changed_pending;
 
@@ -1082,6 +1083,7 @@ public:
         }
 
         bool widget_realized() const noexcept;
+        inline bool widget_mapped() const noexcept { return m_widget_mapped; }
         inline cairo_rectangle_int_t const& get_allocated_rect() const { return m_allocated_rect; }
         inline vte::view::coord_t get_allocated_width() const { return m_allocated_rect.width; }
         inline vte::view::coord_t get_allocated_height() const { return m_allocated_rect.height; }
@@ -1120,6 +1122,7 @@ public:
 
         void widget_realize();
         void widget_unrealize();
+        void widget_map();
         void widget_unmap();
         void widget_style_updated();
         void widget_focus_in();

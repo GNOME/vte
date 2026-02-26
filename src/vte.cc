@@ -1923,8 +1923,11 @@ Terminal::emit_adjustment_changed()
 void
 Terminal::queue_adjustment_changed()
 {
+        if (!widget_mapped())
+                return;
+
 	m_adjustment_changed_pending = true;
-	add_process_timeout(this);
+        add_process_timeout(this);
 }
 
 void
@@ -1943,11 +1946,11 @@ Terminal::queue_adjustment_value_changed(double v)
 
         m_screen->scroll_delta = v;
         m_adjustment_value_changed_pending = true;
-        add_process_timeout(this);
 
-        if (!widget_realized()) [[unlikely]]
+        if (!widget_mapped()) [[unlikely]]
                 return;
 
+        add_process_timeout(this);
         _vte_debug_print(vte::debug::category::ADJ,
                          "Scrolling by {:f}",
                          dy);
@@ -8661,9 +8664,17 @@ Terminal::widget_size_allocate(
 }
 
 void
+Terminal::widget_map()
+{
+        m_widget_mapped = true;
+        adjust_adjustments_full();
+}
+
+void
 Terminal::widget_unmap()
 {
         m_ringview.pause();
+        m_widget_mapped = false;
 }
 
 void
