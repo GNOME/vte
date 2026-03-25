@@ -51,7 +51,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <string_view>
 #include <vector>
+
+using namespace std::literals::string_view_literals;
 
 #include <fmt/format.h>
 
@@ -526,6 +529,52 @@ private:
                 return true;
         }
 
+        bool
+        preset_options(std::string_view value)
+        {
+                if (value == "gnome"sv ||
+                    value == "gnome-terminal"sv) {
+#if VTE_GTK == 3
+                        fallback_scrolling = true;
+                        kinetic_scrolling = false;
+                        overlay_scrollbar = false;
+                        scroll_unit_is_pixels = false;
+                        scrollbar = true;
+                        use_scrolled_window = false;
+#elif VTE_GTK == 4
+                        fallback_scrolling = false;
+                        kinetic_scrolling = true; // by default
+                        overlay_scrollbar = false; // by default
+                        scroll_unit_is_pixels = true;
+                        scrollbar = true;
+                        use_scrolled_window = true;
+#else
+#error
+#endif // VTE_GTK
+                }
+#if VTE_GTK == 4
+                else if (value == "gnome-console"sv) {
+                        fallback_scrolling = false;
+                        kinetic_scrolling = false;
+                        overlay_scrollbar = true;
+                        scroll_unit_is_pixels = true;
+                        scrollbar = true;
+                        use_scrolled_window = true;
+                } else if (value == "ptyxis"sv) {
+                        fallback_scrolling = false;
+                        kinetic_scrolling = false;
+                        overlay_scrollbar = true; // by default
+                        scroll_unit_is_pixels = true;
+                        scrollbar = true;
+                        use_scrolled_window = true;
+                }
+#endif // VTE_GTK == 4
+                else {
+                        return false;
+                }
+                return true;
+        };
+
         static gboolean
         parse_background_image(char const* option, char const* value, void* data, GError** error)
         {
@@ -677,6 +726,18 @@ private:
                         that->yalign = VteAlign(v);
                 return rv;
         }
+
+        static gboolean
+        parse_presets(char const* option, char const* value, void* data, GError** error)
+        {
+                Options* that = static_cast<Options*>(data);
+                if (!that->preset_options(value)) {
+                        g_set_error(error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+                                    "Unknown preset \"%s\"", value);
+                        return false;
+                }
+                return  true;
+        };
 
         char const*
         default_config_path() {
@@ -1437,6 +1498,12 @@ public:
 
                         { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
                           "Enable test mode", nullptr },
+
+                        // This option exists to make it easier to run the app
+                        // with the same scrolling options as some known vte-based
+                        // terminals (gnome-terminal, gnome-console, ptyxis, ...).
+                        { "x-presets", 0,  G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_CALLBACK, (void*)parse_presets,
+                          "Preset some options", "PRESET" },
 
                         /* Options for compatibility with the old vteapp test application */
                         { "border-width", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_INT, &extra_margin,
