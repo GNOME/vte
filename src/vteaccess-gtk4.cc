@@ -1036,8 +1036,8 @@ _vte_accessible_text_scrolled (GtkAccessibleText *accessible, long delta)
         if (!vte_terminal_get_enable_a11y (terminal))
                 return;
 
-        _vte_debug_print (vte::debug::category::ALLY,
-                          "Text scrolled by {} lines", delta);
+        _vte_debug_print (VTE_DEBUG_ALLY,
+                          "Text scrolled by %ld lines", delta);
 
         vte_accessible_text_contents_reset (next);
         vte_accessible_text_contents_snapshot (next, state->terminal);
