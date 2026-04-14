@@ -1101,4 +1101,7 @@ _vte_accessible_text_scrolled (GtkAccessibleText *accessible, long delta)
                 }
         }
         state->text_scrolled = TRUE;
+        if (prev->caret != next->caret) {
+                gtk_accessible_text_update_caret_position (GTK_ACCESSIBLE_TEXT (terminal));
+        }
 }
