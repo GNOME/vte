@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues/\n"
-"POT-Creation-Date: 2026-01-20 22:03+0000\n"
-"PO-Revision-Date: 2026-01-26 12:56+0000\n"
+"POT-Creation-Date: 2026-02-26 21:24+0000\n"
+"PO-Revision-Date: 2026-05-11 22:05+0100\n"
 "Last-Translator: Flynn Peck <cirilla@tuta.io>\n"
 "Language-Team: kw\n"
 "Language: kw\n"
@@ -23,20 +23,20 @@ msgstr ""
 "X-DL-Domain: po\n"
 "X-DL-State: Translating\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Gtranslator 49.0\n"
+"X-Generator: Gtranslator 50.0\n"
 
-#: src/vte.cc:8494
+#: src/vte.cc:8497
 msgid "WARNING"
 msgstr "GWARNYANS"
 
-#: src/vte.cc:8496
+#: src/vte.cc:8499
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
-msgstr "GnuTLS na byw, data a wra skrifa war plasen anargelys!"
+msgstr "GnuTLS nyns yw byw, data a vydh skrifys war blasen anargelys!"
 
 #: src/spawn.cc:133
 #, c-format
 msgid "Failed to set pipe nonblocking: %s"
-msgstr "Y fyllis gorra pib anlettyans: %s"
+msgstr "Ny yllir gorra pib anlettyans: %s"
 
 #: src/spawn.cc:178
 #, c-format
@@ -49,19 +49,19 @@ msgstr "Oberyans yn termyn yn-mes"
 
 #: src/spawn.cc:195
 msgid "Operation was cancelled"
-msgstr "Oberyans yw hedhys"
+msgstr "Oberyans o hedhys"
 
 #: src/spawn.cc:213
 #, c-format
 msgid "Failed to read from child pipe (%s)"
-msgstr "Y fyllis redya rag pib flogh (%s)"
+msgstr "Ny yllir redya rag pib flogh (%s)"
 
 #: src/spawn.cc:664
 #, c-format
 msgid "Failed to change to directory “%s”: %s"
-msgstr "Y fyllis chanjya dhe restrenva “%s”: %s"
+msgstr "Ny yllir chanjya dhe restrenva “%s”: %s"
 
 #: src/spawn.cc:733
 #, c-format
 msgid "Failed to execute child process “%s”: "
-msgstr "Y fyllis eksekutya argerdh flogh: “%s”:"
+msgstr "Ny yllir eksekutya argerdh flogh: “%s”:"
