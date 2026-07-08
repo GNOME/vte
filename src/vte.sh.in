@@ -101,7 +101,7 @@ if [[ -n "${BASH_VERSION:-}" ]]; then
     # non-'promptvars' cases to prevent spillover if a custom user string
     # is appended, see
     # https://gitlab.gnome.org/GNOME/vte/-/work_items/2951
-    PS0=$(__vte_termprop_signal_psN "vte.shell.preexec")'\r'
+    PS0=$(__vte_termprop_signal_psN "vte.shell.preexec")'\r'"${PS0:-}"
 
     # Shell integration
     if [[ "$PS1" != *\]133\;* ]]; then
