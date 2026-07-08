@@ -34,6 +34,13 @@ __vte_termprop_signal() {
     return $errsv
 }
 
+__vte_termprop_signal_psN() {
+    local errsv="$?"
+    # https://gitlab.gnome.org/GNOME/vte/-/work_items/2951
+    printf '\\033]666;%s!\\033\\\\' "$1"
+    return $errsv
+}
+
 __vte_termprop_set() {
     local errsv="$?"
     printf '\033]666;%s=%s\033\\' "$1" "$2"
@@ -85,7 +92,16 @@ if [[ -n "${BASH_VERSION:-}" ]]; then
     else
         PROMPT_COMMAND="__vte_prompt_command"
     fi
-    PS0=$(__vte_termprop_signal "vte.shell.preexec")
+
+    # '\r' serves two purposes here.
+    # It ensures that the kernel's cooked mode has the right idea of
+    # the column, important for handling TAB followed by BS keypresses.
+    # It is also a workaround for the string not to end in a backslash, as
+    # that would need different level of escaping in the 'promptvars' vs.
+    # non-'promptvars' cases to prevent spillover if a custom user string
+    # is appended, see
+    # https://gitlab.gnome.org/GNOME/vte/-/work_items/2951
+    PS0=$(__vte_termprop_signal_psN "vte.shell.preexec")'\r'
 
     # Shell integration
     if [[ "$PS1" != *\]133\;* ]]; then
