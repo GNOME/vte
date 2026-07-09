@@ -30,32 +30,32 @@ esac
 
 __vte_termprop_signal() {
     local errsv="$?"
-    printf '\033]666;%s!\033\\' "$1"
+    printf '\e]666;%s!\e\\' "$1"
     return $errsv
 }
 
 __vte_termprop_signal_psN() {
     local errsv="$?"
     # https://gitlab.gnome.org/GNOME/vte/-/work_items/2951
-    printf '\\033]666;%s!\\033\\\\' "$1"
+    printf '\\e]666;%s!\\e\\\\' "$1"
     return $errsv
 }
 
 __vte_termprop_set() {
     local errsv="$?"
-    printf '\033]666;%s=%s\033\\' "$1" "$2"
+    printf '\e]666;%s=%s\e\\' "$1" "$2"
     return $errsv
 }
 
 __vte_termprop_reset() {
     local errsv="$?"
-    printf '\033]666;%s\033\\' "$1"
+    printf '\e]666;%s\e\\' "$1"
     return $errsv
 }
 
 __vte_osc7 () {
     local errsv="$?"
-    printf "\033]7;file://%s%s\033\\" "${HOSTNAME}" "$(@libexecdir@/vte-urlencode-cwd)"
+    printf "\e]7;file://%s%s\e\\" "${HOSTNAME}" "$(@libexecdir@/vte-urlencode-cwd)"
     return $errsv
 }
 
@@ -73,7 +73,7 @@ __vte_prompt_command() {
     local pwd='~'
     [ "$PWD" != "$HOME" ] && pwd=${PWD/#$HOME\//\~\/}
     pwd="${pwd//[[:cntrl:]]}"
-    printf "\033]0;%s@%s:%s\033\\" "${USER}" "${HOSTNAME%%.*}" "${pwd}"
+    printf "\e]0;%s@%s:%s\e\\" "${USER}" "${HOSTNAME%%.*}" "${pwd}"
     __vte_termprop_signal "vte.shell.precmd"
     return $errsv
 }
