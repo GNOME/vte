@@ -308,7 +308,7 @@ protected:
                 eUNDERLINE
         };
 
-        /* NOTE: This needs to be kept in sync with the public VteEraseMode enum */
+        /* NOTE: This needs to be kept in sync with the public VteEraseBinding enum */
         enum EraseMode {
                 eAUTO,
                 eASCII_BACKSPACE,
