@@ -10149,13 +10149,12 @@ try
                                         char* normal = nullptr;
                                         auto len = 0uz;
                                         auto suppress = false, add_modifiers = false;
-                                        map_erase_binding(keycode == GDK_KEY_Delete ? m_delete_binding : m_backspace_binding,
-                                                          keycode == GDK_KEY_Delete ? EraseMode::eDELETE_SEQUENCE : EraseMode::eTTY,
-                                                          state,
-                                                          normal,
-                                                          len,
-                                                          suppress,
-                                                          add_modifiers);
+                                        map_erase_binding_for_key(keycode,
+                                                                  state,
+                                                                  normal,
+                                                                  len,
+                                                                  suppress,
+                                                                  add_modifiers);
                                         if (add_modifiers) {
                                                 _vte_keymap_key_add_key_modifiers(keycode,
                                                                                   state,

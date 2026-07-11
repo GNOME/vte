@@ -5180,8 +5180,8 @@ Terminal::map_erase_binding(EraseMode mode,
                                 normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
                                 normal_length = 1;
                                 suppress_alt_esc = false;
+                                break;
                         }
-                        break;
                 } /* else: AUTO */
                 assert(auto_mode != eTTY);
                 [[fallthrough]];
@@ -5206,6 +5206,32 @@ Terminal::map_erase_binding(EraseMode mode,
                         normal[0] = '\177';
                 else if (normal[0] == '\177')
                         normal[0] = '\010';
+        }
+}
+
+void
+Terminal::map_erase_binding_for_key(unsigned keysym,
+                                    unsigned modifiers,
+                                    char*& normal,
+                                    size_t& normal_length,
+                                    bool& suppress_alt_esc,
+                                    bool& add_modifiers)
+{
+        if (keysym == GDK_KEY_Delete ||
+            keysym == GDK_KEY_KP_Delete) {
+                map_erase_binding(m_delete_binding,
+                                  EraseMode::eDELETE_SEQUENCE,
+                                  modifiers,
+                                  normal, normal_length,
+                                  suppress_alt_esc, add_modifiers);
+        } else if (keysym == GDK_KEY_BackSpace) {
+                map_erase_binding(m_backspace_binding == EraseMode::eAUTO ? EraseMode::eTTY : m_backspace_binding,
+                                  EraseMode::eASCII_BACKSPACE,
+                                  modifiers,
+                                  normal, normal_length,
+                                  suppress_alt_esc, add_modifiers);
+        } else {
+                __builtin_unreachable();
         }
 }
 
@@ -5498,26 +5524,18 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 		/* Map the key to a sequence name if we can. */
 		switch (event.keyval()) {
 		case GDK_KEY_BackSpace:
-                        map_erase_binding(m_backspace_binding,
-                                          ((m_backspace_binding != EraseMode::eTTY) && pty()) ? EraseMode::eTTY : EraseMode::eASCII_BACKSPACE,
-                                          m_modifiers,
-                                          normal,
-                                          normal_length,
-                                          suppress_alt_esc,
-                                          add_modifiers);
-			handled = true;
-			break;
 		case GDK_KEY_KP_Delete:
 		case GDK_KEY_Delete:
-                        map_erase_binding(m_delete_binding,
-                                          EraseMode::eDELETE_SEQUENCE,
-                                          m_modifiers,
-                                          normal,
-                                          normal_length,
-                                          suppress_alt_esc,
-                                          add_modifiers);
-                        handled = true;
+                        map_erase_binding_for_key(event.keyval(),
+                                                  m_modifiers,
+                                                  normal,
+                                                  normal_length,
+                                                  suppress_alt_esc,
+                                                  add_modifiers);
+			handled = true;
 			break;
+                default:
+                        break;
                 }
 
 		/* Try mapping to a literal or capability name. */
