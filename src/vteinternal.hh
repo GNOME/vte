@@ -1631,6 +1631,12 @@ public:
                                size_t& normal_length,
                                bool& suppress_alt_esc,
                                bool& add_modifiers);
+        void map_erase_binding_for_key(unsigned keysym,
+                                       unsigned modifiers,
+                                       char*& normal,
+                                       size_t& normal_length,
+                                       bool& suppress_alt_esc,
+                                       bool& add_modifiers);
 
         bool set_enable_a11y(bool setting);
         bool set_enable_bidi(bool setting);
