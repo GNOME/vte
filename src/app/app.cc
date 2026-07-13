@@ -3385,6 +3385,12 @@ static bool
 vteapp_window_tick(VteappWindow* window,
                    GError** error)
 {
+        // First send some queries, see issue
+        // https://gitlab.gnome.org/GNOME/vte/-/work_items/2952
+        constexpr auto query = "\eP+q6b62;6b44\e\\"sv; // XTERM_RQTCAP for "kb" and "kD"
+        vte_terminal_feed(window->terminal, query.data(), query.size());
+
+        // Tick tock tick tock
         g_timeout_add_seconds(1, (GSourceFunc) tick_cb, window);
         return true;
 }
@@ -3399,7 +3405,7 @@ vteapp_window_launch(VteappWindow* window)
                 rv = vteapp_window_launch_argv(window, options.exec_argv, error);
         else if (options.command != nullptr)
                 rv = vteapp_window_launch_commandline(window, options.command, error);
-        else if (options.shell)
+        else if (options.shell && options.pty)
                 rv = vteapp_window_launch_shell(window, error);
         else if (options.pty)
                 rv = vteapp_window_fork(window, error);
