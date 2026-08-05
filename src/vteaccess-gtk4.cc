@@ -564,7 +564,8 @@ vte_accessible_text_get_selection (GtkAccessibleText       *accessible,
         g_assert (ranges != nullptr);
 
         *n_ranges = 0;
-        *ranges = nullptr;
+        if (ranges != nullptr)
+                *ranges = nullptr;
 
         try {
                 auto impl = _vte_terminal_get_impl (terminal);
@@ -575,19 +576,22 @@ vte_accessible_text_get_selection (GtkAccessibleText       *accessible,
                     impl->m_selection[std::to_underlying(vte::platform::ClipboardType::PRIMARY)] == nullptr)
                         return FALSE;
 
-                auto start_column = impl->m_selection_resolved.start_column();
-                auto start_row = impl->m_selection_resolved.start_row();
-                auto end_column = impl->m_selection_resolved.end_column();
-                auto end_row = impl->m_selection_resolved.end_row();
-
-                auto start_offset = vte_accessible_text_contents_offset_from_xy (contents, start_column, start_row);
-                auto end_offset = vte_accessible_text_contents_offset_from_xy (contents, end_column, end_row);
-
-                range.start = gsize(start_offset);
-                range.length = gsize(end_offset - start_offset);
-
                 *n_ranges = 1;
-                *ranges = (GtkAccessibleTextRange *)g_memdup2 (&range, sizeof range);
+
+                if (ranges != nullptr) {
+                        auto start_column = impl->m_selection_resolved.start_column();
+                        auto start_row = impl->m_selection_resolved.start_row();
+                        auto end_column = impl->m_selection_resolved.end_column();
+                        auto end_row = impl->m_selection_resolved.end_row();
+
+                        auto start_offset = vte_accessible_text_contents_offset_from_xy (contents, start_column, start_row);
+                        auto end_offset = vte_accessible_text_contents_offset_from_xy (contents, end_column, end_row);
+
+                        range.start = gsize(start_offset);
+                        range.length = gsize(end_offset - start_offset);
+
+                        *ranges = (GtkAccessibleTextRange *)g_memdup2 (&range, sizeof range);
+        }
 
                 return TRUE;
         } catch (...) { }
