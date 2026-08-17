@@ -561,10 +561,11 @@ vte_accessible_text_get_selection (GtkAccessibleText       *accessible,
         VteAccessibleText *state = vte_accessible_text_get (terminal);
 
         g_assert (VTE_IS_TERMINAL (terminal));
-        g_assert (ranges != nullptr);
 
-        *n_ranges = 0;
-        *ranges = nullptr;
+        if (n_ranges) [[likely]]
+                *n_ranges = 0;
+        if (ranges)
+                *ranges = nullptr;
 
         try {
                 auto impl = _vte_terminal_get_impl (terminal);
@@ -574,6 +575,11 @@ vte_accessible_text_get_selection (GtkAccessibleText       *accessible,
                 if (impl->m_selection_resolved.empty() ||
                     impl->m_selection[std::to_underlying(vte::platform::ClipboardType::PRIMARY)] == nullptr)
                         return FALSE;
+
+                if (n_ranges) [[likely]]
+                        *n_ranges = 1;
+                if (!ranges)
+                        return true;
 
                 auto start_column = impl->m_selection_resolved.start_column();
                 auto start_row = impl->m_selection_resolved.start_row();
@@ -586,7 +592,6 @@ vte_accessible_text_get_selection (GtkAccessibleText       *accessible,
                 range.start = gsize(start_offset);
                 range.length = gsize(end_offset - start_offset);
 
-                *n_ranges = 1;
                 *ranges = (GtkAccessibleTextRange *)g_memdup2 (&range, sizeof range);
 
                 return TRUE;
@@ -621,16 +626,17 @@ vte_accessible_text_get_attributes (GtkAccessibleText        *accessible,
         guint i;
 
         g_assert (VTE_IS_TERMINAL (accessible));
-        g_assert (ranges != nullptr);
-        g_assert (attribute_names != nullptr);
-        g_assert (attribute_values != nullptr);
 
         contents = &state->contents[state->contents_flip];
 
-        *n_ranges = 0;
-        *ranges = nullptr;
-        *attribute_names = nullptr;
-        *attribute_values = nullptr;
+        if (n_ranges) [[likely]]
+                *n_ranges = 0;
+        if (ranges)
+                *ranges = nullptr;
+        if (attribute_names)
+                *attribute_names = nullptr;
+        if (attribute_values)
+                *attribute_values = nullptr;
 
         attr = *vte_char_attr_list_get (&contents->attrs, offset);
         start = 0;
@@ -686,16 +692,22 @@ vte_accessible_text_get_attributes (GtkAccessibleText        *accessible,
         attrs[n_attrs].value = bg_color;
         n_attrs++;
 
-        *attribute_names = g_new0 (char *, n_attrs + 1);
-        *attribute_values = g_new0 (char *, n_attrs + 1);
-        *n_ranges = n_attrs;
-        *ranges = g_new (GtkAccessibleTextRange, n_attrs);
-
-        for (i = 0; i < n_attrs; i++) {
-                (*attribute_names)[i] = g_strdup (attrs[i].name);
-                (*attribute_values)[i] = g_strdup (attrs[i].value);
-                (*ranges)[i].start = range.start;
-                (*ranges)[i].length = range.length;
+        if (attribute_names) {
+                *attribute_names = g_new0 (char *, n_attrs + 1);
+                for (i = 0; i < n_attrs; i++)
+                        (*attribute_names)[i] = g_strdup (attrs[i].name);
+        }
+        if (attribute_values) {
+                *attribute_values = g_new0 (char *, n_attrs + 1);
+                for (i = 0; i < n_attrs; i++)
+                        (*attribute_values)[i] = g_strdup (attrs[i].value);
+        }
+        if (n_ranges) [[likely]]
+                *n_ranges = n_attrs;
+        if (ranges) {
+                *ranges = g_new (GtkAccessibleTextRange, n_attrs);
+                for (i = 0; i < n_attrs; i++)
+                        *(*ranges + i) = range;
         }
 
         return TRUE;
