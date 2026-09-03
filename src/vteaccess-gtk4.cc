@@ -1075,7 +1075,9 @@ _vte_accessible_text_scrolled (GtkAccessibleText *accessible, long delta)
 
         if (delta > 0) {
                 /* Scrolling down: lines at the top disappeared, new lines appeared at bottom */
-                gsize lines_to_remove = MIN((gsize)delta, char_positions_get_size(&prev->linebreaks));
+                gsize n_linebreaks = char_positions_get_size (&prev->linebreaks);
+                gsize n_lines = n_linebreaks > 0 ? n_linebreaks - 1 : 0;
+                gsize lines_to_remove = MIN((gsize)delta, n_lines);
                 get_offset_for_lines (prev, 0, lines_to_remove, &start_offset, &end_offset);
                 if (end_offset > 0) {
                         /* Notify that text was removed from the beginning */
@@ -1088,13 +1090,17 @@ _vte_accessible_text_scrolled (GtkAccessibleText *accessible, long delta)
                         nextstr = vte_accessible_text_contents_get_string (next, &nextlen);
                         prevstr = vte_accessible_text_contents_get_string (prev, &prevlen);
                         gsize after_scroll_offset = *char_positions_index(&prev->linebreaks, lines_to_remove);
-                        gsize byte_offset = *char_positions_index(&prev->characters, after_scroll_offset);
+                        gsize byte_offset = after_scroll_offset < prev->n_chars
+                                ? *char_positions_index (&prev->characters, after_scroll_offset)
+                                : prev->n_bytes;
                         const char *prevc = prevstr + byte_offset;
                         const char *nextc = nextstr;
                         gsize diff_start_offset = 0;
+                        gsize prev_chars_remaining = prev->n_chars - after_scroll_offset;
 
                         /* Find the beginning of changes */
-                        while ((diff_start_offset < prev->n_chars) && (diff_start_offset < next->n_chars)) {
+                        while ((diff_start_offset < prev_chars_remaining) &&
+                               (diff_start_offset < next->n_chars)) {
                                 gunichar prevch = g_utf8_get_char (prevc);
                                 gunichar nextch = g_utf8_get_char (nextc);
 
@@ -1115,7 +1121,9 @@ _vte_accessible_text_scrolled (GtkAccessibleText *accessible, long delta)
                 }
         } else if (delta < 0) {
                 /* Scrolling up: lines at the bottom disappeared, new lines appeared at top */
-                gsize lines_to_remove = MIN((gsize)-delta, char_positions_get_size(&prev->linebreaks));
+                gsize n_linebreaks = char_positions_get_size (&prev->linebreaks);
+                gsize n_lines = n_linebreaks > 0 ? n_linebreaks - 1 : 0;
+                gsize lines_to_remove = MIN((gsize)-delta, n_lines);
                 if (lines_to_remove > 0 && char_positions_get_size(&prev->linebreaks) > 0) {
                         /* Find how many characters were in the removed lines from bottom */
                         gsize start_remove = char_positions_get_size(&prev->linebreaks) - lines_to_remove - 1;
