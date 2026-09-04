@@ -19,6 +19,9 @@
 
 #include <glib.h>
 
+#include <list>
+#include <unordered_map>
+
 #include "bidi.hh"
 #include "ring.hh"
 #include "vterowdata.hh"
@@ -73,23 +76,27 @@ public:
         void set_enable_bidi(bool enable_bidi);
         void set_enable_shaping(bool enable_shaping);
 
-        inline void invalidate() { m_invalid = true; }
+        void invalidate();
+        void invalidate_rows(vte::grid::row_t first,
+                             vte::grid::row_t last);
         inline constexpr bool is_updated() const noexcept { return !m_invalid; }
         void update();
         void pause();
 
         VteRowData const* get_row(vte::grid::row_t row) const;
 
-        inline BidiRow const* get_bidirow(vte::grid::row_t row) const {
-                vte_assert_cmpint (row, >=, m_start);
-                vte_assert_cmpint (row, <, m_start + m_len);
-                vte_assert_false (m_invalid);
-                vte_assert_false (m_paused);
-
-                return m_bidirows[row - m_start];
-        }
+        BidiRow const* get_bidirow(vte::grid::row_t row) const;
 
 private:
+        using BidiLru = std::list<vte::grid::row_t>;
+
+        struct BidiRowEntry {
+                std::unique_ptr<BidiRow> row{};
+                BidiLru::iterator lru{};
+        };
+
+        using BidiRows = std::unordered_map<vte::grid::row_t, BidiRowEntry>;
+
         Ring *m_ring{nullptr};
 
         VteRowData **m_rows{nullptr};
@@ -98,8 +105,9 @@ private:
 
         bool m_enable_bidi{true};      /* These two are the most convenient defaults */
         bool m_enable_shaping{false};  /* for short-lived ringviews. */
-        BidiRow **m_bidirows{nullptr};
-        int m_bidirows_alloc_len{0};
+        mutable BidiLru m_bidi_lru{};
+        mutable BidiRows m_bidirows{};
+        size_t m_bidirows_limit{2};
 
         std::unique_ptr<BidiRunner> m_bidirunner;
 
@@ -113,6 +121,8 @@ private:
         bool m_paused{true};
 
         void resume();
+        void touch_bidirow(BidiRows::iterator iter) const;
+        void trim_bidirows();
 
         BidiRow* get_bidirow_writable(vte::grid::row_t row) const;
 };

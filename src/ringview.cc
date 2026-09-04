@@ -53,7 +53,7 @@ RingView::pause()
         _vte_debug_print (vte::debug::category::RINGVIEW,
                           "Ringview: pause, freeing {} rows, {} bidirows",
                           m_rows_alloc_len,
-                          m_bidirows_alloc_len);
+                          m_bidirows.size());
 
         for (i = 0; i < m_rows_alloc_len; i++) {
                 _vte_row_data_fini(m_rows[i]);
@@ -62,11 +62,8 @@ RingView::pause()
         g_free (m_rows);
         m_rows_alloc_len = 0;
 
-        for (i = 0; i < m_bidirows_alloc_len; i++) {
-                delete m_bidirows[i];
-        }
-        g_free (m_bidirows);
-        m_bidirows_alloc_len = 0;
+        m_bidirows.clear();
+        m_bidi_lru.clear();
 
         m_invalid = true;
         m_paused = true;
@@ -87,21 +84,9 @@ RingView::resume()
                 _vte_row_data_init (m_rows[i]);
         }
 
-        /* +2: Likely prevent a quickly following realloc.
-         * The number of lines of interest keeps jumping up and down by one
-         * due to per-pixel scrolling, and by another one due sometimes having
-         * to reshuffle another line below the bottom for the overflowing bits
-         * of the outline rectangle cursor. */
-        m_bidirows_alloc_len = m_len + 2;
-        m_bidirows = (BidiRow **) g_malloc (sizeof (BidiRow *) * m_bidirows_alloc_len);
-        for (int i = 0; i < m_bidirows_alloc_len; i++) {
-                m_bidirows[i] = new BidiRow();
-        }
-
         _vte_debug_print (vte::debug::category::RINGVIEW,
-                          "Ringview: resume, allocating {} rows, {} bidirows",
-                          m_rows_alloc_len,
-                          m_bidirows_alloc_len);
+                          "Ringview: resume, allocating {} context rows",
+                          m_rows_alloc_len);
 
         m_paused = false;
 }
@@ -113,7 +98,7 @@ RingView::set_ring(Ring *ring)
                 return;
 
         m_ring = ring;
-        m_invalid = true;
+        invalidate();
 }
 
 void
@@ -123,7 +108,7 @@ RingView::set_width(vte::grid::column_t width)
                 return;
 
         m_width = width;
-        m_invalid = true;
+        invalidate();
 }
 
 void
@@ -135,33 +120,23 @@ RingView::set_rows(vte::grid::row_t start, vte::grid::row_t len)
         if (start == m_start && len == m_len)
                 return;
 
-        /* With per-pixel scrolling, the desired viewport often shrinks by
-         * one row at one end, and remains the same at the other end.
-         * Save work by just keeping the current valid data in this case. */
-        if (!m_invalid && start >= m_start && start + len <= m_start + m_len)
-                return;
-
         /* m_rows is expanded on demand in update() */
-
-        /* m_bidirows needs exactly this many lines */
-        if (G_UNLIKELY (!m_paused && len > m_bidirows_alloc_len)) {
-                int i = m_bidirows_alloc_len;
-                while (len > m_bidirows_alloc_len) {
-                        /* Don't realloc too aggressively. */
-                        m_bidirows_alloc_len = std::max(m_bidirows_alloc_len + 1, m_bidirows_alloc_len * 5 / 4 /* whatever */);
-                }
-                _vte_debug_print (vte::debug::category::RINGVIEW,
-                                  "Ringview: reallocate to {} bidirows",
-                                  m_bidirows_alloc_len);
-                m_bidirows = (BidiRow **) g_realloc (m_bidirows, sizeof (BidiRow *) * m_bidirows_alloc_len);
-                for (; i < m_bidirows_alloc_len; i++) {
-                        m_bidirows[i] = new BidiRow();
-                }
-        }
 
         m_start = start;
         m_len = len;
-        m_invalid = true;
+        m_bidirows_limit = std::max(size_t{2}, size_t(m_len) * 2);
+        m_bidirows.reserve(m_bidirows_limit);
+
+        m_invalid = false;
+        for (auto row = m_start; row < m_start + m_len; row++) {
+                auto const iter = m_bidirows.find(row);
+                if (iter == m_bidirows.end()) {
+                        m_invalid = true;
+                } else
+                        touch_bidirow(iter);
+        }
+
+        trim_bidirows();
 }
 
 VteRowData const*
@@ -180,7 +155,7 @@ RingView::set_enable_bidi(bool enable_bidi)
                 return;
 
         m_enable_bidi = enable_bidi;
-        m_invalid = true;
+        invalidate();
 }
 
 void
@@ -190,7 +165,66 @@ RingView::set_enable_shaping(bool enable_shaping)
                 return;
 
         m_enable_shaping = enable_shaping;
+        invalidate();
+}
+
+void
+RingView::invalidate()
+{
+        m_bidirows.clear();
+        m_bidi_lru.clear();
         m_invalid = true;
+}
+
+void
+RingView::invalidate_rows(vte::grid::row_t first,
+                          vte::grid::row_t last)
+{
+        if (last < first)
+                return;
+
+        for (auto iter = m_bidirows.begin(); iter != m_bidirows.end();) {
+                if (iter->first >= first && iter->first <= last) {
+                        m_bidi_lru.erase(iter->second.lru);
+                        iter = m_bidirows.erase(iter);
+                } else {
+                        ++iter;
+                }
+        }
+
+        if (first < m_start + m_len && last >= m_start)
+                m_invalid = true;
+}
+
+void
+RingView::touch_bidirow(BidiRows::iterator iter) const
+{
+        m_bidi_lru.splice(m_bidi_lru.begin(), m_bidi_lru, iter->second.lru);
+        iter->second.lru = m_bidi_lru.begin();
+}
+
+void
+RingView::trim_bidirows()
+{
+        while (m_bidirows.size() > m_bidirows_limit) {
+                auto const row = m_bidi_lru.back();
+                m_bidirows.erase(row);
+                m_bidi_lru.pop_back();
+        }
+}
+
+BidiRow const*
+RingView::get_bidirow(vte::grid::row_t row) const
+{
+        vte_assert_cmpint (row, >=, m_start);
+        vte_assert_cmpint (row, <, m_start + m_len);
+        vte_assert_false (m_invalid);
+        vte_assert_false (m_paused);
+
+        auto const iter = m_bidirows.find(row);
+        vte_assert_true(iter != m_bidirows.end());
+
+        return iter->second.row.get();
 }
 
 void
@@ -289,9 +323,22 @@ RingView::update()
                 if (!row_data->attr.soft_wrapped || row == m_top + m_rows_len - 1) {
                         /* Found a paragraph from @top to @row, inclusive. */
 
-                        /* Run the BiDi algorithm. */
-                        m_bidirunner->paragraph(top, row + 1,
-                                                m_enable_bidi, m_enable_shaping);
+                        auto const visible_top = std::max(top, m_start);
+                        auto const visible_bottom = std::min(row + 1, m_start + m_len);
+                        auto needs_update = false;
+
+                        for (auto visible_row = visible_top;
+                             visible_row < visible_bottom;
+                             visible_row++) {
+                                if (m_bidirows.find(visible_row) == m_bidirows.end()) {
+                                        needs_update = true;
+                                        break;
+                                }
+                        }
+
+                        if (needs_update)
+                                m_bidirunner->paragraph(top, row + 1,
+                                                        m_enable_bidi, m_enable_shaping);
 
                         /* Doing syntax highlighting etc. come here in the future. */
 
@@ -299,6 +346,14 @@ RingView::update()
                 }
                 row++;
         }
+
+        for (auto visible_row = m_start; visible_row < m_start + m_len; visible_row++) {
+                auto const iter = m_bidirows.find(visible_row);
+                vte_assert_true(iter != m_bidirows.end());
+                touch_bidirow(iter);
+        }
+
+        trim_bidirows();
 
         m_invalid = false;
 }
@@ -310,5 +365,17 @@ BidiRow* RingView::get_bidirow_writable(vte::grid::row_t row) const
         if (row < m_start || row >= m_start + m_len)
                 return nullptr;
 
-        return m_bidirows[row - m_start];
+        auto iter = m_bidirows.find(row);
+        if (iter == m_bidirows.end()) {
+                m_bidi_lru.push_front(row);
+                auto const [inserted_iter, inserted] = m_bidirows.try_emplace(
+                        row,
+                        BidiRowEntry{std::make_unique<BidiRow>(), m_bidi_lru.begin()});
+                vte_assert_true(inserted);
+                iter = inserted_iter;
+        } else {
+                touch_bidirow(iter);
+        }
+
+        return iter->second.row.get();
 }

@@ -325,6 +325,8 @@ libvte_gtk3_drawing_sources = files(
 libvte_gtk4_drawing_sources = files(
   'drawing-gsk.cc',
   'drawing-gsk.hh',
+  'render-cache.cc',
+  'render-cache.hh',
 )
 
 if get_option('icu')
@@ -806,6 +808,20 @@ if get_option('gtk3')
 endif # gtk3
 
 if get_option('gtk4')
+  test_render_cache = executable(
+    'test-render-cache',
+    cpp_args: ['-DVTE_GTK=4'],
+    dependencies: [gtk4_dep],
+    include_directories: top_inc,
+    install: false,
+    sources: config_sources + files(
+      'render-cache.cc',
+      'render-cache-test.cc',
+    ),
+  )
+
+  test_units += [test_render_cache,]
+
   test_minifont_gtk4_sources = test_minifont_common_sources + minifont_coverage_gtk4_sources
 
   test_minifont_gtk4_sources += custom_target(

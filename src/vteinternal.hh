@@ -749,6 +749,7 @@ public:
         vte::view::DrawingCairo m_draw{};
 #elif VTE_GTK == 4
         vte::view::DrawingGsk m_draw{};
+        vte::view::RenderCache m_render_cache{};
 #endif
         bool m_clear_background{true};
 
@@ -1022,6 +1023,11 @@ public:
         #endif
 
         void invalidate_row(vte::grid::row_t row);
+#if VTE_GTK == 4
+        void invalidate_row_foreground(vte::grid::row_t row);
+        void invalidate_foreground(vte::grid::span const& span);
+        void queue_snapshot();
+#endif
         void invalidate_rows(vte::grid::row_t row_start,
                              vte::grid::row_t row_end /* inclusive */);
         void invalidate_row_and_context(vte::grid::row_t row);
@@ -1173,6 +1179,12 @@ public:
                                 int blink_timeout_ms) noexcept;
 
         void draw(cairo_region_t const* region) noexcept;
+#if VTE_GTK == 4
+        void draw_cached_rows(vte::grid::row_t first_row,
+                              vte::grid::row_t last_row,
+                              int start_y,
+                              bool blink);
+#endif
         vte::view::Rectangle cursor_rect();
         void paint_cursor();
         void paint_im_preedit_string();

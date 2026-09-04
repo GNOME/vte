@@ -135,8 +135,8 @@ static vte::Freeable<cairo_region_t> vte_cairo_get_clip_region(cairo_t* cr);
 
 class Terminal::ProcessingContext {
 public:
-        vte::grid::row_t m_bbox_top{-G_MAXINT};
-        vte::grid::row_t m_bbox_bottom{G_MAXINT};
+        vte::grid::row_t m_bbox_top{G_MAXINT};
+        vte::grid::row_t m_bbox_bottom{-G_MAXINT};
         bool m_modified{false};
         bool m_bottom{false};
         bool m_invalidated_text{false};
@@ -336,6 +336,11 @@ void
 Terminal::invalidate_rows(vte::grid::row_t row_start,
                           vte::grid::row_t row_end /* inclusive */)
 {
+#if VTE_GTK == 4
+        m_render_cache.invalidate(m_screen, row_start, row_end,
+                                  vte::view::RenderInvalidation::eBOTH);
+#endif
+
 #if VTE_GTK == 3
 	if (G_UNLIKELY (!widget_realized()))
                 return;
@@ -403,7 +408,10 @@ Terminal::invalidate_rows(vte::grid::row_t row_start,
 	}
 
 #elif VTE_GTK == 4
-        invalidate_all();
+        if (G_UNLIKELY(!widget_realized()))
+                return;
+
+        queue_snapshot();
 #endif
 }
 
@@ -423,9 +431,6 @@ Terminal::invalidate_rows_and_context(vte::grid::row_t row_start,
         if (G_UNLIKELY (!widget_realized()))
                 return;
 
-        if (m_invalidated_all)
-                return;
-
         if (G_UNLIKELY (row_end < row_start))
                 return;
 
@@ -433,36 +438,39 @@ Terminal::invalidate_rows_and_context(vte::grid::row_t row_start,
                           "Invalidating rows {}..{} and context",
                           row_start, row_end);
 
-        /* Safety limit: Scrolled back by so much that changes to the
-         * writable area may not affect the current viewport's rendering. */
-        if (m_screen->insert_delta - VTE_RINGVIEW_PARAGRAPH_LENGTH_MAX > last_displayed_row())
-                return;
-
-        /* Extending the start is a bit tricky.
-         * First extend it (towards lower numbered indices), but only up to
-         * insert_delta - 1. Remember that the row at insert_delta - 1 is
-         * still in the ring, hence checking its soft_wrapped flag is fast. */
-        while (row_start >= m_screen->insert_delta) {
+        /* Extend to the paragraph boundaries, including retained rows outside
+         * the current viewport. Limit both walks to the same amount of context
+         * RingView::update() considers. */
+        auto const ring_delta = vte::grid::row_t(m_screen->row_data->delta());
+        auto i = VTE_RINGVIEW_PARAGRAPH_LENGTH_MAX;
+        while (i-- > 0 && row_start > ring_delta) {
                 if (!m_screen->row_data->is_soft_wrapped(row_start - 1))
                         break;
                 row_start--;
         }
 
-        /* If we haven't seen a newline yet, stop walking backwards row by row.
-         * This is because we might need to access row_stream in order to check
-         * the wrapped state, a way too expensive operation while processing
-         * incoming data. Let displaying do extra work instead.
-         * So just invalidate everything to the top. */
-        if (row_start < m_screen->insert_delta) {
-                row_start = first_displayed_row();
-        }
-
-        /* Extending the end is simple. Just walk until we go offscreen or
-         * find an explicit newline. */
-        while (row_end < last_displayed_row()) {
+        i = VTE_RINGVIEW_PARAGRAPH_LENGTH_MAX;
+        while (i-- > 0) {
                 if (!m_screen->row_data->is_soft_wrapped(row_end))
                         break;
                 row_end++;
+        }
+
+        m_ringview.invalidate_rows(row_start, row_end);
+
+#if VTE_GTK == 3
+        if (m_invalidated_all)
+                return;
+#endif
+
+        /* Changes this far below the viewport do not require a redraw, but
+         * retained cache entries still need the paragraph-wide invalidation. */
+        if (m_screen->insert_delta - VTE_RINGVIEW_PARAGRAPH_LENGTH_MAX > last_displayed_row()) {
+#if VTE_GTK == 4
+                m_render_cache.invalidate(m_screen, row_start, row_end,
+                                          vte::view::RenderInvalidation::eBOTH);
+#endif
+                return;
         }
 
         invalidate_rows(row_start, row_end);
@@ -474,6 +482,43 @@ Terminal::invalidate_row(vte::grid::row_t row)
 {
         invalidate_rows(row, row);
 }
+
+#if VTE_GTK == 4
+
+void
+Terminal::queue_snapshot()
+{
+        if (G_UNLIKELY(!widget_realized()))
+                return;
+
+        m_invalidated_all = true;
+
+        if (is_processing())
+                add_process_timeout(this);
+        else
+                gtk_widget_queue_draw(m_widget);
+}
+
+void
+Terminal::invalidate_row_foreground(vte::grid::row_t row)
+{
+        m_render_cache.invalidate(m_screen, row, row,
+                                  vte::view::RenderInvalidation::eFOREGROUND);
+        queue_snapshot();
+}
+
+void
+Terminal::invalidate_foreground(vte::grid::span const& span)
+{
+        if (span.empty())
+                return;
+
+        m_render_cache.invalidate(m_screen, span.start_row(), span.last_row(),
+                                  vte::view::RenderInvalidation::eFOREGROUND);
+        queue_snapshot();
+}
+
+#endif /* VTE_GTK == 4 */
 
 void
 Terminal::invalidate_row_and_context(vte::grid::row_t row)
@@ -520,6 +565,10 @@ Terminal::invalidate_symmetrical_difference(vte::grid::span const& a, vte::grid:
 void
 Terminal::invalidate_all()
 {
+#if VTE_GTK == 4
+        m_render_cache.clear();
+#endif
+
 	if (G_UNLIKELY (!widget_realized()))
                 return;
 
@@ -655,7 +704,6 @@ Terminal::set_hard_wrapped(vte::grid::row_t row)
 
         row_data->attr.soft_wrapped = false;
 
-        m_ringview.invalidate();
         invalidate_rows_and_context(row, row + 1);
 }
 
@@ -690,7 +738,6 @@ Terminal::set_soft_wrapped(vte::grid::row_t row)
                 } while (row_data != nullptr);
         }
 
-        m_ringview.invalidate();
         invalidate_rows_and_context(row, row + 1);
 }
 
@@ -759,12 +806,14 @@ Terminal::invalidate_cursor_once(bool periodic)
         // to invalidate if preedit is active.
         // See https://gitlab.gnome.org/GNOME/vte/-/issues/2873 .
         if (m_modes_private.DEC_TEXT_CURSOR() || m_im_preedit_active) {
-                auto row = m_screen->cursor.row;
-
 		_vte_debug_print(vte::debug::category::UPDATES,
                                  "Invalidating cursor in row {}",
-                                 row);
-                invalidate_row(row);
+                                 m_screen->cursor.row);
+#if VTE_GTK == 3
+                invalidate_row(m_screen->cursor.row);
+#elif VTE_GTK == 4
+                queue_snapshot();
+#endif
 	}
 }
 
@@ -1955,8 +2004,12 @@ Terminal::queue_adjustment_value_changed(double v)
                          "Scrolling by {:f}",
                          dy);
 
+#if VTE_GTK == 3
         m_ringview.invalidate();
         invalidate_all();
+#elif VTE_GTK == 4
+        queue_snapshot();
+#endif
         match_contents_clear();
         emit_text_scrolled(dy);
         queue_contents_changed();
@@ -2374,7 +2427,11 @@ Terminal::set_background_alpha(double alpha)
                          "Setting background alpha to {:.3f}", alpha);
         m_background_alpha = alpha;
 
+#if VTE_GTK == 3
         invalidate_all();
+#elif VTE_GTK == 4
+        queue_snapshot();
+#endif
 
         return true;
 }
@@ -2846,6 +2903,7 @@ Terminal::scroll_text_up(scrolling_region const& scrolling_region,
                  * https://gitlab.gnome.org/GNOME/vte/-/issues/131.
                  * No need to extend, set_hard_wrapped() took care of invalidating
                  * the context lines if necessary. */
+                m_ringview.invalidate_rows(bottom + 1, m_screen->insert_delta + m_row_count - 1);
                 invalidate_rows(bottom + 1, m_screen->insert_delta + m_row_count - 1);
                 /* Force scroll. */
                 adjust_adjustments();
@@ -2864,8 +2922,10 @@ Terminal::scroll_text_up(scrolling_region const& scrolling_region,
                         ring_remove(top);
                         ring_insert(bottom, fill);
                 }
-                /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
-                 * invalidating the context lines if necessary. */
+                /* Invalidate BiDi data for the rows that moved at the same indices, then repaint
+                 * them. No need to extend, set_hard_wrapped() took care of invalidating the
+                 * context lines if necessary. */
+                m_ringview.invalidate_rows(top, bottom);
                 invalidate_rows(top, bottom);
                 /* We've modified the display. Make a note of it. */
                 m_text_deleted_flag = TRUE;
@@ -2943,8 +3003,10 @@ Terminal::scroll_text_down(scrolling_region const& scrolling_region,
                  * Do it after scrolling down, for the bottom row to be the desired one. */
                 set_hard_wrapped(top - 1);
                 set_hard_wrapped(bottom);
-                /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
-                 * invalidating the context lines if necessary. */
+                /* Invalidate BiDi data for the rows that moved at the same indices, then repaint
+                 * them. No need to extend, set_hard_wrapped() took care of invalidating the
+                 * context lines if necessary. */
+                m_ringview.invalidate_rows(top, bottom);
                 invalidate_rows(top, bottom);
                 /* We've modified the display. Make a note of it. */
                 m_text_deleted_flag = TRUE;
@@ -3744,7 +3806,7 @@ Terminal::apply_bidi_attributes(vte::grid::row_t start, guint8 bidi_flags, guint
                          "Applied BiDi parameters to rows {}..{}",
                          start, row);
 
-        m_ringview.invalidate();
+        m_ringview.invalidate_rows(start, row);
         invalidate_rows(start, row);
 }
 
@@ -4108,7 +4170,8 @@ Terminal::process_incoming()
         }
 
         if (context.m_modified || (m_screen != context.m_saved_screen)) {
-                m_ringview.invalidate();
+                if (m_screen != context.m_saved_screen)
+                        m_ringview.invalidate();
                 /* Signal that the visible contents changed. */
                 queue_contents_changed();
         }
@@ -4122,8 +4185,10 @@ Terminal::process_incoming()
         if ((context.m_saved_cursor.col != m_screen->cursor.col) ||
             (context.m_saved_cursor.row != m_screen->cursor.row)) {
                 /* invalidate the old and new cursor positions */
+#if VTE_GTK == 3
                 if (context.m_saved_cursor_visible)
                         invalidate_row(context.m_saved_cursor.row);
+#endif
                 invalidate_cursor_once();
                 check_cursor_blink();
                 /* Signal that the cursor moved. */
@@ -6422,7 +6487,11 @@ Terminal::hyperlink_invalidate_and_get_bbox(vte::base::Ring::hyperlink_idx_t idx
                                 }
                         }
                         if (G_UNLIKELY (do_invalidate_row)) {
+#if VTE_GTK == 3
                                 invalidate_row(row);
+#elif VTE_GTK == 4
+                                invalidate_row_foreground(row);
+#endif
                         }
                 }
         }
@@ -6555,7 +6624,11 @@ Terminal::invalidate_match_span()
         _vte_debug_print(vte::debug::category::EVENTS,
                          "Invalidating match span {}",
                          m_match_span);
+#if VTE_GTK == 3
         invalidate(m_match_span);
+#elif VTE_GTK == 4
+        invalidate_foreground(m_match_span);
+#endif
 }
 
 /*
@@ -7720,7 +7793,11 @@ Terminal::widget_focus_in()
                  * (we could further optimize by checking its current phase). */
                 if (m_text_blink_mode == TextBlinkMode::eFOCUSED ||
                     (m_text_blink_mode == TextBlinkMode::eUNFOCUSED && m_text_blink_timer)) {
+#if VTE_GTK == 3
                         invalidate_all();
+#elif VTE_GTK == 4
+                        queue_snapshot();
+#endif
                 }
 
 		check_cursor_blink();
@@ -7746,7 +7823,11 @@ Terminal::widget_focus_out()
                  * (we could further optimize by checking its current phase). */
                 if (m_text_blink_mode == TextBlinkMode::eUNFOCUSED ||
                     (m_text_blink_mode == TextBlinkMode::eFOCUSED && m_text_blink_timer)) {
+#if VTE_GTK == 3
                         invalidate_all();
+#elif VTE_GTK == 4
+                        queue_snapshot();
+#endif
                 }
 
                 m_real_widget->im_focus_out();
@@ -8707,6 +8788,9 @@ Terminal::widget_unrealize()
 
 	/* Drop font cache */
         m_draw.clear_font_cache();
+#if VTE_GTK == 4
+        m_render_cache.clear();
+#endif
 	m_fontdirty = true;
 
         /* Remove the cursor blink timeout function. */
@@ -8766,7 +8850,11 @@ Terminal::set_blink_settings(bool blink,
                  * timer to blink might fire too late. So remove the timer and
                  * repaint the contents (which will install a correct new timer). */
                 m_text_blink_timer.abort();
+#if VTE_GTK == 3
                 invalidate_all();
+#elif VTE_GTK == 4
+                queue_snapshot();
+#endif
         }
 }
 
@@ -8955,7 +9043,11 @@ Terminal::resolve_normal_colors(VteCell const* cell,
 bool
 Terminal::text_blink_timer_callback()
 {
+#if VTE_GTK == 3
         invalidate_all();
+#elif VTE_GTK == 4
+        queue_snapshot();
+#endif
         return false; /* don't run again */
 }
 
@@ -9483,11 +9575,11 @@ Terminal::draw_rows(VteScreen *screen_,
 
         auto const column_count = m_column_count;
         uint32_t const attr_mask = m_allow_bold ? ~0 : ~VTE_ATTR_BOLD_MASK;
-
-        /* Need to ensure the ringview is updated. */
-        ringview_update();
-
-        auto items = g_newa(vte::view::DrawingContext::TextRequest, column_count);
+#if VTE_GTK == 3
+        int const rect_width = get_allocated_width();
+#elif VTE_GTK == 4
+        int const rect_width = get_allocated_width() + m_style_border.left + m_style_border.right;
+#endif
 
         /* Paint the background.
          * Do it first for all the cells we're about to paint, before drawing the glyphs,
@@ -9495,12 +9587,9 @@ Terminal::draw_rows(VteScreen *screen_,
          * chopped off by another cell's background, not even across changes of the
          * background or any other attribute.
          * Process each row independently. */
-#if VTE_GTK == 3
-        int const rect_width = get_allocated_width();
-#elif VTE_GTK == 4
-        int const rect_width = get_allocated_width() + m_style_border.left + m_style_border.right;
+#if VTE_GTK == 4
+        if (m_draw.render_layer() != vte::view::DrawingGsk::RenderLayer::eFOREGROUND) {
 #endif
-
         auto bg_rect = vte::view::Rectangle{0,
                                             start_y,
                                             int(column_count * column_width),
@@ -9632,11 +9721,17 @@ Terminal::draw_rows(VteScreen *screen_,
         }
 
         m_draw.flush_background(bg_rect);
+#if VTE_GTK == 4
+        }
+
+        if (m_draw.render_layer() != vte::view::DrawingGsk::RenderLayer::eBACKGROUND) {
+#endif
 
         /* Render the text.
          * The rect contains the area of the row (enlarged a bit at the top and bottom
          * to allow the text to overdraw a bit), and is moved row-wise in the loop.
          */
+        auto items = g_newa(vte::view::DrawingContext::TextRequest, column_count);
         auto rect = vte::view::Rectangle{-m_border.left,
                                          start_y - cell_overflow_top(),
                                          rect_width,
@@ -9770,6 +9865,9 @@ Terminal::draw_rows(VteScreen *screen_,
                                    column_width, row_height);
                 }
         }
+#if VTE_GTK == 4
+        }
+#endif
 }
 
 // Returns the rectangle the cursor would be drawn if a block cursor,
@@ -10125,6 +10223,142 @@ Terminal::widget_draw(cairo_t* cr) noexcept
 #if VTE_GTK == 4
 
 void
+Terminal::draw_cached_rows(vte::grid::row_t first_row,
+                           vte::grid::row_t last_row,
+                           int start_y,
+                           bool blink)
+{
+        auto const screen = static_cast<void const*>(m_screen);
+        auto const parent_snapshot = m_draw.snapshot();
+        auto const row_count = last_row - first_row + 1;
+        auto entries = std::vector<vte::view::RenderCache::Row*>{};
+        entries.reserve(row_count);
+
+        m_render_cache.set_row_limit(std::max(vte::grid::row_t{2}, row_count * 2));
+
+        /* Prepare BiDi data for the entire viewport before drawing cached rows
+         * individually. Otherwise each one-row draw can evict the rest of a
+         * soft-wrapped paragraph and force it to be processed again. */
+        ringview_update();
+
+        for (auto row = first_row; row <= last_row; row++) {
+                auto& entry = m_render_cache.row(screen, row);
+                entries.push_back(&entry);
+
+                if (entry.background_dirty) {
+                        auto snapshot = gtk_snapshot_new();
+
+                        m_draw.set_snapshot(snapshot);
+                        m_draw.set_render_layer(vte::view::DrawingGsk::RenderLayer::eBACKGROUND);
+                        m_draw.set_background_update(entry.background_texture.get(),
+                                                     entry.background_bytes.get());
+                        draw_rows(m_screen, nullptr, row, row + 1, 0,
+                                  m_cell_width, m_cell_height);
+
+                        entry.background.reset(gtk_snapshot_free_to_node(snapshot));
+                        entry.background_texture = vte::glib::make_ref(m_draw.background_texture());
+                        entry.background_bytes = vte::view::BytesPtr{
+                                m_draw.background_bytes() ? g_bytes_ref(m_draw.background_bytes()) : nullptr};
+                        entry.background_dirty = false;
+                }
+
+                if (entry.foreground_dirty) {
+                        entry.foreground[0].reset();
+                        entry.foreground[1].reset();
+                        entry.foreground_built = {};
+                        entry.has_blink = false;
+                        entry.foreground_dirty = false;
+                }
+
+                auto const phase = blink ? 1u : 0u;
+                if (!entry.foreground_built[phase]) {
+                        auto snapshot = gtk_snapshot_new();
+
+                        m_text_to_blink = false;
+                        m_text_blink_state = blink;
+                        m_draw.set_snapshot(snapshot);
+                        m_draw.set_render_layer(vte::view::DrawingGsk::RenderLayer::eFOREGROUND);
+                        draw_rows(m_screen, nullptr, row, row + 1, 0,
+                                  m_cell_width, m_cell_height);
+
+                        entry.foreground[phase].reset(gtk_snapshot_free_to_node(snapshot));
+                        entry.foreground_built[phase] = true;
+                        entry.has_blink = m_text_to_blink;
+
+                        if (!entry.has_blink) {
+                                auto const other_phase = phase ? 0u : 1u;
+                                if (entry.foreground[phase])
+                                        entry.foreground[other_phase].reset(
+                                                gsk_render_node_ref(entry.foreground[phase].get()));
+                                entry.foreground_built[other_phase] = true;
+                        }
+                }
+        }
+
+        m_draw.set_snapshot(parent_snapshot);
+        m_draw.set_render_layer(vte::view::DrawingGsk::RenderLayer::eALL);
+        m_draw.set_background_update(nullptr, nullptr);
+
+        auto viewport = m_render_cache.viewport(screen, first_row, last_row, start_y, blink);
+        if (!viewport) {
+                auto snapshot = gtk_snapshot_new();
+                auto y = start_y;
+
+                for (auto const* entry : entries) {
+                        if (!entry->background) {
+                                y += m_cell_height;
+                                continue;
+                        }
+
+                        auto const point = GRAPHENE_POINT_INIT(0, float(y));
+                        gtk_snapshot_save(snapshot);
+                        gtk_snapshot_translate(snapshot, &point);
+                        gtk_snapshot_append_node(snapshot, entry->background.get());
+                        gtk_snapshot_restore(snapshot);
+                        y += m_cell_height;
+                }
+
+                y = start_y;
+                for (auto const* entry : entries) {
+                        auto const phase = blink ? 1u : 0u;
+
+                        if (!entry->foreground[phase]) {
+                                y += m_cell_height;
+                                continue;
+                        }
+
+                        auto const point = GRAPHENE_POINT_INIT(0, float(y));
+                        gtk_snapshot_save(snapshot);
+                        gtk_snapshot_translate(snapshot, &point);
+                        gtk_snapshot_append_node(snapshot, entry->foreground[phase].get());
+                        gtk_snapshot_restore(snapshot);
+                        y += m_cell_height;
+                }
+
+                auto node = vte::view::RenderNodePtr{gtk_snapshot_free_to_node(snapshot)};
+                if (!node) {
+                        auto const transparent = GdkRGBA{0, 0, 0, 0};
+                        auto const bounds = GRAPHENE_RECT_INIT(0, 0, 1, 1);
+                        node.reset(gsk_color_node_new(&transparent, &bounds));
+                }
+                viewport = node.get();
+                m_render_cache.set_viewport(screen, first_row, last_row, start_y,
+                                            blink, std::move(node));
+        }
+
+        if (viewport)
+                gtk_snapshot_append_node(parent_snapshot, viewport);
+
+        m_text_to_blink = false;
+        for (auto const* entry : entries) {
+                if (entry->has_blink) {
+                        m_text_to_blink = true;
+                        break;
+                }
+        }
+}
+
+void
 Terminal::widget_snapshot(GtkSnapshot* snapshot_object) noexcept
 {
         _vte_debug_print(vte::debug::category::DRAW, "Widget snapshot");
@@ -10203,6 +10437,8 @@ Terminal::draw(cairo_region_t const* region) noexcept
 
         /* and now paint them */
         auto const first_row = first_displayed_row();
+#if VTE_GTK == 3
+        ringview_update();
         draw_rows(m_screen,
                   region,
                   first_row,
@@ -10210,6 +10446,12 @@ Terminal::draw(cairo_region_t const* region) noexcept
                   row_to_pixel(first_row),
                   m_cell_width,
                   m_cell_height);
+#elif VTE_GTK == 4
+        draw_cached_rows(first_row,
+                         last_displayed_row(),
+                         row_to_pixel(first_row),
+                         m_text_blink_state);
+#endif
 
 	paint_im_preedit_string();
 
@@ -10403,7 +10645,11 @@ Terminal::set_text_blink_mode(TextBlinkMode setting)
                 return false;
 
         m_text_blink_mode = setting;
+#if VTE_GTK == 3
         invalidate_all();
+#elif VTE_GTK == 4
+        queue_snapshot();
+#endif
 
         return true;
 }
@@ -11307,7 +11553,6 @@ Terminal::invalidate_dirty_rects_and_process_updates()
         if (G_UNLIKELY(!m_invalidated_all))
                 return false;
 
-        invalidate_all();
         gtk_widget_queue_draw(m_widget);
 #endif
 

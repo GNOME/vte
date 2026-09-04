@@ -55,6 +55,16 @@ DrawingGsk::set_snapshot(GtkSnapshot *snapshot) noexcept
 }
 
 void
+DrawingGsk::set_background_update(GdkTexture* texture,
+                                  GBytes* bytes) noexcept
+{
+        m_background_update_texture = texture;
+        m_background_update_bytes = bytes;
+        m_background_texture.reset();
+        m_background_bytes.reset();
+}
+
+void
 DrawingGsk::clear(int x,
                   int y,
                   int width,
@@ -72,6 +82,9 @@ DrawingGsk::fill_rectangle(int x,
                            int height,
                            vte::color::rgb const* color) const
 {
+        if (m_render_layer == RenderLayer::eBACKGROUND)
+                return;
+
         g_assert(m_snapshot);
         g_assert(color);
 
@@ -92,6 +105,9 @@ DrawingGsk::fill_rectangle(int x,
                            vte::color::rgb const* color,
                            double alpha) const
 {
+        if (m_render_layer == RenderLayer::eBACKGROUND)
+                return;
+
         g_assert(m_snapshot);
         g_assert(color);
 
@@ -152,6 +168,9 @@ DrawingGsk::draw_text(TextRequest* requests,
 {
         auto font = m_fonts[attr_to_style(attr)];
         gsize i;
+
+        if (m_render_layer == RenderLayer::eBACKGROUND)
+                return;
 
         g_assert(font);
         g_assert(m_snapshot);
@@ -232,6 +251,9 @@ DrawingGsk::draw_rectangle(int x,
                            int height,
                            vte::color::rgb const* color) const
 {
+        if (m_render_layer == RenderLayer::eBACKGROUND)
+                return;
+
         g_assert(color);
         g_assert(m_snapshot);
 
@@ -252,6 +274,13 @@ DrawingGsk::begin_cairo(int x,
                         int width,
                         int height) const
 {
+        if (m_render_layer == RenderLayer::eBACKGROUND) {
+                auto surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
+                auto cr = cairo_create(surface);
+                cairo_surface_destroy(surface);
+                return cr;
+        }
+
         g_assert(m_snapshot);
 
         auto const bounds = GRAPHENE_RECT_INIT(float(x), float(y), float(width), float(height));
@@ -272,6 +301,9 @@ DrawingGsk::draw_surface_with_color_mask(GdkTexture *texture,
                                          int height,
                                          vte::color::rgb const* color) const
 {
+        if (m_render_layer == RenderLayer::eBACKGROUND)
+                return;
+
         const auto bounds = vte::graphene::make_rect (x, y, width, height);
         const auto rgba = color->rgba();
 
@@ -287,6 +319,9 @@ DrawingGsk::begin_background(Rectangle const& rect,
                              size_t columns,
                              size_t rows)
 {
+        if (m_render_layer == RenderLayer::eFOREGROUND)
+                return;
+
         m_background_cols = columns;
         m_background_rows = rows;
         m_background_len = columns * rows;
@@ -297,22 +332,72 @@ DrawingGsk::begin_background(Rectangle const& rect,
 void
 DrawingGsk::flush_background(Rectangle const& rect)
 {
+        if (m_render_layer == RenderLayer::eFOREGROUND)
+                return;
+
         if (m_background_set) {
-                auto bytes = vte::take_freeable
-                        (g_bytes_new_take(m_background_data.release(),
-                                          m_background_len * sizeof(r8g8b8a8)));
-                auto texture = vte::glib::take_ref
-                        (gdk_memory_texture_new(m_background_cols,
-                                                m_background_rows,
-                                                GDK_MEMORY_R8G8B8A8,
-                                                bytes.get(),
-                                                m_background_cols * sizeof(r8g8b8a8)));
+                auto bytes = BytesPtr{g_bytes_new_take(m_background_data.release(),
+                                                       m_background_len * sizeof(r8g8b8a8))};
+
+                if (m_background_update_texture &&
+                    m_background_update_bytes &&
+                    g_bytes_equal(bytes.get(), m_background_update_bytes)) {
+                        m_background_texture = vte::glib::make_ref(m_background_update_texture);
+                } else {
+                        auto builder = vte::glib::take_ref(gdk_memory_texture_builder_new());
+
+                        gdk_memory_texture_builder_set_width(builder.get(), m_background_cols);
+                        gdk_memory_texture_builder_set_height(builder.get(), m_background_rows);
+                        gdk_memory_texture_builder_set_format(builder.get(), GDK_MEMORY_R8G8B8A8);
+                        gdk_memory_texture_builder_set_stride(builder.get(),
+                                                              m_background_cols * sizeof(r8g8b8a8));
+                        gdk_memory_texture_builder_set_bytes(builder.get(), bytes.get());
+
+                        if (m_background_update_texture && m_background_update_bytes) {
+                                gsize old_size;
+                                gsize new_size;
+                                auto const* old_data = static_cast<r8g8b8a8 const*>(
+                                        g_bytes_get_data(m_background_update_bytes, &old_size));
+                                auto const* new_data = static_cast<r8g8b8a8 const*>(
+                                        g_bytes_get_data(bytes.get(), &new_size));
+
+                                if (old_size == new_size) {
+                                        size_t first = 0;
+                                        size_t last = m_background_len;
+
+                                        while (first < last &&
+                                               memcmp(&old_data[first], &new_data[first], sizeof(r8g8b8a8)) == 0)
+                                                first++;
+                                        while (last > first &&
+                                               memcmp(&old_data[last - 1], &new_data[last - 1], sizeof(r8g8b8a8)) == 0)
+                                                last--;
+
+                                        auto const rectangle = cairo_rectangle_int_t{
+                                                int(first % m_background_cols),
+                                                int(first / m_background_cols),
+                                                int(last - first),
+                                                1,
+                                        };
+                                        auto region = vte::take_freeable(cairo_region_create_rectangle(&rectangle));
+
+                                        gdk_memory_texture_builder_set_update_texture(builder.get(),
+                                                                                      m_background_update_texture);
+                                        gdk_memory_texture_builder_set_update_region(builder.get(), region.get());
+                                }
+                        }
+
+                        m_background_texture = vte::glib::take_ref(gdk_memory_texture_builder_build(builder.get()));
+                }
+
+                m_background_bytes = std::move(bytes);
                 gtk_snapshot_append_scaled_texture(m_snapshot,
-                                                   texture.get(),
+                                                   m_background_texture.get(),
                                                    GSK_SCALING_FILTER_NEAREST,
                                                    rect.graphene());
         } else {
                 m_background_data.reset();
+                m_background_texture.reset();
+                m_background_bytes.reset();
         }
 
         m_background_cols = 0;

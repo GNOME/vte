@@ -22,6 +22,7 @@
 #include "drawing-context.hh"
 #include "glib-glue.hh"
 #include "minifont.hh"
+#include "render-cache.hh"
 
 #define GDK_ARRAY_NAME vte_glyphs
 #define GDK_ARRAY_TYPE_NAME VteGlyphs
@@ -46,6 +47,12 @@ static_assert(sizeof(r8g8b8a8) == 4, "Wrong size");
 
 class DrawingGsk final : public DrawingContext {
 public:
+        enum class RenderLayer {
+                eALL,
+                eBACKGROUND,
+                eFOREGROUND,
+        };
+
         DrawingGsk() noexcept;
         ~DrawingGsk() override;
 
@@ -55,6 +62,13 @@ public:
         DrawingGsk& operator=(DrawingGsk&&) = delete;
 
         void set_snapshot(GtkSnapshot *snapshot) noexcept;
+        GtkSnapshot* snapshot() const noexcept { return m_snapshot; }
+        void set_render_layer(RenderLayer layer) noexcept { m_render_layer = layer; }
+        RenderLayer render_layer() const noexcept { return m_render_layer; }
+        void set_background_update(GdkTexture* texture,
+                                   GBytes* bytes) noexcept;
+        GdkTexture* background_texture() const noexcept { return m_background_texture.get(); }
+        GBytes* background_bytes() const noexcept { return m_background_bytes.get(); }
 
         cairo_t* begin_cairo(int x,
                              int y,
@@ -129,6 +143,9 @@ public:
                                          size_t row,
                                          size_t n_columns,
                                          vte::color::rgb const* color) override {
+                if (m_render_layer == RenderLayer::eFOREGROUND)
+                        return;
+
                 assert(column + n_columns <= m_background_cols);
 
                 auto const fill = r8g8b8a8{uint8_t(color->red >> 8),
@@ -157,6 +174,11 @@ private:
         size_t m_background_cols{0};
         size_t m_background_rows{0};
         bool m_background_set{false};
+        RenderLayer m_render_layer{RenderLayer::eALL};
+        GdkTexture* m_background_update_texture{nullptr}; // unowned
+        GBytes* m_background_update_bytes{nullptr}; // unowned
+        vte::glib::RefPtr<GdkTexture> m_background_texture{};
+        vte::view::BytesPtr m_background_bytes{};
 
         void flush_glyph_string(PangoFont* font,
                                 const GdkRGBA* rgba);
