@@ -22,6 +22,7 @@
 #include "drawing-context.hh"
 #include "glib-glue.hh"
 #include "minifont.hh"
+#include "refptr.hh"
 
 #define GDK_ARRAY_NAME vte_glyphs
 #define GDK_ARRAY_TYPE_NAME VteGlyphs
@@ -157,6 +158,8 @@ private:
         size_t m_background_cols{0};
         size_t m_background_rows{0};
         bool m_background_set{false};
+        vte::glib::RefPtr<GdkTexture> m_background_texture{};
+        vte::Freeable<GBytes> m_background_bytes{};
 
         void flush_glyph_string(PangoFont* font,
                                 const GdkRGBA* rgba);

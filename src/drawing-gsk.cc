@@ -298,21 +298,38 @@ void
 DrawingGsk::flush_background(Rectangle const& rect)
 {
         if (m_background_set) {
-                auto bytes = vte::take_freeable
-                        (g_bytes_new_take(m_background_data.release(),
-                                          m_background_len * sizeof(r8g8b8a8)));
-                auto texture = vte::glib::take_ref
-                        (gdk_memory_texture_new(m_background_cols,
-                                                m_background_rows,
-                                                GDK_MEMORY_R8G8B8A8,
-                                                bytes.get(),
-                                                m_background_cols * sizeof(r8g8b8a8)));
+                auto const size = m_background_len * sizeof(r8g8b8a8);
+                gsize old_size = 0;
+                auto const* old_data = m_background_bytes ?
+                        g_bytes_get_data(m_background_bytes.get(), &old_size) : nullptr;
+                auto const can_reuse = m_background_texture && old_data &&
+                        size_t(gdk_texture_get_width(m_background_texture.get())) == m_background_cols &&
+                        size_t(gdk_texture_get_height(m_background_texture.get())) == m_background_rows &&
+                        old_size == size;
+
+                if (can_reuse && memcmp(m_background_data.get(), old_data, size) == 0) {
+                        /* Preserve texture identity for GSK's node diff and avoid
+                         * replacing the cached bytes when only the text changed. */
+                        m_background_data.reset();
+                } else {
+                        m_background_bytes = vte::take_freeable
+                                (g_bytes_new_take(m_background_data.release(), size));
+                        m_background_texture = vte::glib::take_ref
+                                (gdk_memory_texture_new(m_background_cols,
+                                                        m_background_rows,
+                                                        GDK_MEMORY_R8G8B8A8,
+                                                        m_background_bytes.get(),
+                                                        m_background_cols * sizeof(r8g8b8a8)));
+                }
+
                 gtk_snapshot_append_scaled_texture(m_snapshot,
-                                                   texture.get(),
+                                                   m_background_texture.get(),
                                                    GSK_SCALING_FILTER_NEAREST,
                                                    rect.graphene());
         } else {
                 m_background_data.reset();
+                m_background_texture.reset();
+                m_background_bytes.reset();
         }
 
         m_background_cols = 0;
