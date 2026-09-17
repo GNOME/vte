@@ -3,116 +3,130 @@
 # Copyright (C) 2008, GNOME Foundation
 # Åsmund Skjæveland <aasmunds@fys.uio.no>, 2004.
 # Eskild Hustvedt <eskildh@gnome.org>, 2008
+# Roy-Magne Mo <rmo@sunnmore.net>, 2026.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: nn\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2008-03-31 15:43+0200\n"
-"PO-Revision-Date: 2008-03-31 15:45+0200\n"
-"Last-Translator: Eskild Hustvedt <eskildh@gnome.org>\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues/\n"
+"POT-Creation-Date: 2026-07-11 20:56+0000\n"
+"PO-Revision-Date: 2026-09-16 10:03+0200\n"
+"Last-Translator: Roy-Magne Mo <rmo@sunnmore.net>\n"
 "Language-Team: Norwegian Nynorsk <i18n-nn@lister.ping.uio.no>\n"
 "Language: nn\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:1851
+#: src/vte.cc:8515
+msgid "WARNING"
+msgstr "ÅTVARING"
+
+#: src/vte.cc:8517
+msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
+msgstr "GnuTLS er ikkje slått på; data vert skrivne ukrypterte til disk!"
+
+#: src/spawn.cc:133
 #, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Kan ikkje konvertera teikn frå %s til %s."
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "Klarte ikkje setje røyret til ikkje-blokkerande: %s"
 
-#: ../src/iso2022.c:1474
+#: src/spawn.cc:178
 #, c-format
-msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Freistnad på å setja NRC-kart «%c»."
+msgid "poll error: %s"
+msgstr "poll-feil: %s"
 
-#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1504
-msgid "Unrecognized identified coding system."
-msgstr "Ikkje attkjend kodingssystem."
+#: src/spawn.cc:185
+msgid "Operation timed out"
+msgstr "Tidsavbrot på operasjonen"
 
-#: ../src/iso2022.c:1563 ../src/iso2022.c:1590
+#: src/spawn.cc:195
+msgid "Operation was cancelled"
+msgstr "Operasjonen vart avbroten"
+
+#: src/spawn.cc:213
 #, c-format
-msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Freistnad på å setja gyldig breitt NRC-kart «%c»"
+#| msgid "Error reading from child: %s."
+msgid "Failed to read from child pipe (%s)"
+msgstr "Klarte ikkje lese frå røyret til barneprosessen (%s)"
 
-#. Give the user some clue as to why session logging is not
-#. * going to work (assuming we can open a pty using some other
-#. * method).
-#: ../src/pty.c:832
+#: src/spawn.cc:664
 #, c-format
-msgid "can not run %s"
-msgstr "kan ikkje køyra %s"
+msgid "Failed to change to directory “%s”: %s"
+msgstr "Klarte ikkje byte til mappa «%s»: %s"
 
-#: ../src/reaper.c:136
-msgid "Error creating signal pipe."
-msgstr "Feil under oppretting av signalrøyr."
-
-#: ../src/trie.c:409
+#: src/spawn.cc:733
 #, c-format
-msgid "Duplicate (%s/%s)!"
-msgstr "Duplikat (%s/%s)!"
+msgid "Failed to execute child process “%s”: "
+msgstr "Klarte ikkje køyre barneprosessen «%s»: "
 
-#: ../src/vte.c:1231
 #, c-format
-msgid "Error compiling regular expression \"%s\"."
-msgstr "Feil under kompilering av regulært uttrykk«%s»."
+#~ msgid "Unable to convert characters from %s to %s."
+#~ msgstr "Kan ikkje konvertera teikn frå %s til %s."
 
-#: ../src/vte.c:2713 ../src/vte.c:2718
 #, c-format
-msgid "No handler for control sequence `%s' defined."
-msgstr "Ikkje definert nokon handsamar for kontrollsekvensen «%s»."
+#~ msgid "Attempt to set invalid NRC map '%c'."
+#~ msgstr "Freistnad på å setja NRC-kart «%c»."
 
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:3704
+#~ msgid "Unrecognized identified coding system."
+#~ msgstr "Ikkje attkjend kodingssystem."
+
 #, c-format
-msgid "Error reading from child: %s."
-msgstr "Klarte ikkje lesa frå underprosess: %s."
+#~ msgid "Attempt to set invalid wide NRC map '%c'."
+#~ msgstr "Freistnad på å setja gyldig breitt NRC-kart «%c»"
 
-#: ../src/vte.c:3832
-msgid "Unable to send data to child, invalid charset convertor"
-msgstr "Klarte ikkje sende data til underprosess, ugyldig konvertering av teiknkoding"
-
-#: ../src/vte.c:3843 ../src/vte.c:4770
 #, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr "Feil (%s) ved konvertering av data for underprosess. Hoppar over."
+#~ msgid "can not run %s"
+#~ msgstr "kan ikkje køyra %s"
 
-#: ../src/vte.c:7016
+#~ msgid "Error creating signal pipe."
+#~ msgstr "Feil under oppretting av signalrøyr."
+
 #, c-format
-msgid "Error reading PTY size, using defaults: %s."
-msgstr "Klarte ikkje lesa PTY-storleik. Brukar standard: %s."
+#~ msgid "Duplicate (%s/%s)!"
+#~ msgstr "Duplikat (%s/%s)!"
 
-#: ../src/vte.c:7052
 #, c-format
-msgid "Error setting PTY size: %s."
-msgstr "Klarte ikkje setja PTY-storleik: %s."
+#~ msgid "Error compiling regular expression \"%s\"."
+#~ msgstr "Feil under kompilering av regulært uttrykk«%s»."
 
-#. Aaargh.  We're screwed.
-#: ../src/vte.c:11526
-msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_conv_open() klarte ikkje å setja ord-teikn"
-
-#: ../src/vteseq.c:3979
 #, c-format
-msgid "Got unexpected (key?) sequence `%s'."
-msgstr "Fekk uventa sekvens (nøkkelsekvens?) «%s»."
+#~ msgid "No handler for control sequence `%s' defined."
+#~ msgstr "Ikkje definert nokon handsamar for kontrollsekvensen «%s»."
 
-#. Bail back to normal mode.
-#: ../src/vteapp.c:775
-msgid "Could not open console.\n"
-msgstr "Klarte ikkje opna konsoll.\n"
+#~ msgid "Unable to send data to child, invalid charset convertor"
+#~ msgstr ""
+#~ "Klarte ikkje sende data til underprosess, ugyldig konvertering av "
+#~ "teiknkoding"
 
-#: ../src/vteapp.c:839
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr "Klarte ikkje tolke geometri-spesifikasjonen gitt til --geometry"
-
-#: ../src/vteglyph.c:556
 #, c-format
-msgid "Unknown pixel mode %d.\n"
-msgstr "Ukjend pikselmodus %d.\n"
+#~ msgid "Error (%s) converting data for child, dropping."
+#~ msgstr "Feil (%s) ved konvertering av data for underprosess. Hoppar over."
+
+#, c-format
+#~ msgid "Error reading PTY size, using defaults: %s."
+#~ msgstr "Klarte ikkje lesa PTY-storleik. Brukar standard: %s."
+
+#, c-format
+#~ msgid "Error setting PTY size: %s."
+#~ msgstr "Klarte ikkje setja PTY-storleik: %s."
+
+#~ msgid "_vte_conv_open() failed setting word characters"
+#~ msgstr "_vte_conv_open() klarte ikkje å setja ord-teikn"
+
+#, c-format
+#~ msgid "Got unexpected (key?) sequence `%s'."
+#~ msgstr "Fekk uventa sekvens (nøkkelsekvens?) «%s»."
+
+#~ msgid "Could not open console.\n"
+#~ msgstr "Klarte ikkje opna konsoll.\n"
+
+#~ msgid "Could not parse the geometry spec passed to --geometry"
+#~ msgstr "Klarte ikkje tolke geometri-spesifikasjonen gitt til --geometry"
+
+#, c-format
+#~ msgid "Unknown pixel mode %d.\n"
+#~ msgstr "Ukjend pikselmodus %d.\n"
 
 #~ msgid "Error adding `%s' to environment, continuing."
 #~ msgstr "Klarte ikkje å leggja til «%s» i miljøet. Held fram."
