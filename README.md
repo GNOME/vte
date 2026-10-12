@@ -13,7 +13,7 @@ CI status
 Releases
 --------
 
-[![Latest Release](https://gitlab.gnome.org/GNOME/vte/-/badges/release.svg)](https://gitlab.gnome.org/GNOME/vte/-/releases)
+[![Latest Release](https://gitlab.gnome.org/GNOME/vte/-/badges/release.svg?order_by=tag_name)](https://gitlab.gnome.org/GNOME/vte/-/releases)
 
 Tarballs for newer releases are available from the
 [package registry](https://gitlab.gnome.org/GNOME/vte/-/packages)
