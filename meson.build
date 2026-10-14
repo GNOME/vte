@@ -181,6 +181,22 @@ endif
 
 if cxx.get_id() == 'clang'
   assert(cxx.version().version_compare('>=' + clangxx_req_version), 'needs clang++ >= ' + clangxx_req_version + ' for ' + cxx_req_std + ' support')
+
+  # Even though the version check passed, clang may be using an older
+  # libstd++.  Do a minimal-effort check for that.
+  gxx_req_major_version = gxx_req_version.split('.')[0].to_int()
+
+  assert(cxx.compiles('''
+    #include <version>
+    #ifdef _GLIBCXX_RELEASE
+    #if _GLIBCXX_RELEASE < @0@
+    #error libstdc++ too old
+    #endif
+    #endif
+  '''.format(gxx_req_major_version),
+    args: [cxx_std_opt,],
+    name: 'libstdc++ version check',
+  ))
 endif
 
 have_gnu_ld = cxx.get_linker_id() == 'ld.bfd' or cxx.get_linker_id() == 'ld.gold'
