@@ -11085,7 +11085,7 @@ Terminal::time_process_incoming()
 	g_timer_reset(process_timer);
 	process_incoming();
 	auto elapsed = g_timer_elapsed(process_timer, NULL) * 1000;
-	gssize target = VTE_MAX_PROCESS_TIME / elapsed * m_input_bytes;
+	gssize target = VTE_MAX_PROCESS_TIME / std::max(elapsed, 1e-6) * m_input_bytes;
 	m_max_input_bytes = (m_max_input_bytes + target) / 2;
 }
 
