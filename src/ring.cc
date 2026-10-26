@@ -435,6 +435,27 @@ Ring::freeze_row(row_t position,
 		VteCellAttr attr;
 		int num_chars;
 
+		/* Fast path for runs of printable ASCII with identical attributes. */
+		if (G_LIKELY (cell->c >= 32 && cell->c <= 126 &&
+		              memcmp(&m_last_attr, &cell->attr, sizeof(VteCellAttr)) == 0)) {
+			gsize len = buffer->len;
+
+			if (G_UNLIKELY (buffer->allocated_len <= len + row->len - i))
+				g_string_set_size (buffer, len + row->len - i);
+
+			do {
+				buffer->str[len++] = cell->c;
+				i++;
+				cell++;
+			} while (i < row->len && cell->c >= 32 && cell->c <= 126 &&
+			         memcmp(&m_last_attr, &cell->attr, sizeof(VteCellAttr)) == 0);
+			buffer->len = len;
+			buffer->str[len] = '\0';
+			i--;
+			cell--;
+			continue;
+		}
+
 		/* Attr storage:
 		 *
 		 * 1. We don't store attrs for fragments.  They can be
