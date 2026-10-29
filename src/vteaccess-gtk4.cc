@@ -456,8 +456,15 @@ vte_accessible_text_get_contents_at (GtkAccessibleText            *accessible,
                 return nullptr;
         }
 
-        if (offset > contents->n_chars) {
-                offset = contents->n_chars;
+        /* There is nothing at an offset at or past the end of the contents.
+         * This also ensures that the offset used below is always valid.
+         */
+        if (offset >= contents->n_chars) {
+                if (start != nullptr)
+                        *start = 0;
+                if (end != nullptr)
+                        *end = 0;
+                return nullptr;
         }
 
         switch (granularity) {
@@ -468,7 +475,6 @@ vte_accessible_text_get_contents_at (GtkAccessibleText            *accessible,
         }
 
         case GTK_ACCESSIBLE_TEXT_GRANULARITY_LINE: {
-                guint char_offset = *char_positions_index (&contents->characters, offset);
                 guint line;
 
                 for (line = 0;
