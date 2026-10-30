@@ -5191,14 +5191,12 @@ vte_terminal_get_text_range_format(VteTerminal *terminal,
 /**
  * vte_terminal_reset:
  * @terminal: a #VteTerminal
- * @clear_tabstops: whether to reset tabstops
+ * @clear_tabstops: deprecated and ignored
  * @clear_history: whether to empty the terminal's scrollback buffer
  *
- * Resets as much of the terminal's internal state as possible, discarding any
- * unprocessed input data, resetting character attributes, cursor state,
- * national character set state, status line, terminal modes (insert/delete),
- * selection state, and encoding.
- *
+ * Resets the terminal to its initial state, as if reset by the `RIS`
+ * sequence, except that the display is not cleared if @clear_history
+ * is false.
  */
 void
 vte_terminal_reset(VteTerminal *terminal,
@@ -5207,7 +5205,7 @@ vte_terminal_reset(VteTerminal *terminal,
 try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        IMPL(terminal)->reset(clear_tabstops, clear_history, true);
+        IMPL(terminal)->reset(false, clear_history, true);
 }
 catch (...)
 {
