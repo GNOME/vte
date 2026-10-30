@@ -5191,7 +5191,7 @@ vte_terminal_get_text_range_format(VteTerminal *terminal,
 /**
  * vte_terminal_reset:
  * @terminal: a #VteTerminal
- * @clear_tabstops: deprecated and ignored
+ * @clear_tabstops: deprecated and ignored. Deprecated: 0.86
  * @clear_history: whether to empty the terminal's scrollback buffer
  *
  * Resets the terminal to its initial state, as if reset by the `RIS`
@@ -5205,7 +5205,8 @@ vte_terminal_reset(VteTerminal *terminal,
 try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        IMPL(terminal)->reset(false, clear_history, true);
+        IMPL(terminal)->reset(clear_history ? vte::terminal::Terminal::ResetType::API
+                              : vte::terminal::Terminal::Terminal::ResetType::API_NOCLS);
 }
 catch (...)
 {

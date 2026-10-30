@@ -10819,8 +10819,7 @@ Terminal::reset_graphics_color_registers()
 
 /*
  * Terminal::reset:
- * @clear_tabstops: whether to reset tabstops
- * @clear_history: whether to empty the terminal's scrollback buffer
+ * @type:
  *
  * Resets as much of the terminal's internal state as possible, discarding any
  * unprocessed input data, resetting character attributes, cursor state,
@@ -10829,12 +10828,17 @@ Terminal::reset_graphics_color_registers()
  *
  */
 void
-Terminal::reset(bool clear_tabstops,
-                          bool clear_history,
-                          bool from_api)
+Terminal::reset(Terminal::ResetType type)
 {
+        auto const from_api = type == ResetType::API || type == ResetType::API_NOCLS;
+
         if (from_api && !m_input_enabled)
                 return;
+
+        auto const hard = type != ResetType::DECSTR;
+        auto const clear_screen =
+                type != ResetType::DECSTR &&
+                type != ResetType::API_NOCLS;
 
         auto const freezer = vte::glib::FreezeObjectNotify{m_terminal};
 
@@ -10860,12 +10864,12 @@ Terminal::reset(bool clear_tabstops,
         m_decsace_is_rectangle = false; // DECSACE defaults to STREAM
 
         /* Reset tabstops */
-        if (clear_tabstops) {
+        if (hard) {
                 m_tabstops.reset();
         }
 
         /* Window title stack */
-        if (clear_history) {
+        if (clear_screen) {
                 m_window_title_stack.clear();
         }
 
@@ -10882,7 +10886,7 @@ Terminal::reset(bool clear_tabstops,
         m_character_replacements[1] = VTE_CHARACTER_REPLACEMENT_NONE;
         m_character_replacement = &m_character_replacements[0];
 	/* Clear the scrollback buffers and reset the cursors. Switch to normal screen. */
-	if (clear_history) {
+        if (clear_screen) {
                 m_screen = &m_normal_screen;
                 m_normal_screen.scroll_delta = m_normal_screen.insert_delta =
                         m_normal_screen.row_data->reset();
@@ -10907,7 +10911,7 @@ Terminal::reset(bool clear_tabstops,
 	 * the cursor visible again. */
         reset_scrolling_region();
         /* Reset the visual bits of selection on hard reset, see bug 789954. */
-        if (clear_history) {
+        if (clear_screen) {
                 deselect_all();
                 stop_autoscroll();  /* Required before setting m_selecting to false, see #105. */
                 m_selecting = FALSE;

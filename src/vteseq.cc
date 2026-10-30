@@ -5958,7 +5958,7 @@ Terminal::DECSR(vte::parser::Sequence const& seq)
          * param beforehand, and use send() instead of reply().
          */
         auto const token = seq.collect1(0);
-	reset(true, true);
+        reset(ResetType::DECSR);
         send(vte::parser::reply::DECSRC().append_param(token));
 }
 
@@ -6160,7 +6160,7 @@ Terminal::DECSTR(vte::parser::Sequence const& seq)
          * References: VT525
          */
 
-	reset(false, false);
+        reset(ResetType::DECSTR);
 }
 
 void
@@ -8326,7 +8326,7 @@ Terminal::RIS(vte::parser::Sequence const& seq)
          * References: ECMA-48 § 8.3.105
          */
 
-	reset(true, true);
+        reset(ResetType::RIS);
 }
 
 void
