@@ -72,10 +72,13 @@ enum class Flags {
 
         // private
         NO_OSC = 1u << 1, // not settable via the termprop OSC
+        NO_CLEAR_DECSTR = 1u << 2, // don't clear on soft reset
+        NO_CLEAR_RIS    = 1u << 3, // don't clear on hard reset
+        NO_CLEAR_RESET  = NO_CLEAR_DECSTR | NO_CLEAR_RIS, // don't clear on reset
 
         // private, systemd properties only
-        SYSTEMD_START = 1u << 2, // start property
-        SYSTEMD_END = 1u << 3, // end property
+        SYSTEMD_START = 1u << 4, // start property
+        SYSTEMD_END = 1u << 5, // end property
         SYSTEMD = SYSTEMD_START | SYSTEMD_END,
 };
 
@@ -1098,6 +1101,15 @@ public:
         {
                 for (auto const& info: registry().get_all()) {
                         reset(info);
+                }
+        }
+
+        template<class UnaryPred>
+        void reset_all(UnaryPred predicate)
+        {
+                for (auto const& info: registry().get_all()) {
+                        if (predicate(info))
+                                reset(info);
                 }
         }
 

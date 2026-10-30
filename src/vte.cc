@@ -10954,7 +10954,21 @@ Terminal::reset(Terminal::ResetType type)
         reset_graphics_color_registers();
 
         // Reset termprops
-        reset_termprops();
+        // Some termprops should not be cleared (except on DECSR),
+        // see https://gitlab.gnome.org/GNOME/vte/-/work_items/2968
+        auto const reset_flag = [type]() -> auto {
+                if (type == ResetType::DECSTR)
+                        return vte::property::Flags::NO_CLEAR_DECSTR;
+                else if (type == ResetType::RIS)
+                        return vte::property::Flags::NO_CLEAR_RIS;
+                else
+                        return vte::property::Flags::NONE;
+        }();
+
+        m_termprops.reset_all([reset_flag](auto const& info) constexpr noexcept -> bool {
+                return (info.flags() & reset_flag) == vte::property::Flags::NONE;
+        });
+        m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS);
 }
 
 void
