@@ -4028,8 +4028,8 @@ window_progress_icon(VteappWindow* window)
 
                         if (fraction < 1.) {
                                 cairo_move_to(cr.get(), xc, yc);
-                                cairo_line_to(cr.get(), xc + radius, yc);
-                                cairo_arc_negative(cr.get(), xc, yc, radius, 0, 2 * G_PI * (1. - fraction));
+                                cairo_line_to(cr.get(), xc, yc - radius);
+                                cairo_arc(cr.get(), xc, yc, radius, - G_PI / 2.0, 2.0 * G_PI * (fraction - 0.25));
                                 cairo_line_to(cr.get(), xc, yc);
                         } else {
                                 cairo_arc(cr.get(), xc, yc, radius, 0, 2 * G_PI);
