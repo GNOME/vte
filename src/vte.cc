@@ -1932,10 +1932,10 @@ Terminal::queue_adjustment_changed()
 }
 
 void
-Terminal::queue_adjustment_value_changed(double v)
+Terminal::queue_adjustment_value_changed(double v, bool force)
 {
         /* FIXME: do this check in pixel space? */
-	if (_vte_double_equal(v, m_screen->scroll_delta))
+	if (_vte_double_equal(v, m_screen->scroll_delta) && !force)
                 return;
 
         _vte_debug_print(vte::debug::category::ADJ,
@@ -8580,6 +8580,9 @@ Terminal::widget_map()
 {
         m_widget_mapped = true;
         adjust_adjustments_full();
+        /* Force updating the scrollbar position:
+         * https://gitlab.gnome.org/GNOME/vte/-/work_items/2969 */
+        queue_adjustment_value_changed(m_screen->scroll_delta, true);
 }
 
 void
