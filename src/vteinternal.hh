@@ -1380,7 +1380,7 @@ public:
         void emit_eof();
         void emit_selection_changed();
         void queue_adjustment_changed();
-        void queue_adjustment_value_changed(double v);
+        void queue_adjustment_value_changed(double v, bool force = false);
         void queue_adjustment_value_changed_clamped(double v);
         void adjust_adjustments();
         void adjust_adjustments_full();
