@@ -630,6 +630,30 @@ Ring::thaw_row(row_t position,
                                 cell.attr.attr ^= VTE_ATTR_REVERSE;
                         }
                 }
+
+                if (record.is_ascii && cell.attr.columns() == 1) {
+                        gsize len = end - p;
+
+                        if (record.text_start_offset < m_last_attr_text_start_offset)
+                                len = MIN(len, attr_change.text_end_offset - record.text_start_offset);
+
+                        if (_vte_row_data_ensure_len(row, row->len + len)) {
+                                if (hyperlink != nullptr && hyperlink_column >= row->len &&
+                                    gsize(hyperlink_column) < row->len + len)
+                                        *hyperlink = strcpy(m_hyperlink_buf, hyperlink_readbuf);
+
+                                auto cells = row->cells + row->len;
+                                for (gsize i = 0; i < len; i++) {
+                                        cells[i].c = p[i];
+                                        cells[i].attr = cell.attr;
+                                }
+                                row->len += len;
+                                record.text_start_offset += len;
+                                p += len;
+                                continue;
+                        }
+                }
+
 		cell.c = g_utf8_get_char (p);
 
 		q = g_utf8_next_char (p);
