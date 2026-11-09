@@ -39,6 +39,10 @@
 #include <glib-unix.h>
 #include <glib/gi18n-lib.h>
 
+#if HAVE_SYSPROF
+#include <sysprof-capture.h>
+#endif
+
 #include <vte/vte.h>
 #include "vteinternal.hh"
 #include "bidi.hh"
@@ -118,6 +122,32 @@ namespace vte {
 namespace terminal {
 
 using namespace vte::color_palette;
+
+#if HAVE_SYSPROF
+class InputTraceMark {
+public:
+        explicit InputTraceMark(char const* name) noexcept :
+                m_name{name},
+                m_start{sysprof_collector_is_active() ? SYSPROF_CAPTURE_CURRENT_TIME : 0}
+        {
+        }
+
+        ~InputTraceMark() noexcept
+        {
+                if (m_start != 0)
+                        sysprof_collector_mark(m_start,
+                                               SYSPROF_CAPTURE_CURRENT_TIME - m_start,
+                                               "VTE", m_name, nullptr);
+        }
+
+        InputTraceMark(InputTraceMark const&) = delete;
+        InputTraceMark& operator=(InputTraceMark const&) = delete;
+
+private:
+        char const* m_name;
+        int64_t m_start;
+};
+#endif
 
 // _vte_unichar_width() determines the number of cells that a character
 // would occupy. The primary likely case is hoisted into a define so
@@ -4010,6 +4040,9 @@ Terminal::im_reset()
 void
 Terminal::process_incoming()
 {
+#if HAVE_SYSPROF
+        auto const trace_mark = InputTraceMark{"Input Process"};
+#endif
         _vte_debug_print(vte::debug::category::IO,
                          "Handler processing {} bytes over {} chunks",
                          m_input_bytes,
@@ -4536,6 +4569,9 @@ Terminal::pty_io_read(int const fd,
                       GIOCondition const condition,
                       int amount)
 {
+#if HAVE_SYSPROF
+        auto const trace_mark = InputTraceMark{"PTY Read"};
+#endif
         _vte_debug_print(vte::debug::category::IO,
                          "::pty_io_read condition {:02x}",
                          unsigned(condition));
@@ -4838,6 +4874,9 @@ bool
 Terminal::pty_io_write(int const fd,
                        GIOCondition const condition)
 {
+#if HAVE_SYSPROF
+        auto const trace_mark = InputTraceMark{"PTY Write"};
+#endif
         auto const count = write(fd,
                                  m_outgoing->data,
                                  _vte_byte_array_length(m_outgoing));
@@ -4875,6 +4914,9 @@ Terminal::pty_io_write(int const fd,
 void
 Terminal::send_child(std::string_view const& data)
 {
+#if HAVE_SYSPROF
+        auto const trace_mark = InputTraceMark{"Input Send"};
+#endif
         // FIXMEchpe remove
         if (!m_input_enabled)
                 return;
@@ -5379,6 +5421,9 @@ Terminal::key_event_action(vte::platform::KeyEvent const& event)
 bool
 Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 {
+#if HAVE_SYSPROF
+        auto const trace_mark = InputTraceMark{"Key Press"};
+#endif
         auto handled = false;
 	char *normal = NULL;
 	gsize normal_length = 0;

@@ -382,6 +382,7 @@ libvte_common_deps = libvte_common_public_deps + [
   liblz4_dep,
   pthreads_dep,
   simdutf_dep,
+  sysprof_dep,
   systemd_dep,
 ]
 

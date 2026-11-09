@@ -115,6 +115,13 @@ option(
 )
 
 option(
+  'sysprof',
+  type: 'feature',
+  value: 'auto',
+  description: 'Enable Sysprof marks',
+)
+
+option(
   '_systemd',
   type: 'boolean',
   value: true,
