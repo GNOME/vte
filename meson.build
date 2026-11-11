@@ -688,6 +688,9 @@ pthreads_dep      = dependency('threads')
 liblz4_dep        = dependency('liblz4', version: '>=' + liblz4_req_version)
 simdutf_dep       = dependency('simdutf', version: '>=' + simdutf_req_version, required: true, default_options: simdutf_default_options)
 
+sysprof_dep       = dependency('sysprof-capture-4', required: get_option('sysprof'))
+config_h.set10('WITH_SYSPROF', sysprof_dep.found())
+
 # fmt dep needs a bit more massaging since we don't know
 # if the system fmt is a shared or static library, and in
 # the latter case if it's compiled with PIC. Since vte
@@ -861,6 +864,7 @@ output += '  GIR:          ' + get_option('gir').to_string() + '\n'
 output += '  systemd:      ' + systemd_dep.found().to_string() + '\n'
 output += '  Terminfo:     ' + get_option('terminfo').to_string() + '\n'
 output += '  SIXEL:        ' + get_option('sixel').to_string() + '\n'
+output += '  Sysprof:      ' + sysprof_dep.found().to_string() + '\n'
 output += '  Glade:        ' + get_option('glade').to_string() + '\n'
 output += '  Vala:         ' + get_option('vapi').to_string() + '\n'
 output += '\n'

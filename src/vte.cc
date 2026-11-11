@@ -39,6 +39,7 @@
 #include <glib-unix.h>
 #include <glib/gi18n-lib.h>
 
+
 #include <vte/vte.h>
 #include "vteinternal.hh"
 #include "bidi.hh"
@@ -79,6 +80,7 @@
 #include "cxx-utils.hh"
 #include "gobject-glue.hh"
 #include "color-lightness.hh"
+#include "sysprof-glue.hh"
 #include "termpropsregistry.hh"
 
 #if WITH_A11Y
@@ -4010,6 +4012,8 @@ Terminal::im_reset()
 void
 Terminal::process_incoming()
 {
+        VTE_SYSPROF_MARK("Input Process");
+
         _vte_debug_print(vte::debug::category::IO,
                          "Handler processing {} bytes over {} chunks",
                          m_input_bytes,
@@ -4536,6 +4540,8 @@ Terminal::pty_io_read(int const fd,
                       GIOCondition const condition,
                       int amount)
 {
+        VTE_SYSPROF_MARK("PTY Read");
+
         _vte_debug_print(vte::debug::category::IO,
                          "::pty_io_read condition {:02x}",
                          unsigned(condition));
@@ -4838,6 +4844,8 @@ bool
 Terminal::pty_io_write(int const fd,
                        GIOCondition const condition)
 {
+        VTE_SYSPROF_MARK("PTY Write");
+
         auto const count = write(fd,
                                  m_outgoing->data,
                                  _vte_byte_array_length(m_outgoing));
@@ -4875,6 +4883,8 @@ Terminal::pty_io_write(int const fd,
 void
 Terminal::send_child(std::string_view const& data)
 {
+        VTE_SYSPROF_MARK("Input Send");
+
         // FIXMEchpe remove
         if (!m_input_enabled)
                 return;
@@ -5379,6 +5389,8 @@ Terminal::key_event_action(vte::platform::KeyEvent const& event)
 bool
 Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 {
+        VTE_SYSPROF_MARK("Key Press");
+
         auto handled = false;
 	char *normal = NULL;
 	gsize normal_length = 0;
