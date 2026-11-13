@@ -870,12 +870,6 @@ public:
                 // FIXME: need to start processing
         }
 
-        void reset_termprops()
-        {
-                m_termprops.reset_all();
-                m_pending_changes |= std::to_underlying(PendingChanges::TERMPROPS);
-        }
-
         bool m_enable_legacy_osc777{false};
 
         bool set_enable_legacy_osc777(bool enable) noexcept
