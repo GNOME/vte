@@ -1251,9 +1251,17 @@ public:
         void im_update_cursor();
 
         void reset_graphics_color_registers();
-        void reset(bool clear_tabstops,
-                   bool clear_history,
-                   bool from_api = false);
+
+        enum class ResetType {
+                DECSTR, // soft reset
+                RIS,    // hard reset
+                DECSR,  // secure reset
+
+                API,       // hard reset from API
+                API_NOCLS, // hard reset from API, no clear screen
+        };
+
+        void reset(ResetType type);
         void reset_decoder();
 
         void feed(std::string_view const& data,
