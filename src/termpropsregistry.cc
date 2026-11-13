@@ -201,19 +201,19 @@ TermpropsRegistry::TermpropsRegistry()
                                 VTE_PROPERTY_ID_CURRENT_DIRECTORY_URI,
                                 VTE_TERMPROP_CURRENT_DIRECTORY_URI,
                                 vte::property::Type::URI,
-                                vte::property::Flags::NO_OSC
+                                vte::property::Flags::NO_OSC | vte::property::Flags::NO_CLEAR_RESET
                         },
                         {
                                 VTE_PROPERTY_ID_CURRENT_FILE_URI,
                                 VTE_TERMPROP_CURRENT_FILE_URI,
                                 vte::property::Type::URI,
-                                vte::property::Flags::NO_OSC
+                                vte::property::Flags::NO_OSC | vte::property::Flags::NO_CLEAR_RESET
                         },
                         {
                                 VTE_PROPERTY_ID_XTERM_TITLE,
                                 VTE_TERMPROP_XTERM_TITLE,
                                 vte::property::Type::STRING,
-                                vte::property::Flags::NO_OSC
+                                vte::property::Flags::NO_OSC | vte::property::Flags::NO_CLEAR_RESET
                         },
                         {
                                 VTE_PROPERTY_ID_CONTAINER_NAME,
