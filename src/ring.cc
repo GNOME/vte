@@ -1356,7 +1356,12 @@ Ring::rewrap(column_t columns,
 				paragraph_len -= runlength;
 			} else {
 				while (runlength) {
-					if (col >= columns - attr_change.attr.columns() + 1) {
+                                        /* If the next character wouldn't fit in this row then we need to wrap now.
+                                         * Except if we're in the first column: then wrapping is pointless (the
+                                         * character wouldn't fit in the next row either), and our streams don't
+                                         * support empty soft-wrapped rows that such wrapping would create.
+                                         * See https://gitlab.gnome.org/GNOME/gnome-terminal/-/issues/8158 */
+                                        if (col > 0 && col >= columns - attr_change.attr.columns() + 1) {
 						/* Wrap now, write the soft wrapped row's record */
                                                 new_record.width = col;
 						new_record.soft_wrapped = 1;
