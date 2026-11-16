@@ -8261,7 +8261,7 @@ Terminal::screen_set_size(VteScreen *screen_,
 		drop3 = old_top_lines - new_top_lines;
 		drop = MIN(MIN(drop1, drop2), drop3);
 		if (drop > 0) {
-			int new_ring_next = screen_->insert_delta + m_row_count - drop;
+                        auto new_ring_next = screen_->insert_delta + m_row_count - drop;
 			_vte_debug_print(vte::debug::category::RESIZE,
 					"Dropping {} [== MIN({}, {}, {})] rows at the bottom",
                                          drop, drop1, drop2, drop3);
