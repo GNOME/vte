@@ -40,7 +40,10 @@
 #include "attr.hh"
 #include "color-triple.hh"
 
-#define VTE_TAB_WIDTH_MAX		((1 << VTE_ATTR_COLUMNS_BITS) - 1)
+/* See https://gitlab.gnome.org/GNOME/gnome-terminal/-/issues/8158 */
+#define VTE_TAB_WIDTH_MAX                8
+static_assert(VTE_TAB_WIDTH_MAX <= (1 << VTE_ATTR_COLUMNS_BITS) - 1, "TAB character width doesn't fit in storage");
+static_assert(VTE_TAB_WIDTH_MAX <= VTE_MIN_GRID_WIDTH, "TAB character may not fit in window");
 
 #define VTE_CELL_ATTR_COMMON_BYTES      12  /* The number of common bytes in VteCellAttr and VteStreamCellAttr */
 

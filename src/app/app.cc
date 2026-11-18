@@ -3007,9 +3007,9 @@ static char const* const builtin_dingus[] = {
         nullptr,
 };
 
-/* Just some arbitrary minimum values */
-#define MIN_COLUMNS (16)
-#define MIN_ROWS    (2)
+/* Minimum values following the VTE widget's minimums, as per https://gitlab.gnome.org/GNOME/gnome-terminal/-/issues/8158 */
+#define MIN_COLUMNS (8)
+#define MIN_ROWS    (1)
 
 static void
 vteapp_window_add_dingus(VteappWindow* window,

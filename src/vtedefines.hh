@@ -142,7 +142,7 @@
 #define VTE_MIN_CURSOR_BLINK_CYCLE (50 /* ms */)
 #define VTE_MIN_CURSOR_BLINK_TIMEOUT (50 /* ms */)
 
-#define VTE_MIN_GRID_WIDTH (2) /* space for one wide character */
+#define VTE_MIN_GRID_WIDTH (8) /* space for usual TAB character width */
 #define VTE_MIN_GRID_HEIGHT (1)
 
 #define VTE_FONT_WEIGHT_BOLDENING (PANGO_WEIGHT_BOLD - PANGO_WEIGHT_NORMAL)
