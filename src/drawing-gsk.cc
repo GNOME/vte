@@ -161,6 +161,9 @@ DrawingGsk::draw_text(TextRequest* requests,
 
         auto const rgba = color->rgba(1.0);
         PangoFont *node_font = nullptr;
+#if GTK_CHECK_VERSION(4, 24, 0)
+        bool minifont_snap = false;
+#endif
 
         vte_glyphs_set_size (&m_glyphs, 0);
 
@@ -172,6 +175,13 @@ DrawingGsk::draw_text(TextRequest* requests,
                 }
 
                 if (Minifont::unistr_is_local_graphic(c)) {
+#if GTK_CHECK_VERSION(4, 24, 0)
+                        if (!minifont_snap) {
+                                gtk_snapshot_save(m_snapshot);
+                                gtk_snapshot_set_snap(m_snapshot, GSK_RECT_SNAP_ROUND);
+                                minifont_snap = true;
+                        }
+#endif
                         m_minifont.draw_graphic(*this,
                                                 c,
                                                 color,
@@ -223,6 +233,10 @@ DrawingGsk::draw_text(TextRequest* requests,
         }
 
         flush_glyph_string (node_font, &rgba);
+#if GTK_CHECK_VERSION(4, 24, 0)
+        if (minifont_snap)
+                gtk_snapshot_restore(m_snapshot);
+#endif
 }
 
 void

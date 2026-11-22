@@ -43,7 +43,7 @@ gtk3_max_allowed_version  = '3.24'
 
 gtk4_req_version          = '4.14.0'
 gtk4_min_req_version      = '4.14'
-gtk4_max_allowed_version  = '4.14'
+gtk4_max_allowed_version  = '4.24'
 
 cairo_gobject_req_version = '1.0'
 cairo_req_version         = '1.0'
